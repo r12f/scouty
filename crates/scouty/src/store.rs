@@ -116,7 +116,7 @@ impl LogStore {
                     .frozen
                     .last()
                     .and_then(|s| s.max_timestamp())
-                    .map_or(true, |t| record.timestamp >= t)
+                    .is_none_or(|t| record.timestamp >= t)
             {
                 self.active.push(record);
                 self.total_len += 1;
@@ -131,7 +131,7 @@ impl LogStore {
             || self
                 .active
                 .min_timestamp()
-                .map_or(true, |t| record.timestamp >= t)
+                .is_none_or(|t| record.timestamp >= t)
         {
             self.active.insert(record);
             self.total_len += 1;
@@ -189,7 +189,7 @@ impl LogStore {
             for seg in self.frozen.drain(..) {
                 all_records.extend(seg.records);
             }
-            all_records.extend(self.active.records.drain(..));
+            all_records.append(&mut self.active.records);
             all_records.extend(batch);
             all_records.sort_by_key(|r| r.timestamp);
 
@@ -266,7 +266,7 @@ impl LogStore {
     pub fn find_by_timestamp(&self, ts: &DateTime<Utc>) -> usize {
         let mut global_offset = 0;
         for seg in &self.frozen {
-            if seg.max_timestamp().map_or(false, |max| max < *ts) {
+            if seg.max_timestamp().is_some_and(|max| max < *ts) {
                 global_offset += seg.len();
                 continue;
             }
@@ -342,7 +342,7 @@ impl LogStore {
     /// Find which frozen segment a timestamp belongs to.
     fn find_segment_for_timestamp(&self, ts: &DateTime<Utc>) -> usize {
         self.frozen
-            .partition_point(|s| s.max_timestamp().map_or(false, |max| max < *ts))
+            .partition_point(|s| s.max_timestamp().is_some_and(|max| max < *ts))
     }
 
     /// Split an oversized segment into two.
