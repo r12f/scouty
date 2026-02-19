@@ -1,0 +1,7 @@
+[package]
+name = "scouty-tui"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+scouty = { path = "../scouty" }
