@@ -35,8 +35,7 @@ mod tests {
 
         // Create a gzip file
         let file = std::fs::File::create(&file_path).unwrap();
-        let mut encoder =
-            flate2::write::GzEncoder::new(file, flate2::Compression::default());
+        let mut encoder = flate2::write::GzEncoder::new(file, flate2::Compression::default());
         write!(encoder, "hello\nworld\n").unwrap();
         encoder.finish().unwrap();
 

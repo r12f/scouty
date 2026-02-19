@@ -56,8 +56,8 @@ pub fn from_yaml(yaml: &str) -> Result<ParserConfig, String> {
 
 /// Load parser config from a YAML file.
 pub fn from_file(path: &Path) -> Result<ParserConfig, String> {
-    let content =
-        std::fs::read_to_string(path).map_err(|e| format!("Failed to read {}: {}", path.display(), e))?;
+    let content = std::fs::read_to_string(path)
+        .map_err(|e| format!("Failed to read {}: {}", path.display(), e))?;
     from_yaml(&content)
 }
 

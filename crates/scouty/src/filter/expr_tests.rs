@@ -20,8 +20,22 @@ mod tests {
         let expr = parse(r#"level = "Error" AND component = "auth""#).unwrap();
         match expr {
             Expr::And(left, right) => {
-                assert_eq!(*left, Expr::Comparison { field: "level".into(), op: Op::Eq, value: "Error".into() });
-                assert_eq!(*right, Expr::Comparison { field: "component".into(), op: Op::Eq, value: "auth".into() });
+                assert_eq!(
+                    *left,
+                    Expr::Comparison {
+                        field: "level".into(),
+                        op: Op::Eq,
+                        value: "Error".into()
+                    }
+                );
+                assert_eq!(
+                    *right,
+                    Expr::Comparison {
+                        field: "component".into(),
+                        op: Op::Eq,
+                        value: "auth".into()
+                    }
+                );
             }
             _ => panic!("Expected And expression"),
         }
@@ -32,8 +46,22 @@ mod tests {
         let expr = parse(r#"level = "Error" OR level = "Fatal""#).unwrap();
         match expr {
             Expr::Or(left, right) => {
-                assert_eq!(*left, Expr::Comparison { field: "level".into(), op: Op::Eq, value: "Error".into() });
-                assert_eq!(*right, Expr::Comparison { field: "level".into(), op: Op::Eq, value: "Fatal".into() });
+                assert_eq!(
+                    *left,
+                    Expr::Comparison {
+                        field: "level".into(),
+                        op: Op::Eq,
+                        value: "Error".into()
+                    }
+                );
+                assert_eq!(
+                    *right,
+                    Expr::Comparison {
+                        field: "level".into(),
+                        op: Op::Eq,
+                        value: "Fatal".into()
+                    }
+                );
             }
             _ => panic!("Expected Or expression"),
         }
@@ -45,7 +73,14 @@ mod tests {
         match expr {
             Expr::And(left, right) => {
                 assert!(matches!(*left, Expr::Or(_, _)));
-                assert_eq!(*right, Expr::Comparison { field: "component".into(), op: Op::Eq, value: "auth".into() });
+                assert_eq!(
+                    *right,
+                    Expr::Comparison {
+                        field: "component".into(),
+                        op: Op::Eq,
+                        value: "auth".into()
+                    }
+                );
             }
             _ => panic!("Expected And with nested Or"),
         }
@@ -56,7 +91,14 @@ mod tests {
         let expr = parse(r#"NOT level = "Debug""#).unwrap();
         match expr {
             Expr::Not(inner) => {
-                assert_eq!(*inner, Expr::Comparison { field: "level".into(), op: Op::Eq, value: "Debug".into() });
+                assert_eq!(
+                    *inner,
+                    Expr::Comparison {
+                        field: "level".into(),
+                        op: Op::Eq,
+                        value: "Debug".into()
+                    }
+                );
             }
             _ => panic!("Expected Not expression"),
         }
@@ -74,9 +116,12 @@ mod tests {
     #[test]
     fn all_operators() {
         for (op_str, expected_op) in &[
-            ("=", Op::Eq), ("!=", Op::Ne),
-            (">", Op::Gt), (">=", Op::Ge),
-            ("<", Op::Lt), ("<=", Op::Le),
+            ("=", Op::Eq),
+            ("!=", Op::Ne),
+            (">", Op::Gt),
+            (">=", Op::Ge),
+            ("<", Op::Lt),
+            ("<=", Op::Le),
             ("contains", Op::Contains),
             ("starts_with", Op::StartsWith),
             ("ends_with", Op::EndsWith),
@@ -86,7 +131,11 @@ mod tests {
             let expr = parse(&input).unwrap();
             assert_eq!(
                 expr,
-                Expr::Comparison { field: "field".into(), op: expected_op.clone(), value: "val".into() }
+                Expr::Comparison {
+                    field: "field".into(),
+                    op: expected_op.clone(),
+                    value: "val".into()
+                }
             );
         }
     }
@@ -106,7 +155,11 @@ mod tests {
         let expr = parse("id >= 100").unwrap();
         assert_eq!(
             expr,
-            Expr::Comparison { field: "id".into(), op: Op::Ge, value: "100".into() }
+            Expr::Comparison {
+                field: "id".into(),
+                op: Op::Ge,
+                value: "100".into()
+            }
         );
     }
 
@@ -115,7 +168,11 @@ mod tests {
         let expr = parse(r#"metadata.env = "prod""#).unwrap();
         assert_eq!(
             expr,
-            Expr::Comparison { field: "metadata.env".into(), op: Op::Eq, value: "prod".into() }
+            Expr::Comparison {
+                field: "metadata.env".into(),
+                op: Op::Eq,
+                value: "prod".into()
+            }
         );
     }
 
@@ -146,7 +203,11 @@ mod tests {
         let expr = parse("level = 'Error'").unwrap();
         assert_eq!(
             expr,
-            Expr::Comparison { field: "level".into(), op: Op::Eq, value: "Error".into() }
+            Expr::Comparison {
+                field: "level".into(),
+                op: Op::Eq,
+                value: "Error".into()
+            }
         );
     }
 }
