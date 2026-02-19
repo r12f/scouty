@@ -283,9 +283,12 @@ random garbage
 
     // ========================================
     // 6.2 Performance Tests
+    // These are marked #[ignore] and should be run with --release for meaningful results:
+    //   cargo test --release -p scouty -- --ignored
     // ========================================
 
     #[test]
+    #[ignore] // Run with: cargo test --release -- --ignored
     fn test_perf_large_file_loading() {
         // Generate 100K log lines (scaled down from 1M for CI speed, but tests the path)
         let mut content = String::with_capacity(100_000 * 60);
@@ -326,6 +329,7 @@ random garbage
     }
 
     #[test]
+    #[ignore] // Run with: cargo test --release -- --ignored
     fn test_perf_filter_large_dataset() {
         let mut content = String::with_capacity(50_000 * 60);
         for i in 0..50_000 {
@@ -369,6 +373,7 @@ random garbage
     }
 
     #[test]
+    #[ignore] // Run with: cargo test --release -- --ignored
     fn test_perf_store_operations() {
         use crate::record::LogRecord;
         use crate::store::LogStore;
@@ -412,6 +417,7 @@ random garbage
     }
 
     #[test]
+    #[ignore] // Run with: cargo test --release -- --ignored
     fn test_perf_parallel_vs_sequential() {
         let content = "\
 2024-01-15 10:00:00 INFO msg1
