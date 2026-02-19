@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use crate::parser::config::{from_yaml, build_groups, load_from_yaml, load_from_file};
+    use crate::parser::config::{build_groups, from_yaml, load_from_file, load_from_yaml};
     use crate::record::LogLevel;
     use crate::traits::LogParser;
 
@@ -45,7 +45,12 @@ groups:
 
         // Test that the generic group can parse a log line
         let record = groups[1]
-            .parse("2024-01-15 10:30:00 ERROR something broke", "test", "loader", 0)
+            .parse(
+                "2024-01-15 10:30:00 ERROR something broke",
+                "test",
+                "loader",
+                0,
+            )
             .unwrap();
         assert_eq!(record.level, Some(LogLevel::Error));
         assert_eq!(record.message, "something broke");

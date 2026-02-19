@@ -49,7 +49,10 @@ mod tests {
     #[test]
     fn exclude_removes_matching() {
         let mut engine = FilterEngine::new();
-        engine.add_filter(FilterAction::Exclude, Box::new(LevelFilter(LogLevel::Error)));
+        engine.add_filter(
+            FilterAction::Exclude,
+            Box::new(LevelFilter(LogLevel::Error)),
+        );
 
         let records = vec![
             make_record(0, LogLevel::Info, "ok"),
@@ -75,15 +78,21 @@ mod tests {
     #[test]
     fn exclude_takes_priority_over_include() {
         let mut engine = FilterEngine::new();
-        engine.add_filter(FilterAction::Exclude, Box::new(LevelFilter(LogLevel::Error)));
-        engine.add_filter(FilterAction::Include, Box::new(LevelFilter(LogLevel::Error)));
+        engine.add_filter(
+            FilterAction::Exclude,
+            Box::new(LevelFilter(LogLevel::Error)),
+        );
+        engine.add_filter(
+            FilterAction::Include,
+            Box::new(LevelFilter(LogLevel::Error)),
+        );
 
         let records = vec![
             make_record(0, LogLevel::Info, "ok"),
             make_record(1, LogLevel::Error, "bad"),
         ];
         // Error is excluded first, then include has no effect on it
-        assert_eq!(engine.apply(&records), vec![]);
+        assert_eq!(engine.apply(&records), Vec::<usize>::new());
     }
 
     #[test]
