@@ -1,7 +1,7 @@
 //! FilterEngine — manages exclude/include filters and produces a filtered view.
 
-use crate::filter::eval;
-use crate::filter::expr::{self, Expr};
+use crate::filter::expr;
+use crate::filter::expr_filter::ExprFilter;
 use crate::record::LogRecord;
 use crate::traits::LogFilter;
 
@@ -105,32 +105,6 @@ impl FilterEngine {
 impl Default for FilterEngine {
     fn default() -> Self {
         Self::new()
-    }
-}
-
-/// A filter backed by a parsed expression.
-#[derive(Debug)]
-pub struct ExprFilter {
-    expr: Expr,
-    description: String,
-}
-
-impl ExprFilter {
-    pub fn new(expr: Expr, description: impl Into<String>) -> Self {
-        Self {
-            expr,
-            description: description.into(),
-        }
-    }
-}
-
-impl LogFilter for ExprFilter {
-    fn matches(&self, record: &LogRecord) -> bool {
-        eval::eval(&self.expr, record)
-    }
-
-    fn description(&self) -> &str {
-        &self.description
     }
 }
 
