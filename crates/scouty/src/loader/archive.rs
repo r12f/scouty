@@ -5,7 +5,7 @@
 mod archive_tests;
 
 use crate::traits::{LoaderInfo, LoaderType, LogLoader, Result, ScoutyError};
-use std::io::{BufRead, BufReader, Read};
+use std::io::{BufRead, BufReader};
 use std::path::PathBuf;
 
 /// Supported archive formats.
@@ -83,9 +83,7 @@ impl ArchiveLoader {
         let file = std::fs::File::open(&self.path)?;
         let decoder = flate2::read::GzDecoder::new(file);
         let reader = BufReader::new(decoder);
-        let lines: Vec<String> = reader
-            .lines()
-            .collect::<std::result::Result<Vec<_>, _>>()?;
+        let lines: Vec<String> = reader.lines().collect::<std::result::Result<Vec<_>, _>>()?;
         Ok(lines)
     }
 
@@ -134,9 +132,7 @@ impl ArchiveLoader {
             return Ok(());
         }
         if dir.is_dir() {
-            let mut entries: Vec<_> = std::fs::read_dir(dir)?
-                .filter_map(|e| e.ok())
-                .collect();
+            let mut entries: Vec<_> = std::fs::read_dir(dir)?.filter_map(|e| e.ok()).collect();
             entries.sort_by_key(|e| e.path());
             for entry in entries {
                 Self::read_dir_recursive(&entry.path(), lines)?;
