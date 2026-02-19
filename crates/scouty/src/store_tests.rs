@@ -6,9 +6,10 @@ mod tests {
     use std::collections::HashMap;
 
     fn make_record_at(id: u64, level: LogLevel, message: &str, offset_secs: i64) -> LogRecord {
+        let base = Utc::now();
         LogRecord {
             id,
-            timestamp: Utc::now() + Duration::seconds(offset_secs),
+            timestamp: base + Duration::seconds(offset_secs),
             level: Some(level),
             source: "test".into(),
             pid: None,
@@ -21,6 +22,27 @@ mod tests {
             loader_id: "test-loader".into(),
         }
     }
+
+    fn make_record_with_ts(id: u64, ts: chrono::DateTime<Utc>) -> LogRecord {
+        LogRecord {
+            id,
+            timestamp: ts,
+            level: Some(LogLevel::Info),
+            source: "test".into(),
+            pid: None,
+            tid: None,
+            component_name: None,
+            process_name: None,
+            message: format!("msg-{}", id),
+            raw: format!("msg-{}", id),
+            metadata: HashMap::new(),
+            loader_id: "test-loader".into(),
+        }
+    }
+
+    // ========================================
+    // Basic API tests (backward compatibility)
+    // ========================================
 
     #[test]
     fn insert_maintains_order() {
@@ -81,32 +103,16 @@ mod tests {
         let mut store = LogStore::new();
         let base = Utc::now();
         for i in 0..10 {
-            store.insert(LogRecord {
-                id: i,
-                timestamp: base + Duration::seconds(i as i64 * 10),
-                level: Some(LogLevel::Info),
-                source: "test".into(),
-                pid: None,
-                tid: None,
-                component_name: None,
-                process_name: None,
-                message: format!("msg-{}", i),
-                raw: format!("msg-{}", i),
-                metadata: HashMap::new(),
-                loader_id: "loader".into(),
-            });
+            store.insert(make_record_with_ts(i, base + Duration::seconds(i as i64 * 10)));
         }
 
-        // Jump to timestamp at offset 25s — should land on record at 30s (index 3)
         let target = base + Duration::seconds(25);
         let idx = store.find_by_timestamp(&target);
         assert_eq!(idx, 3);
 
-        // Before all records
         let before = base - Duration::seconds(100);
         assert_eq!(store.find_by_timestamp(&before), 0);
 
-        // After all records
         let after = base + Duration::seconds(1000);
         assert_eq!(store.find_by_timestamp(&after), 10);
     }
@@ -115,12 +121,7 @@ mod tests {
     fn range_query() {
         let mut store = LogStore::new();
         for i in 0..5 {
-            store.insert(make_record_at(
-                i,
-                LogLevel::Info,
-                &format!("msg-{}", i),
-                i as i64,
-            ));
+            store.insert(make_record_at(i, LogLevel::Info, &format!("msg-{}", i), i as i64));
         }
 
         let slice = store.range(1, 3);
@@ -128,11 +129,9 @@ mod tests {
         assert_eq!(slice[0].message, "msg-1");
         assert_eq!(slice[1].message, "msg-2");
 
-        // Out of bounds clamped
         let slice = store.range(3, 100);
         assert_eq!(slice.len(), 2);
 
-        // Empty range
         let slice = store.range(5, 5);
         assert_eq!(slice.len(), 0);
     }
@@ -146,54 +145,28 @@ mod tests {
         assert!(store.is_empty());
     }
 
+    // ========================================
+    // Live insert tests
+    // ========================================
+
     #[test]
     fn live_insert_maintains_order() {
-        // Simulate live inserts arriving slightly out of order
         let mut store = LogStore::new();
         let base = Utc::now();
 
-        // Batch load historical data
         let batch: Vec<LogRecord> = (0..100)
-            .map(|i| LogRecord {
-                id: i,
-                timestamp: base + Duration::milliseconds(i as i64 * 100),
-                level: Some(LogLevel::Info),
-                source: "file".into(),
-                pid: None,
-                tid: None,
-                component_name: None,
-                process_name: None,
-                message: format!("historical-{}", i),
-                raw: format!("historical-{}", i),
-                metadata: HashMap::new(),
-                loader_id: "file-loader".into(),
-            })
+            .map(|i| make_record_with_ts(i, base + Duration::milliseconds(i as i64 * 100)))
             .collect();
         store.insert_batch(batch);
 
-        // Live inserts at the end (most common case)
         for i in 100..110 {
-            store.insert(LogRecord {
-                id: i,
-                timestamp: base + Duration::milliseconds(i as i64 * 100),
-                level: Some(LogLevel::Info),
-                source: "live".into(),
-                pid: None,
-                tid: None,
-                component_name: None,
-                process_name: None,
-                message: format!("live-{}", i),
-                raw: format!("live-{}", i),
-                metadata: HashMap::new(),
-                loader_id: "otlp-loader".into(),
-            });
+            store.insert(make_record_with_ts(i, base + Duration::milliseconds(i as i64 * 100)));
         }
 
         assert_eq!(store.len(), 110);
-
-        // Verify order
-        for i in 1..store.len() {
-            assert!(store.records()[i].timestamp >= store.records()[i - 1].timestamp);
+        let records = store.records();
+        for i in 1..records.len() {
+            assert!(records[i].timestamp >= records[i - 1].timestamp);
         }
     }
 
@@ -201,29 +174,275 @@ mod tests {
     fn batch_insert_10k_records() {
         let base = Utc::now();
         let batch: Vec<LogRecord> = (0..10_000)
-            .map(|i| LogRecord {
-                id: i,
-                timestamp: base + Duration::milliseconds(i as i64),
-                level: Some(LogLevel::Info),
-                source: "bench".into(),
-                pid: None,
-                tid: None,
-                component_name: None,
-                process_name: None,
-                message: format!("log line {}", i),
-                raw: format!("log line {}", i),
-                metadata: HashMap::new(),
-                loader_id: "bench-loader".into(),
-            })
+            .map(|i| make_record_with_ts(i, base + Duration::milliseconds(i as i64)))
             .collect();
 
         let mut store = LogStore::with_capacity(10_000);
         store.insert_batch(batch);
         assert_eq!(store.len(), 10_000);
 
-        // Verify sorted
-        for i in 1..store.len() {
-            assert!(store.records()[i].timestamp >= store.records()[i - 1].timestamp);
+        let records = store.records();
+        for i in 1..records.len() {
+            assert!(records[i].timestamp >= records[i - 1].timestamp);
         }
+    }
+
+    // ========================================
+    // Segmented architecture tests
+    // ========================================
+
+    #[test]
+    fn segment_count_grows_with_data() {
+        let mut store = LogStore::new();
+        let base = Utc::now();
+
+        // Insert more than one segment's worth (64K)
+        let batch: Vec<LogRecord> = (0..70_000u64)
+            .map(|i| make_record_with_ts(i, base + Duration::milliseconds(i as i64)))
+            .collect();
+        store.insert_batch(batch);
+
+        assert_eq!(store.len(), 70_000);
+        assert!(store.segment_count() >= 2, "Expected multiple segments, got {}", store.segment_count());
+    }
+
+    #[test]
+    fn iter_matches_records() {
+        let mut store = LogStore::new();
+        let base = Utc::now();
+
+        let batch: Vec<LogRecord> = (0..100)
+            .map(|i| make_record_with_ts(i, base + Duration::milliseconds(i as i64)))
+            .collect();
+        store.insert_batch(batch);
+
+        let records = store.records();
+        let iter_records: Vec<&LogRecord> = store.iter().collect();
+
+        assert_eq!(records.len(), iter_records.len());
+        for (a, b) in records.iter().zip(iter_records.iter()) {
+            assert_eq!(a.id, b.id);
+            assert_eq!(a.timestamp, b.timestamp);
+        }
+    }
+
+    #[test]
+    fn out_of_order_inserts() {
+        let mut store = LogStore::new();
+        let base = Utc::now();
+
+        // Insert 100 records in order
+        for i in 0..100u64 {
+            store.insert(make_record_with_ts(i, base + Duration::seconds(i as i64)));
+        }
+
+        // Insert out-of-order records
+        store.insert(make_record_with_ts(200, base + Duration::seconds(50)));
+        store.insert(make_record_with_ts(201, base + Duration::seconds(10)));
+        store.insert(make_record_with_ts(202, base + Duration::seconds(0)));
+
+        assert_eq!(store.len(), 103);
+        let records = store.records();
+        for i in 1..records.len() {
+            assert!(records[i].timestamp >= records[i - 1].timestamp,
+                "Order violation at index {}: {:?} > {:?}",
+                i, records[i - 1].timestamp, records[i].timestamp);
+        }
+    }
+
+    #[test]
+    fn range_across_segments() {
+        let mut store = LogStore::new();
+        let base = Utc::now();
+
+        // Create enough records to span multiple segments
+        let batch: Vec<LogRecord> = (0..70_000u64)
+            .map(|i| make_record_with_ts(i, base + Duration::milliseconds(i as i64)))
+            .collect();
+        store.insert_batch(batch);
+
+        // Range spanning segment boundary
+        let range = store.range(65_000, 66_000);
+        assert_eq!(range.len(), 1000);
+        for i in 1..range.len() {
+            assert!(range[i].timestamp >= range[i - 1].timestamp);
+        }
+    }
+
+    #[test]
+    fn get_across_segments() {
+        let mut store = LogStore::new();
+        let base = Utc::now();
+
+        let batch: Vec<LogRecord> = (0..70_000u64)
+            .map(|i| make_record_with_ts(i, base + Duration::milliseconds(i as i64)))
+            .collect();
+        store.insert_batch(batch);
+
+        // Access records in different segments
+        assert!(store.get(0).is_some());
+        assert!(store.get(65_000).is_some());
+        assert!(store.get(69_999).is_some());
+        assert!(store.get(70_000).is_none());
+    }
+
+    #[test]
+    fn find_by_timestamp_across_segments() {
+        let mut store = LogStore::new();
+        let base = Utc::now();
+
+        let batch: Vec<LogRecord> = (0..70_000u64)
+            .map(|i| make_record_with_ts(i, base + Duration::milliseconds(i as i64)))
+            .collect();
+        store.insert_batch(batch);
+
+        // Find in second segment
+        let target = base + Duration::milliseconds(65_500);
+        let idx = store.find_by_timestamp(&target);
+        assert!(idx >= 65_500 && idx <= 65_501, "Expected ~65500, got {}", idx);
+    }
+
+    // ========================================
+    // Performance benchmarks (1M records)
+    // ========================================
+
+    #[test]
+    fn perf_1m_monotonic_inserts() {
+        let base = Utc::now();
+        let mut store = LogStore::new();
+        let start = std::time::Instant::now();
+
+        for i in 0..1_000_000u64 {
+            store.insert(LogRecord {
+                id: i,
+                timestamp: base + Duration::microseconds(i as i64),
+                level: Some(LogLevel::Info),
+                source: "bench".into(),
+                pid: None, tid: None, component_name: None, process_name: None,
+                message: format!("msg-{}", i),
+                raw: format!("msg-{}", i),
+                metadata: HashMap::new(),
+                loader_id: "bench".into(),
+            });
+        }
+
+        let elapsed = start.elapsed();
+        println!("[perf] 1M monotonic inserts: {:?}", elapsed);
+        assert_eq!(store.len(), 1_000_000);
+        assert!(store.segment_count() > 1, "Expected multiple segments");
+    }
+
+    #[test]
+    fn perf_1m_batch_insert() {
+        let base = Utc::now();
+        let batch: Vec<LogRecord> = (0..1_000_000u64)
+            .map(|i| LogRecord {
+                id: i,
+                timestamp: base + Duration::microseconds(i as i64),
+                level: Some(LogLevel::Info),
+                source: "bench".into(),
+                pid: None, tid: None, component_name: None, process_name: None,
+                message: format!("msg-{}", i),
+                raw: format!("msg-{}", i),
+                metadata: HashMap::new(),
+                loader_id: "bench".into(),
+            })
+            .collect();
+
+        let mut store = LogStore::new();
+        let start = std::time::Instant::now();
+        store.insert_batch(batch);
+        let elapsed = start.elapsed();
+
+        println!("[perf] 1M batch insert: {:?}", elapsed);
+        assert_eq!(store.len(), 1_000_000);
+        assert!(elapsed.as_secs() < 10, "Batch insert took {:?}, expected < 10s", elapsed);
+    }
+
+    #[test]
+    fn perf_1m_random_index_query() {
+        let base = Utc::now();
+        let batch: Vec<LogRecord> = (0..1_000_000u64)
+            .map(|i| LogRecord {
+                id: i,
+                timestamp: base + Duration::microseconds(i as i64),
+                level: Some(LogLevel::Info),
+                source: "bench".into(),
+                pid: None, tid: None, component_name: None, process_name: None,
+                message: format!("msg-{}", i),
+                raw: format!("msg-{}", i),
+                metadata: HashMap::new(),
+                loader_id: "bench".into(),
+            })
+            .collect();
+
+        let mut store = LogStore::new();
+        store.insert_batch(batch);
+
+        let start = std::time::Instant::now();
+        // Query 10K random indices
+        for i in (0..1_000_000u64).step_by(100) {
+            let _ = store.get(i as usize);
+        }
+        let elapsed = start.elapsed();
+        println!("[perf] 10K random index queries on 1M store: {:?}", elapsed);
+    }
+
+    #[test]
+    fn perf_1m_sequential_traversal() {
+        let base = Utc::now();
+        let batch: Vec<LogRecord> = (0..1_000_000u64)
+            .map(|i| LogRecord {
+                id: i,
+                timestamp: base + Duration::microseconds(i as i64),
+                level: Some(LogLevel::Info),
+                source: "bench".into(),
+                pid: None, tid: None, component_name: None, process_name: None,
+                message: format!("msg-{}", i),
+                raw: format!("msg-{}", i),
+                metadata: HashMap::new(),
+                loader_id: "bench".into(),
+            })
+            .collect();
+
+        let mut store = LogStore::new();
+        store.insert_batch(batch);
+
+        // Simulate TUI scroll: iterate through all records
+        let start = std::time::Instant::now();
+        let mut count = 0u64;
+        for record in store.iter() {
+            count += record.id;
+        }
+        let elapsed = start.elapsed();
+        println!("[perf] Sequential traversal of 1M records: {:?} (checksum: {})", elapsed, count);
+    }
+
+    #[test]
+    fn perf_1m_time_range_query() {
+        let base = Utc::now();
+        let batch: Vec<LogRecord> = (0..1_000_000u64)
+            .map(|i| LogRecord {
+                id: i,
+                timestamp: base + Duration::microseconds(i as i64),
+                level: Some(LogLevel::Info),
+                source: "bench".into(),
+                pid: None, tid: None, component_name: None, process_name: None,
+                message: format!("msg-{}", i),
+                raw: format!("msg-{}", i),
+                metadata: HashMap::new(),
+                loader_id: "bench".into(),
+            })
+            .collect();
+
+        let mut store = LogStore::new();
+        store.insert_batch(batch);
+
+        let start = std::time::Instant::now();
+        let target = base + Duration::microseconds(500_000);
+        let idx = store.find_by_timestamp(&target);
+        let elapsed = start.elapsed();
+        println!("[perf] Time range query on 1M store: {:?} (index: {})", elapsed, idx);
+        assert!(idx >= 499_999 && idx <= 500_001);
     }
 }
