@@ -5,10 +5,13 @@ edition.workspace = true
 
 [dependencies]
 chrono = { version = "0.4", features = ["serde"] }
+flate2 = "1"
 regex = "1"
 serde = { version = "1", features = ["derive"] }
 serde_yaml = "0.9"
+sevenz-rust = "0.6"
 thiserror = "2"
+zip = "2"
 
 [dev-dependencies]
 tempfile = "3"
