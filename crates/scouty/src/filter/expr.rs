@@ -151,7 +151,10 @@ fn tokenize(input: &str) -> Result<Vec<Token>, String> {
             i += 1;
             let mut s = String::new();
             while i < len && chars[i] != quote {
-                if chars[i] == '\\' && i + 1 < len && (chars[i + 1] == '\\' || chars[i + 1] == quote) {
+                if chars[i] == '\\'
+                    && i + 1 < len
+                    && (chars[i + 1] == '\\' || chars[i + 1] == quote)
+                {
                     i += 1;
                     s.push(chars[i]);
                 } else {
@@ -188,7 +191,10 @@ fn tokenize(input: &str) -> Result<Vec<Token>, String> {
             continue;
         }
 
-        return Err(format!("Unexpected character '{}' at position {}", chars[i], i));
+        return Err(format!(
+            "Unexpected character '{}' at position {}",
+            chars[i], i
+        ));
     }
 
     Ok(tokens)
@@ -283,7 +289,12 @@ impl Parser {
         let field = self.expect_str()?;
         let op = match self.next() {
             Some(Token::Op(op)) => op,
-            other => return Err(format!("Expected operator after '{}', got {:?}", field, other)),
+            other => {
+                return Err(format!(
+                    "Expected operator after '{}', got {:?}",
+                    field, other
+                ))
+            }
         };
         let value = self.expect_str()?;
         Ok(Expr::Comparison { field, op, value })
@@ -301,8 +312,7 @@ pub fn parse(input: &str) -> Result<Expr, String> {
     if parser.pos < parser.tokens.len() {
         return Err(format!(
             "Unexpected token at position {}: {:?}",
-            parser.pos,
-            parser.tokens[parser.pos]
+            parser.pos, parser.tokens[parser.pos]
         ));
     }
     Ok(expr)
@@ -316,8 +326,7 @@ pub fn validate(expr: &Expr) -> Result<(), String> {
             value,
             ..
         } => {
-            regex::Regex::new(value)
-                .map_err(|e| format!("Invalid regex '{}': {}", value, e))?;
+            regex::Regex::new(value).map_err(|e| format!("Invalid regex '{}': {}", value, e))?;
             Ok(())
         }
         Expr::Comparison { .. } => Ok(()),

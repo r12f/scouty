@@ -115,7 +115,12 @@ mod tests {
     fn range_query() {
         let mut store = LogStore::new();
         for i in 0..5 {
-            store.insert(make_record_at(i, LogLevel::Info, &format!("msg-{}", i), i as i64));
+            store.insert(make_record_at(
+                i,
+                LogLevel::Info,
+                &format!("msg-{}", i),
+                i as i64,
+            ));
         }
 
         let slice = store.range(1, 3);
@@ -148,17 +153,22 @@ mod tests {
         let base = Utc::now();
 
         // Batch load historical data
-        let batch: Vec<LogRecord> = (0..100).map(|i| LogRecord {
-            id: i,
-            timestamp: base + Duration::milliseconds(i as i64 * 100),
-            level: Some(LogLevel::Info),
-            source: "file".into(),
-            pid: None, tid: None, component_name: None, process_name: None,
-            message: format!("historical-{}", i),
-            raw: format!("historical-{}", i),
-            metadata: HashMap::new(),
-            loader_id: "file-loader".into(),
-        }).collect();
+        let batch: Vec<LogRecord> = (0..100)
+            .map(|i| LogRecord {
+                id: i,
+                timestamp: base + Duration::milliseconds(i as i64 * 100),
+                level: Some(LogLevel::Info),
+                source: "file".into(),
+                pid: None,
+                tid: None,
+                component_name: None,
+                process_name: None,
+                message: format!("historical-{}", i),
+                raw: format!("historical-{}", i),
+                metadata: HashMap::new(),
+                loader_id: "file-loader".into(),
+            })
+            .collect();
         store.insert_batch(batch);
 
         // Live inserts at the end (most common case)
@@ -168,7 +178,10 @@ mod tests {
                 timestamp: base + Duration::milliseconds(i as i64 * 100),
                 level: Some(LogLevel::Info),
                 source: "live".into(),
-                pid: None, tid: None, component_name: None, process_name: None,
+                pid: None,
+                tid: None,
+                component_name: None,
+                process_name: None,
                 message: format!("live-{}", i),
                 raw: format!("live-{}", i),
                 metadata: HashMap::new(),
@@ -187,17 +200,22 @@ mod tests {
     #[test]
     fn batch_insert_10k_records() {
         let base = Utc::now();
-        let batch: Vec<LogRecord> = (0..10_000).map(|i| LogRecord {
-            id: i,
-            timestamp: base + Duration::milliseconds(i as i64),
-            level: Some(LogLevel::Info),
-            source: "bench".into(),
-            pid: None, tid: None, component_name: None, process_name: None,
-            message: format!("log line {}", i),
-            raw: format!("log line {}", i),
-            metadata: HashMap::new(),
-            loader_id: "bench-loader".into(),
-        }).collect();
+        let batch: Vec<LogRecord> = (0..10_000)
+            .map(|i| LogRecord {
+                id: i,
+                timestamp: base + Duration::milliseconds(i as i64),
+                level: Some(LogLevel::Info),
+                source: "bench".into(),
+                pid: None,
+                tid: None,
+                component_name: None,
+                process_name: None,
+                message: format!("log line {}", i),
+                raw: format!("log line {}", i),
+                metadata: HashMap::new(),
+                loader_id: "bench-loader".into(),
+            })
+            .collect();
 
         let mut store = LogStore::with_capacity(10_000);
         store.insert_batch(batch);

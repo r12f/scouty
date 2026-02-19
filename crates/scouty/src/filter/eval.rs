@@ -50,14 +50,18 @@ fn compare(field_value: &str, op: &Op, target: &str) -> bool {
     match op {
         Op::Eq => field_value == target,
         Op::Ne => field_value != target,
-        Op::Gt => numeric_cmp(field_value, target).map_or(field_value > target, |o| o == std::cmp::Ordering::Greater),
-        Op::Ge => numeric_cmp(field_value, target).map_or(field_value >= target, |o| o != std::cmp::Ordering::Less),
-        Op::Lt => numeric_cmp(field_value, target).map_or(field_value < target, |o| o == std::cmp::Ordering::Less),
-        Op::Le => numeric_cmp(field_value, target).map_or(field_value <= target, |o| o != std::cmp::Ordering::Greater),
+        Op::Gt => numeric_cmp(field_value, target)
+            .map_or(field_value > target, |o| o == std::cmp::Ordering::Greater),
+        Op::Ge => numeric_cmp(field_value, target)
+            .map_or(field_value >= target, |o| o != std::cmp::Ordering::Less),
+        Op::Lt => numeric_cmp(field_value, target)
+            .map_or(field_value < target, |o| o == std::cmp::Ordering::Less),
+        Op::Le => numeric_cmp(field_value, target)
+            .map_or(field_value <= target, |o| o != std::cmp::Ordering::Greater),
         Op::Contains => field_value.contains(target),
         Op::StartsWith => field_value.starts_with(target),
         Op::EndsWith => field_value.ends_with(target),
-        Op::Regex => Regex::new(target).map_or(false, |re| re.is_match(field_value)),
+        Op::Regex => Regex::new(target).is_ok_and(|re| re.is_match(field_value)),
     }
 }
 
