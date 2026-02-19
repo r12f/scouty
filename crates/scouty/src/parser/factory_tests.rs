@@ -15,13 +15,16 @@ mod tests {
 
     #[test]
     fn test_auto_group_parses_iso_level_msg() {
-        let info = text_loader_info(vec![
-            "2024-01-15 10:30:00 INFO Starting service".to_string(),
-        ]);
+        let info = text_loader_info(vec!["2024-01-15 10:30:00 INFO Starting service".to_string()]);
         let group = ParserFactory::create_parser_group(&info);
 
         let record = group
-            .parse("2024-01-15 10:30:00 ERROR Something failed", "test", "loader", 0)
+            .parse(
+                "2024-01-15 10:30:00 ERROR Something failed",
+                "test",
+                "loader",
+                0,
+            )
             .unwrap();
         assert_eq!(record.level, Some(LogLevel::Error));
         assert_eq!(record.message, "Something failed");
@@ -33,7 +36,12 @@ mod tests {
         let group = ParserFactory::create_parser_group(&info);
 
         let record = group
-            .parse("2024-01-15T10:30:00 [WARN] disk space low", "test", "loader", 1)
+            .parse(
+                "2024-01-15T10:30:00 [WARN] disk space low",
+                "test",
+                "loader",
+                1,
+            )
             .unwrap();
         assert_eq!(record.level, Some(LogLevel::Warn));
         assert_eq!(record.message, "disk space low");

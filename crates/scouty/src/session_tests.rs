@@ -2,8 +2,8 @@
 
 #[cfg(test)]
 mod tests {
-    use crate::record::{LogLevel, LogRecord};
     use crate::parser::group::ParserGroup;
+    use crate::record::{LogLevel, LogRecord};
     use crate::session::LogSession;
     use crate::traits::{LoaderInfo, LoaderType, LogLoader, LogParser, Result};
     use chrono::Utc;
@@ -29,10 +29,18 @@ mod tests {
     #[derive(Debug)]
     struct AlwaysFail;
     impl LogParser for AlwaysFail {
-        fn parse(&self, _raw: &str, _source: &str, _loader_id: &str, _id: u64) -> Option<LogRecord> {
+        fn parse(
+            &self,
+            _raw: &str,
+            _source: &str,
+            _loader_id: &str,
+            _id: u64,
+        ) -> Option<LogRecord> {
             None
         }
-        fn name(&self) -> &str { "always-fail" }
+        fn name(&self) -> &str {
+            "always-fail"
+        }
     }
 
     #[derive(Debug)]
@@ -41,7 +49,9 @@ mod tests {
         fn parse(&self, raw: &str, _source: &str, _loader_id: &str, id: u64) -> Option<LogRecord> {
             Some(make_record(id, raw))
         }
-        fn name(&self) -> &str { "always-succeed" }
+        fn name(&self) -> &str {
+            "always-succeed"
+        }
     }
 
     #[test]
@@ -75,8 +85,12 @@ mod tests {
         lines: Vec<String>,
     }
     impl LogLoader for MockLoader {
-        fn info(&self) -> &LoaderInfo { &self.info }
-        fn load(&mut self) -> Result<Vec<String>> { Ok(self.lines.clone()) }
+        fn info(&self) -> &LoaderInfo {
+            &self.info
+        }
+        fn load(&mut self) -> Result<Vec<String>> {
+            Ok(self.lines.clone())
+        }
     }
 
     #[test]
@@ -98,14 +112,22 @@ mod tests {
         #[derive(Debug)]
         struct LineParser;
         impl LogParser for LineParser {
-            fn parse(&self, raw: &str, _source: &str, _loader_id: &str, id: u64) -> Option<LogRecord> {
+            fn parse(
+                &self,
+                raw: &str,
+                _source: &str,
+                _loader_id: &str,
+                id: u64,
+            ) -> Option<LogRecord> {
                 if raw.starts_with("line") {
                     Some(make_record(id, raw))
                 } else {
                     None
                 }
             }
-            fn name(&self) -> &str { "line-parser" }
+            fn name(&self) -> &str {
+                "line-parser"
+            }
         }
         group.add_parser(Box::new(LineParser));
 
@@ -142,14 +164,22 @@ mod tests {
             #[derive(Debug)]
             struct LineParser;
             impl LogParser for LineParser {
-                fn parse(&self, raw: &str, _source: &str, _loader_id: &str, id: u64) -> Option<LogRecord> {
+                fn parse(
+                    &self,
+                    raw: &str,
+                    _source: &str,
+                    _loader_id: &str,
+                    id: u64,
+                ) -> Option<LogRecord> {
                     if raw.starts_with("line") {
                         Some(make_record(id, raw))
                     } else {
                         None
                     }
                 }
-                fn name(&self) -> &str { "line-parser" }
+                fn name(&self) -> &str {
+                    "line-parser"
+                }
             }
             group.add_parser(Box::new(LineParser));
             session.add_loader(Box::new(loader), group);

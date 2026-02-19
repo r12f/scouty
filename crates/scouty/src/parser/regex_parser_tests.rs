@@ -14,7 +14,12 @@ mod tests {
         .unwrap();
 
         let record = parser
-            .parse("2024-01-15 10:30:00 INFO Hello world", "test.log", "loader1", 0)
+            .parse(
+                "2024-01-15 10:30:00 INFO Hello world",
+                "test.log",
+                "loader1",
+                0,
+            )
             .unwrap();
         assert_eq!(record.level, Some(LogLevel::Info));
         assert_eq!(record.message, "Hello world");
@@ -30,7 +35,9 @@ mod tests {
         )
         .unwrap();
 
-        assert!(parser.parse("no date here", "test.log", "loader1", 0).is_none());
+        assert!(parser
+            .parse("no date here", "test.log", "loader1", 0)
+            .is_none());
     }
 
     #[test]
@@ -43,7 +50,12 @@ mod tests {
         .unwrap();
 
         let record = parser
-            .parse("15/Jan/2024:10:30:00 request ok", "access.log", "loader1", 1)
+            .parse(
+                "15/Jan/2024:10:30:00 request ok",
+                "access.log",
+                "loader1",
+                1,
+            )
             .unwrap();
         assert_eq!(record.message, "request ok");
     }
@@ -58,7 +70,12 @@ mod tests {
         .unwrap();
 
         let record = parser
-            .parse("2024-01-15 10:30:00 [main] Starting up", "app.log", "loader1", 2)
+            .parse(
+                "2024-01-15 10:30:00 [main] Starting up",
+                "app.log",
+                "loader1",
+                2,
+            )
             .unwrap();
         assert_eq!(record.metadata.get("thread").unwrap(), "main");
     }
@@ -73,7 +90,12 @@ mod tests {
         .unwrap();
 
         let record = parser
-            .parse("2024-01-15 10:30:00 1234:5678 [networking] ERROR connection failed", "sys.log", "loader1", 3)
+            .parse(
+                "2024-01-15 10:30:00 1234:5678 [networking] ERROR connection failed",
+                "sys.log",
+                "loader1",
+                3,
+            )
             .unwrap();
         assert_eq!(record.pid, Some(1234));
         assert_eq!(record.tid, Some(5678));

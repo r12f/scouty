@@ -15,7 +15,6 @@ use crate::traits::{LoaderInfo, LoaderType, LogLoader, Result, ScoutyError};
 use serde::Deserialize;
 use std::io::{BufRead, BufReader, Read, Write};
 use std::net::TcpListener;
-use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 /// Configuration for the OTLP loader.
@@ -86,7 +85,6 @@ pub struct OtlpLoader {
     config: OtlpConfig,
     info: LoaderInfo,
     listener: Option<TcpListener>,
-    buffer: Arc<Mutex<Vec<String>>>,
 }
 
 impl OtlpLoader {
@@ -101,7 +99,6 @@ impl OtlpLoader {
             },
             config,
             listener: None,
-            buffer: Arc::new(Mutex::new(Vec::new())),
         }
     }
 
@@ -110,7 +107,10 @@ impl OtlpLoader {
             let listener = TcpListener::bind(&self.config.bind_addr).map_err(|e| {
                 ScoutyError::Io(std::io::Error::new(
                     e.kind(),
-                    format!("Failed to bind OTLP HTTP server to {}: {}", self.config.bind_addr, e),
+                    format!(
+                        "Failed to bind OTLP HTTP server to {}: {}",
+                        self.config.bind_addr, e
+                    ),
                 ))
             })?;
             listener.set_nonblocking(true).map_err(ScoutyError::Io)?;
@@ -121,8 +121,7 @@ impl OtlpLoader {
 
     /// Parse an OTLP JSON export request and extract log body strings.
     pub fn parse_otlp_json(json: &str) -> Vec<String> {
-        let request: std::result::Result<ExportLogsServiceRequest, _> =
-            serde_json::from_str(json);
+        let request: std::result::Result<ExportLogsServiceRequest, _> = serde_json::from_str(json);
         match request {
             Ok(req) => {
                 let mut lines = Vec::new();
@@ -172,7 +171,10 @@ impl OtlpLoader {
             if header.trim().is_empty() {
                 break;
             }
-            if let Some(val) = header.strip_prefix("Content-Length:").or_else(|| header.strip_prefix("content-length:")) {
+            if let Some(val) = header
+                .strip_prefix("Content-Length:")
+                .or_else(|| header.strip_prefix("content-length:"))
+            {
                 content_length = val.trim().parse().unwrap_or(0);
             }
         }
