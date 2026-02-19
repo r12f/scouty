@@ -8,3 +8,5 @@ description = "Terminal UI for scouty log viewer"
 
 [dependencies]
 scouty = { path = "../scouty" }
+ratatui = "0.29"
+crossterm = "0.28"
