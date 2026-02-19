@@ -2,6 +2,9 @@
 name = "scouty-tui"
 version.workspace = true
 edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Terminal UI for scouty log viewer"
 
 [dependencies]
 scouty = { path = "../scouty" }

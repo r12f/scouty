@@ -2,6 +2,9 @@
 name = "scouty"
 version.workspace = true
 edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Log parsing, filtering, and analysis library"
 
 [dependencies]
 chrono = { version = "0.4", features = ["serde"] }
