@@ -3,7 +3,8 @@
 #[cfg(test)]
 mod tests {
     use crate::record::{LogLevel, LogRecord};
-    use crate::session::{LogSession, ParserGroup};
+    use crate::parser::group::ParserGroup;
+    use crate::session::LogSession;
     use crate::traits::{LoaderInfo, LoaderType, LogLoader, LogParser, Result};
     use chrono::Utc;
     use std::collections::HashMap;
