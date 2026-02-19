@@ -65,7 +65,7 @@ impl App {
         session.add_loader(Box::new(FileLoader::new(path, false)), group);
         let _filtered = session.run()?;
 
-        let records: Vec<LogRecord> = session.store().records().to_vec();
+        let records: Vec<LogRecord> = session.store().iter().cloned().collect();
         let filtered_indices: Vec<usize> = (0..records.len()).collect();
 
         Ok(Self {

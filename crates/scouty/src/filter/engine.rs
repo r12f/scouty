@@ -66,6 +66,12 @@ impl FilterEngine {
     /// 2. If there are Include filters, only records matching at least one are included.
     /// 3. If there are no Include filters, all non-excluded records are included.
     pub fn apply(&self, records: &[LogRecord]) -> Vec<usize> {
+        self.apply_iter(records.iter())
+    }
+
+    /// Apply all filters using an iterator over records.
+    /// Returns indices of records that pass the filter pipeline.
+    pub fn apply_iter<'a>(&self, records: impl Iterator<Item = &'a LogRecord>) -> Vec<usize> {
         let excludes: Vec<&dyn LogFilter> = self
             .filters
             .iter()
@@ -83,7 +89,6 @@ impl FilterEngine {
         let has_includes = !includes.is_empty();
 
         records
-            .iter()
             .enumerate()
             .filter(|(_, record)| {
                 // Step 1: check excludes
