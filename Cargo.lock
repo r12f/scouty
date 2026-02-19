@@ -1024,6 +1024,7 @@ dependencies = [
 name = "scouty-tui"
 version = "0.1.0"
 dependencies = [
+ "chrono",
  "crossterm",
  "ratatui",
  "scouty",
