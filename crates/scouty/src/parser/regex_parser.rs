@@ -83,7 +83,7 @@ impl LogParser for RegexParser {
         let timestamp = caps
             .name("timestamp")
             .and_then(|m| self.parse_timestamp(m.as_str()))
-            .unwrap_or_else(|| Utc::now());
+            .unwrap_or_else(Utc::now);
 
         let level = caps
             .name("level")
