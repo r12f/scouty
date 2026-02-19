@@ -25,11 +25,9 @@ mod tests {
     #[test]
     fn test_fallback_to_second_parser() {
         let mut group = ParserGroup::new("fallback-group");
-        // First parser: strict format that won't match
         group.add_parser(Box::new(
             RegexParser::new("strict", r"^STRICT (?P<message>.*)", None).unwrap(),
         ));
-        // Second parser: loose catch-all
         group.add_parser(Box::new(
             RegexParser::new("loose", r"(?P<message>.+)", None).unwrap(),
         ));

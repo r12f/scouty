@@ -79,7 +79,6 @@ mod tests {
             sample_lines: vec![],
         };
         let group = ParserFactory::create_parser_group(&info);
-        // Should have syslog parsers + fallback
         assert!(group.parsers.len() >= 2);
     }
 }
