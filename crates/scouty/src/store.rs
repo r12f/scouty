@@ -5,6 +5,8 @@
 //! - One "active" segment receives live inserts
 //! - When active segment reaches capacity, it freezes and a new active segment is created
 //! - Frozen segments are immutable for cache-friendly sequential access
+//! - Out-of-order records go to a separate OOO buffer instead of mutating frozen segments
+//! - OOO buffer auto-compacts when it reaches threshold (segment_capacity / 4)
 
 use crate::record::LogRecord;
 use chrono::{DateTime, Utc};
@@ -68,10 +70,63 @@ impl Segment {
     }
 }
 
+/// Zero-copy iterator over a range of records spanning multiple segments.
+pub struct SegmentRangeIter<'a> {
+    /// References to segment slices we need to iterate over.
+    slices: Vec<&'a [LogRecord]>,
+    /// Current slice index.
+    slice_idx: usize,
+    /// Current position within the current slice.
+    pos: usize,
+}
+
+impl<'a> SegmentRangeIter<'a> {
+    fn new(slices: Vec<&'a [LogRecord]>) -> Self {
+        Self {
+            slices,
+            slice_idx: 0,
+            pos: 0,
+        }
+    }
+}
+
+impl<'a> Iterator for SegmentRangeIter<'a> {
+    type Item = &'a LogRecord;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        while self.slice_idx < self.slices.len() {
+            let slice = self.slices[self.slice_idx];
+            if self.pos < slice.len() {
+                let item = &slice[self.pos];
+                self.pos += 1;
+                return Some(item);
+            }
+            self.slice_idx += 1;
+            self.pos = 0;
+        }
+        None
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let remaining: usize = self.slices[self.slice_idx..]
+            .iter()
+            .map(|s| s.len())
+            .sum::<usize>()
+            - if self.slice_idx < self.slices.len() {
+                self.pos
+            } else {
+                0
+            };
+        (remaining, Some(remaining))
+    }
+}
+
+impl<'a> ExactSizeIterator for SegmentRangeIter<'a> {}
+
 /// Stores log records in timestamp-sorted order using segmented arrays.
 ///
-/// Provides O(1) append for monotonic live inserts and O(log s + s) for
-/// out-of-order inserts (where s = segment capacity, typically 64K).
+/// Provides O(1) append for monotonic live inserts. Out-of-order records
+/// go to a separate OOO buffer that auto-compacts at threshold.
 /// Batch inserts create frozen segments directly for efficiency.
 #[derive(Debug)]
 pub struct LogStore {
@@ -79,10 +134,12 @@ pub struct LogStore {
     frozen: Vec<Segment>,
     /// Active segment receiving live inserts.
     active: Segment,
+    /// Out-of-order buffer: records that arrived before the latest frozen timestamp.
+    ooo_buffer: Vec<LogRecord>,
     /// Segment capacity threshold.
     segment_capacity: usize,
-    /// Cached total record count.
-    total_len: usize,
+    /// Cached total record count (frozen + active, excluding OOO).
+    main_len: usize,
 }
 
 impl LogStore {
@@ -90,8 +147,9 @@ impl LogStore {
         Self {
             frozen: Vec::new(),
             active: Segment::new(DEFAULT_SEGMENT_CAPACITY),
+            ooo_buffer: Vec::new(),
             segment_capacity: DEFAULT_SEGMENT_CAPACITY,
-            total_len: 0,
+            main_len: 0,
         }
     }
 
@@ -104,7 +162,7 @@ impl LogStore {
     /// Insert a single record, maintaining timestamp order.
     ///
     /// Fast path: if timestamp >= last record's timestamp, append to active segment (O(1)).
-    /// Slow path: out-of-order insert into appropriate segment (O(log s + s)).
+    /// OOO path: record goes to OOO buffer if it belongs before frozen segments.
     pub fn insert(&mut self, record: LogRecord) {
         // Fast path: monotonic timestamp — append to active segment
         if self.active.records.is_empty()
@@ -119,13 +177,12 @@ impl LogStore {
                     .is_none_or(|t| record.timestamp >= t)
             {
                 self.active.push(record);
-                self.total_len += 1;
+                self.main_len += 1;
                 self.maybe_freeze_active();
                 return;
             }
         }
 
-        // Slow path: out-of-order — find the right segment
         // Check if it belongs in the active segment's time range
         if self.active.records.is_empty()
             || self
@@ -134,27 +191,14 @@ impl LogStore {
                 .is_none_or(|t| record.timestamp >= t)
         {
             self.active.insert(record);
-            self.total_len += 1;
+            self.main_len += 1;
             self.maybe_freeze_active();
             return;
         }
 
-        // Find the frozen segment where this record belongs
-        let seg_idx = self.find_segment_for_timestamp(&record.timestamp);
-        if seg_idx < self.frozen.len() {
-            // Insert into frozen segment (temporarily unfreezing)
-            self.frozen[seg_idx].insert(record);
-            self.total_len += 1;
-            // If segment grew too large, split it
-            if self.frozen[seg_idx].len() > self.segment_capacity * 2 {
-                self.split_segment(seg_idx);
-            }
-        } else {
-            // Belongs in active segment
-            self.active.insert(record);
-            self.total_len += 1;
-            self.maybe_freeze_active();
-        }
+        // Out-of-order: goes to OOO buffer (never mutate frozen segments)
+        self.ooo_buffer.push(record);
+        self.maybe_compact_ooo();
     }
 
     /// Bulk insert records efficiently.
@@ -168,12 +212,12 @@ impl LogStore {
 
         batch.sort_by_key(|r| r.timestamp);
 
-        if self.total_len == 0 && self.active.is_empty() {
+        if self.main_len == 0 && self.active.is_empty() {
             self.insert_batch_empty(batch);
         } else {
             self.insert_batch_merge(batch);
         }
-        self.total_len = self.frozen.iter().map(|s| s.len()).sum::<usize>() + self.active.len();
+        self.main_len = self.frozen.iter().map(|s| s.len()).sum::<usize>() + self.active.len();
     }
 
     /// Fast path for inserting into an empty store.
@@ -193,11 +237,6 @@ impl LogStore {
     }
 
     /// Merge-based batch insert for non-empty stores.
-    ///
-    /// Strategy:
-    /// 1. If batch timestamps are all >= max existing timestamp, just append (fast path).
-    /// 2. Otherwise, find affected segment range and merge only those segments with the batch.
-    ///    Unaffected frozen segments remain untouched (zero-copy).
     fn insert_batch_merge(&mut self, batch: Vec<LogRecord>) {
         let batch_min = batch.first().unwrap().timestamp;
         let batch_max = batch.last().unwrap().timestamp;
@@ -209,10 +248,8 @@ impl LogStore {
             .or_else(|| self.frozen.last().and_then(|s| s.max_timestamp()));
 
         if store_max.is_none_or(|max| batch_min >= max) {
-            // Append: drain active into batch, re-segment
             let mut combined = Vec::with_capacity(self.active.len() + batch.len());
             combined.append(&mut self.active.records);
-            // Merge active (sorted) + batch (sorted) — both sorted, so merge
             let merged = Self::merge_sorted(combined, batch);
             self.active = Segment::new(self.segment_capacity);
             self.append_records_as_segments(merged);
@@ -220,7 +257,6 @@ impl LogStore {
         }
 
         // General case: find affected frozen segment range
-        // Segments whose time range overlaps with [batch_min, batch_max]
         let first_affected = self
             .frozen
             .partition_point(|s| s.max_timestamp().is_some_and(|max| max < batch_min));
@@ -228,7 +264,6 @@ impl LogStore {
             .frozen
             .partition_point(|s| s.min_timestamp().is_some_and(|min| min <= batch_max));
 
-        // Collect records from affected segments + active (if overlapping) + batch
         let active_overlaps = self
             .active
             .min_timestamp()
@@ -252,12 +287,10 @@ impl LogStore {
 
         let mut merged_records = Vec::with_capacity(affected_count);
 
-        // Drain affected frozen segments
         for seg in self.frozen.drain(first_affected..last_affected) {
             merged_records = Self::merge_sorted(merged_records, seg.records);
         }
 
-        // Include active segment if overlapping
         if active_overlaps {
             let active_records = std::mem::replace(
                 &mut self.active.records,
@@ -266,16 +299,13 @@ impl LogStore {
             merged_records = Self::merge_sorted(merged_records, active_records);
         }
 
-        // Merge with batch
         merged_records = Self::merge_sorted(merged_records, batch);
 
-        // Create new segments from merged records and insert them at the right position
         let mut new_segments = Vec::new();
         for chunk in merged_records.chunks(self.segment_capacity) {
             new_segments.push(Segment::from_sorted(chunk.to_vec()));
         }
 
-        // Last new segment becomes active if under capacity and active was included
         if active_overlaps {
             self.active = Segment::new(self.segment_capacity);
             if let Some(last) = new_segments.last() {
@@ -287,7 +317,6 @@ impl LogStore {
             }
         }
 
-        // Splice new frozen segments into position
         let insert_pos = first_affected;
         for (i, seg) in new_segments.into_iter().enumerate() {
             self.frozen.insert(insert_pos + i, seg);
@@ -335,7 +364,6 @@ impl LogStore {
         for chunk in records.chunks(self.segment_capacity) {
             self.frozen.push(Segment::from_sorted(chunk.to_vec()));
         }
-        // Last chunk becomes active if under capacity
         if let Some(last) = self.frozen.last() {
             if last.len() < self.segment_capacity {
                 let mut seg = self.frozen.pop().unwrap();
@@ -346,18 +374,29 @@ impl LogStore {
     }
 
     /// Get all records as a collected Vec (sorted by timestamp).
+    /// Includes OOO buffer records merged in correct order.
     ///
     /// Note: This allocates a new Vec. For large stores, prefer `iter()` or `range()`.
     pub fn records(&self) -> Vec<LogRecord> {
-        let mut result = Vec::with_capacity(self.total_len);
-        for seg in &self.frozen {
-            result.extend(seg.records.iter().cloned());
+        let main: Vec<LogRecord> = self
+            .frozen
+            .iter()
+            .flat_map(|s| s.records.iter())
+            .chain(self.active.records.iter())
+            .cloned()
+            .collect();
+
+        if self.ooo_buffer.is_empty() {
+            return main;
         }
-        result.extend(self.active.records.iter().cloned());
-        result
+
+        let mut sorted_ooo = self.ooo_buffer.clone();
+        sorted_ooo.sort_by_key(|r| r.timestamp);
+        Self::merge_sorted(main, sorted_ooo)
     }
 
-    /// Iterate over all records in timestamp order without allocation.
+    /// Iterate over all main records in timestamp order without allocation.
+    /// Does NOT include OOO buffer records. Call `compact_ooo()` first if needed.
     pub fn iter(&self) -> impl Iterator<Item = &LogRecord> {
         self.frozen
             .iter()
@@ -365,9 +404,30 @@ impl LogStore {
             .chain(self.active.records.iter())
     }
 
-    /// Get a record by global index.
+    /// Iterate over all records including OOO buffer, in timestamp order.
+    /// Returns owned records since merging requires sorting the OOO buffer.
+    pub fn iter_all(&self) -> Vec<LogRecord> {
+        self.records()
+    }
+
+    /// Get a record by global index (includes OOO buffer records).
     pub fn get(&self, index: usize) -> Option<&LogRecord> {
-        if index >= self.total_len {
+        // Fast path: no OOO records, direct index into main segments
+        if self.ooo_buffer.is_empty() {
+            return self.get_main(index);
+        }
+        // With OOO records, we can't efficiently index without sorting.
+        // Return from main segments if index < main_len.
+        if index < self.main_len {
+            return self.get_main(index);
+        }
+        // Index into OOO buffer (unsorted, but accessible)
+        self.ooo_buffer.get(index - self.main_len)
+    }
+
+    /// Get a record from main segments (frozen + active) by global index.
+    fn get_main(&self, index: usize) -> Option<&LogRecord> {
+        if index >= self.main_len {
             return None;
         }
         let mut offset = 0;
@@ -377,21 +437,26 @@ impl LogStore {
             }
             offset += seg.len();
         }
-        // Must be in active segment
         let local_idx = index - offset;
         self.active.records.get(local_idx)
     }
 
-    /// Number of stored records.
+    /// Number of stored records (main + OOO buffer).
     pub fn len(&self) -> usize {
-        self.total_len
+        self.main_len + self.ooo_buffer.len()
     }
 
     pub fn is_empty(&self) -> bool {
-        self.total_len == 0
+        self.len() == 0
+    }
+
+    /// Number of records in the OOO buffer.
+    pub fn ooo_len(&self) -> usize {
+        self.ooo_buffer.len()
     }
 
     /// Find the global index of the first record at or after the given timestamp.
+    /// Searches main segments only. Call `compact_ooo()` first for full accuracy.
     pub fn find_by_timestamp(&self, ts: &DateTime<Utc>) -> usize {
         let mut global_offset = 0;
         for seg in &self.frozen {
@@ -399,26 +464,26 @@ impl LogStore {
                 global_offset += seg.len();
                 continue;
             }
-            // Target is in this segment
             let local_pos = seg.records.partition_point(|r| r.timestamp < *ts);
             return global_offset + local_pos;
         }
-        // Check active segment
         let local_pos = self.active.records.partition_point(|r| r.timestamp < *ts);
         global_offset + local_pos
     }
 
-    /// Get records in the given global index range.
+    /// Get records in the given global index range as a zero-copy iterator.
     ///
-    /// Returns a Vec since the range may span multiple segments.
-    pub fn range(&self, start: usize, end: usize) -> Vec<LogRecord> {
-        let end = end.min(self.total_len);
+    /// Iterates across segment boundaries without heap allocation.
+    /// Does NOT include OOO buffer records.
+    pub fn range(&self, start: usize, end: usize) -> SegmentRangeIter<'_> {
+        let end = end.min(self.main_len);
         let start = start.min(end);
+
         if start == end {
-            return Vec::new();
+            return SegmentRangeIter::new(vec![]);
         }
 
-        let mut result = Vec::with_capacity(end - start);
+        let mut slices = Vec::new();
         let mut global_offset = 0;
 
         for seg in &self.frozen {
@@ -426,11 +491,11 @@ impl LogStore {
             if start < seg_end && end > global_offset {
                 let local_start = start.saturating_sub(global_offset);
                 let local_end = (end - global_offset).min(seg.len());
-                result.extend(seg.records[local_start..local_end].iter().cloned());
+                slices.push(&seg.records[local_start..local_end]);
             }
             global_offset = seg_end;
             if global_offset >= end {
-                return result;
+                return SegmentRangeIter::new(slices);
             }
         }
 
@@ -439,17 +504,78 @@ impl LogStore {
         if start < seg_end && end > global_offset {
             let local_start = start.saturating_sub(global_offset);
             let local_end = (end - global_offset).min(self.active.len());
-            result.extend(self.active.records[local_start..local_end].iter().cloned());
+            slices.push(&self.active.records[local_start..local_end]);
         }
 
-        result
+        SegmentRangeIter::new(slices)
+    }
+
+    /// Get records in the given global index range as a collected Vec.
+    pub fn range_collected(&self, start: usize, end: usize) -> Vec<LogRecord> {
+        self.range(start, end).cloned().collect()
+    }
+
+    /// Compact the OOO buffer: sort, group by timestamp range, merge into frozen segments.
+    pub fn compact_ooo(&mut self) {
+        if self.ooo_buffer.is_empty() {
+            return;
+        }
+
+        let mut ooo = std::mem::take(&mut self.ooo_buffer);
+        ooo.sort_by_key(|r| r.timestamp);
+
+        // Group OOO records by which frozen segment they belong to
+        let mut seg_groups: Vec<(usize, Vec<LogRecord>)> = Vec::new();
+
+        for record in ooo {
+            let seg_idx = self.find_segment_for_timestamp(&record.timestamp);
+            if let Some(last) = seg_groups.last_mut() {
+                if last.0 == seg_idx {
+                    last.1.push(record);
+                    continue;
+                }
+            }
+            seg_groups.push((seg_idx, vec![record]));
+        }
+
+        // Merge each group into its target segment (in reverse to preserve indices)
+        for (seg_idx, records) in seg_groups.into_iter().rev() {
+            if seg_idx < self.frozen.len() {
+                // Merge into frozen segment
+                let existing = std::mem::take(&mut self.frozen[seg_idx].records);
+                self.frozen[seg_idx].records = Self::merge_sorted(existing, records);
+                self.main_len += self.frozen[seg_idx].records.len();
+
+                // Split if oversized
+                if self.frozen[seg_idx].len() > self.segment_capacity * 2 {
+                    self.split_segment(seg_idx);
+                }
+            } else {
+                // Merge into active segment
+                for record in records {
+                    self.active.insert(record);
+                }
+            }
+        }
+
+        // Recalculate main_len
+        self.main_len = self.frozen.iter().map(|s| s.len()).sum::<usize>() + self.active.len();
+    }
+
+    /// Check if OOO buffer should be compacted and do so.
+    fn maybe_compact_ooo(&mut self) {
+        let threshold = self.segment_capacity / 4;
+        if self.ooo_buffer.len() >= threshold {
+            self.compact_ooo();
+        }
     }
 
     /// Clear all records.
     pub fn clear(&mut self) {
         self.frozen.clear();
         self.active = Segment::new(self.segment_capacity);
-        self.total_len = 0;
+        self.ooo_buffer.clear();
+        self.main_len = 0;
     }
 
     /// Number of segments (frozen + active).
