@@ -46,14 +46,16 @@ pub fn render(frame: &mut Frame, app: &App) {
 
     // Header
     let header = Paragraph::new(Line::from(vec![
-        Span::styled(" scouty ", Style::default().fg(Color::White).bg(Color::Blue)),
+        Span::styled(
+            " scouty ",
+            Style::default().fg(Color::White).bg(Color::Blue),
+        ),
         Span::raw(format!(" {} records loaded", app.total)),
     ]));
     frame.render_widget(header, chunks[0]);
 
     // Log list
     let log_area = chunks[1];
-    let visible_rows = log_area.height as usize;
 
     let visible = app.visible_records();
     let lines: Vec<Line> = visible
@@ -64,10 +66,7 @@ pub fn render(frame: &mut Frame, app: &App) {
         })
         .collect();
 
-    let log_block = Paragraph::new(lines).block(
-        Block::default()
-            .borders(Borders::NONE),
-    );
+    let log_block = Paragraph::new(lines).block(Block::default().borders(Borders::NONE));
     frame.render_widget(log_block, log_area);
 
     // Footer
@@ -77,7 +76,7 @@ pub fn render(frame: &mut Frame, app: &App) {
         format!(
             "Lines {}-{} of {}",
             app.scroll_offset + 1,
-            (app.scroll_offset + visible_rows).min(app.total),
+            (app.scroll_offset + app.visible_rows).min(app.total),
             app.total
         )
     };
