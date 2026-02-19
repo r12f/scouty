@@ -95,4 +95,75 @@ mod tests {
         let records = vec![make_record(0, LogLevel::Info, "ok")];
         assert_eq!(engine.apply(&records), vec![0]);
     }
+
+    // === Expression-based filter tests ===
+
+    #[test]
+    fn expr_filter_exclude() {
+        let mut engine = FilterEngine::new();
+        engine
+            .add_expr_filter(FilterAction::Exclude, r#"level = "ERROR""#)
+            .unwrap();
+
+        let records = vec![
+            make_record(0, LogLevel::Info, "ok"),
+            make_record(1, LogLevel::Error, "bad"),
+            make_record(2, LogLevel::Warn, "meh"),
+        ];
+        assert_eq!(engine.apply(&records), vec![0, 2]);
+    }
+
+    #[test]
+    fn expr_filter_include() {
+        let mut engine = FilterEngine::new();
+        engine
+            .add_expr_filter(FilterAction::Include, r#"level = "WARN""#)
+            .unwrap();
+
+        let records = vec![
+            make_record(0, LogLevel::Info, "ok"),
+            make_record(1, LogLevel::Warn, "attention"),
+        ];
+        assert_eq!(engine.apply(&records), vec![1]);
+    }
+
+    #[test]
+    fn expr_filter_complex() {
+        let mut engine = FilterEngine::new();
+        engine
+            .add_expr_filter(
+                FilterAction::Include,
+                r#"level = "ERROR" OR level = "FATAL""#,
+            )
+            .unwrap();
+        engine
+            .add_expr_filter(
+                FilterAction::Exclude,
+                r#"message contains "ignore""#,
+            )
+            .unwrap();
+
+        let records = vec![
+            make_record(0, LogLevel::Info, "ok"),
+            make_record(1, LogLevel::Error, "real error"),
+            make_record(2, LogLevel::Error, "ignore this error"),
+            make_record(3, LogLevel::Fatal, "crash"),
+        ];
+        // Include: Error or Fatal → [1, 2, 3]; Exclude "ignore" → [1, 3]
+        assert_eq!(engine.apply(&records), vec![1, 3]);
+    }
+
+    #[test]
+    fn expr_filter_invalid_expression() {
+        let mut engine = FilterEngine::new();
+        let result = engine.add_expr_filter(FilterAction::Include, r#"level = "#);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn expr_filter_invalid_regex() {
+        let mut engine = FilterEngine::new();
+        let result = engine.add_expr_filter(FilterAction::Include, r#"message regex "[bad""#);
+        assert!(result.is_err());
+    }
 }

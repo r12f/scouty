@@ -308,6 +308,27 @@ pub fn parse(input: &str) -> Result<Expr, String> {
     Ok(expr)
 }
 
+/// Validate that any `regex` operator values are valid regexes.
+pub fn validate(expr: &Expr) -> Result<(), String> {
+    match expr {
+        Expr::Comparison {
+            op: Op::Regex,
+            value,
+            ..
+        } => {
+            regex::Regex::new(value)
+                .map_err(|e| format!("Invalid regex '{}': {}", value, e))?;
+            Ok(())
+        }
+        Expr::Comparison { .. } => Ok(()),
+        Expr::And(l, r) | Expr::Or(l, r) => {
+            validate(l)?;
+            validate(r)
+        }
+        Expr::Not(inner) => validate(inner),
+    }
+}
+
 #[cfg(test)]
 #[path = "expr_tests.rs"]
 mod expr_tests;

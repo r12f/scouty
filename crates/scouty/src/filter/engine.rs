@@ -1,5 +1,7 @@
 //! FilterEngine — manages exclude/include filters and produces a filtered view.
 
+use crate::filter::eval;
+use crate::filter::expr::{self, Expr};
 use crate::record::LogRecord;
 use crate::traits::LogFilter;
 
@@ -35,6 +37,20 @@ impl FilterEngine {
     /// Add a filter with the given action.
     pub fn add_filter(&mut self, action: FilterAction, filter: Box<dyn LogFilter>) {
         self.filters.push(FilterEntry { action, filter });
+    }
+
+    /// Add a filter from an expression string.
+    ///
+    /// Parses and validates the expression, then wraps it as a `LogFilter`.
+    pub fn add_expr_filter(
+        &mut self,
+        action: FilterAction,
+        expression: &str,
+    ) -> Result<(), String> {
+        let parsed = expr::parse(expression)?;
+        expr::validate(&parsed)?;
+        self.add_filter(action, Box::new(ExprFilter::new(parsed, expression)));
+        Ok(())
     }
 
     /// Remove all filters.
@@ -89,6 +105,32 @@ impl FilterEngine {
 impl Default for FilterEngine {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+/// A filter backed by a parsed expression.
+#[derive(Debug)]
+pub struct ExprFilter {
+    expr: Expr,
+    description: String,
+}
+
+impl ExprFilter {
+    pub fn new(expr: Expr, description: impl Into<String>) -> Self {
+        Self {
+            expr,
+            description: description.into(),
+        }
+    }
+}
+
+impl LogFilter for ExprFilter {
+    fn matches(&self, record: &LogRecord) -> bool {
+        eval::eval(&self.expr, record)
+    }
+
+    fn description(&self) -> &str {
+        &self.description
     }
 }
 
