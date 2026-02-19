@@ -83,7 +83,7 @@ mod tests {
             make_record(1, LogLevel::Error, "bad"),
         ];
         // Error is excluded first, then include has no effect on it
-        assert_eq!(engine.apply(&records), vec![]);
+        assert_eq!(engine.apply(&records), Vec::<usize>::new());
     }
 
     #[test]

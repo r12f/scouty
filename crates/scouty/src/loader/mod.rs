@@ -1,5 +1,4 @@
 pub mod archive;
 pub mod file;
+pub mod otlp;
 pub mod syslog;
-
-// Other loaders (otlp) will be added in later phases.
