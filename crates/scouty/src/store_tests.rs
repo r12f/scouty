@@ -132,15 +132,15 @@ mod tests {
             ));
         }
 
-        let slice = store.range(1, 3);
+        let slice: Vec<_> = store.range(1, 3).collect();
         assert_eq!(slice.len(), 2);
         assert_eq!(slice[0].message, "msg-1");
         assert_eq!(slice[1].message, "msg-2");
 
-        let slice = store.range(3, 100);
+        let slice: Vec<_> = store.range(3, 100).collect();
         assert_eq!(slice.len(), 2);
 
-        let slice = store.range(5, 5);
+        let slice: Vec<_> = store.range(5, 5).collect();
         assert_eq!(slice.len(), 0);
     }
 
@@ -281,7 +281,7 @@ mod tests {
         store.insert_batch(batch);
 
         // Range spanning segment boundary
-        let range = store.range(65_000, 66_000);
+        let range: Vec<_> = store.range(65_000, 66_000).collect();
         assert_eq!(range.len(), 1000);
         for i in 1..range.len() {
             assert!(range[i].timestamp >= range[i - 1].timestamp);
@@ -609,5 +609,227 @@ mod tests {
             elapsed, idx
         );
         assert!(idx >= 499_999 && idx <= 500_001);
+    }
+
+    // ========================================
+    // OOO Buffer Tests
+    // ========================================
+
+    #[test]
+    fn ooo_insert_goes_to_buffer() {
+        let base = Utc::now();
+        let mut store = LogStore::new();
+
+        for i in 0..10u64 {
+            store.insert(make_record_with_ts(i, base + Duration::seconds(i as i64)));
+        }
+
+        // Insert out-of-order record (before the earliest)
+        let ooo_record = make_record_with_ts(100, base - Duration::seconds(5));
+        store.insert(ooo_record);
+
+        assert_eq!(store.ooo_len(), 1);
+        assert_eq!(store.len(), 11);
+    }
+
+    #[test]
+    fn ooo_records_included_in_records() {
+        let base = Utc::now();
+        let mut store = LogStore::new();
+
+        for i in 0..5u64 {
+            store.insert(make_record_with_ts(
+                i,
+                base + Duration::seconds((i * 2) as i64),
+            ));
+        }
+
+        store.insert(make_record_with_ts(50, base + Duration::seconds(1)));
+
+        let all = store.records();
+        assert_eq!(all.len(), 6);
+        for w in all.windows(2) {
+            assert!(w[0].timestamp <= w[1].timestamp);
+        }
+    }
+
+    #[test]
+    fn ooo_compact_merges_into_segments() {
+        let base = Utc::now();
+        let mut store = LogStore::new();
+
+        for i in 0..20u64 {
+            store.insert(make_record_with_ts(i, base + Duration::seconds(i as i64)));
+        }
+
+        store.insert(make_record_with_ts(100, base - Duration::seconds(1)));
+        store.insert(make_record_with_ts(101, base - Duration::seconds(2)));
+        assert_eq!(store.ooo_len(), 2);
+
+        store.compact_ooo();
+        assert_eq!(store.ooo_len(), 0);
+        assert_eq!(store.len(), 22);
+
+        let records: Vec<_> = store.iter().collect();
+        for w in records.windows(2) {
+            assert!(w[0].timestamp <= w[1].timestamp);
+        }
+    }
+
+    #[test]
+    fn ooo_frozen_segments_not_mutated_on_insert() {
+        let base = Utc::now();
+        let mut store = LogStore::new();
+
+        // Create enough records to fill a full segment and freeze it
+        let batch: Vec<LogRecord> = (0..70_000u64)
+            .map(|i| make_record_with_ts(i, base + Duration::seconds(i as i64)))
+            .collect();
+        store.insert_batch(batch);
+
+        let seg_count_before = store.segment_count();
+        let main_len_before = store.len();
+
+        // Insert OOO record that would belong in a frozen segment
+        store.insert(make_record_with_ts(999, base + Duration::seconds(5)));
+
+        // Should go to OOO buffer, not modify frozen segments
+        assert_eq!(store.segment_count(), seg_count_before);
+        assert_eq!(store.ooo_len(), 1);
+        assert_eq!(store.len(), main_len_before + 1);
+    }
+
+    // ========================================
+    // SegmentRangeIter Tests
+    // ========================================
+
+    #[test]
+    fn range_iter_basic() {
+        let mut store = LogStore::new();
+        for i in 0..100u64 {
+            store.insert(make_record_at(
+                i,
+                LogLevel::Info,
+                &format!("msg-{}", i),
+                i as i64,
+            ));
+        }
+
+        let records: Vec<_> = store.range(10, 20).collect();
+        assert_eq!(records.len(), 10);
+        assert_eq!(records[0].message, "msg-10");
+        assert_eq!(records[9].message, "msg-19");
+    }
+
+    #[test]
+    fn range_iter_empty() {
+        let store = LogStore::new();
+        assert_eq!(store.range(0, 0).count(), 0);
+    }
+
+    #[test]
+    fn range_iter_exact_size() {
+        let mut store = LogStore::new();
+        for i in 0..50u64 {
+            store.insert(make_record_at(
+                i,
+                LogLevel::Info,
+                &format!("msg-{}", i),
+                i as i64,
+            ));
+        }
+
+        let iter = store.range(5, 15);
+        assert_eq!(iter.len(), 10);
+    }
+
+    #[test]
+    fn range_iter_no_heap_allocation() {
+        let mut store = LogStore::new();
+        for i in 0..100u64 {
+            store.insert(make_record_at(
+                i,
+                LogLevel::Info,
+                &format!("msg-{}", i),
+                i as i64,
+            ));
+        }
+
+        let mut count = 0;
+        for _record in store.range(0, 100) {
+            count += 1;
+        }
+        assert_eq!(count, 100);
+    }
+
+    #[test]
+    fn range_collected_matches_range_iter() {
+        let mut store = LogStore::new();
+        for i in 0..50u64 {
+            store.insert(make_record_at(
+                i,
+                LogLevel::Info,
+                &format!("msg-{}", i),
+                i as i64,
+            ));
+        }
+
+        let from_iter: Vec<_> = store.range(10, 30).cloned().collect();
+        let from_collected = store.range_collected(10, 30);
+        assert_eq!(from_iter.len(), from_collected.len());
+        for (a, b) in from_iter.iter().zip(from_collected.iter()) {
+            assert_eq!(a.id, b.id);
+        }
+    }
+
+    #[test]
+    fn perf_range_iter_10k_traversal() {
+        let base = Utc::now();
+        let batch: Vec<LogRecord> = (0..100_000u64)
+            .map(|i| make_record_with_ts(i, base + Duration::microseconds(i as i64)))
+            .collect();
+
+        let mut store = LogStore::new();
+        store.insert_batch(batch);
+
+        let start = std::time::Instant::now();
+        let count = store.range(45_000, 55_000).count();
+        let elapsed = start.elapsed();
+
+        assert_eq!(count, 10_000);
+        assert!(
+            elapsed.as_millis() < 1,
+            "Range iter 10K traversal took {:?}, expected < 1ms",
+            elapsed
+        );
+    }
+
+    #[test]
+    fn perf_ooo_compact_16k() {
+        let base = Utc::now();
+        let mut store = LogStore::new();
+
+        let batch: Vec<LogRecord> = (0..100_000u64)
+            .map(|i| make_record_with_ts(i, base + Duration::seconds(i as i64)))
+            .collect();
+        store.insert_batch(batch);
+
+        for i in 0..16_000u64 {
+            store.ooo_buffer.push(make_record_with_ts(
+                200_000 + i,
+                base + Duration::seconds(i as i64),
+            ));
+        }
+
+        let start = std::time::Instant::now();
+        store.compact_ooo();
+        let elapsed = start.elapsed();
+
+        assert_eq!(store.ooo_len(), 0);
+        assert!(
+            elapsed.as_millis() < 5000,
+            "OOO compact 16K took {:?}, expected < 5s",
+            elapsed
+        );
     }
 }

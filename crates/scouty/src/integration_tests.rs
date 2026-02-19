@@ -408,7 +408,7 @@ random garbage
 
         // Test range query performance
         let start = std::time::Instant::now();
-        let slice = store.range(50_000, 50_100);
+        let slice: Vec<_> = store.range(50_000, 50_100).collect();
         let elapsed = start.elapsed();
         assert_eq!(slice.len(), 100);
         println!("[perf] Range query (100 from 100K): {:?}", elapsed);
