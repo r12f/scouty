@@ -71,3 +71,7 @@ pub struct LogRecord {
     /// Which loader produced this record.
     pub loader_id: String,
 }
+
+#[cfg(test)]
+#[path = "record_tests.rs"]
+mod record_tests;

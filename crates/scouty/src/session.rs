@@ -150,3 +150,7 @@ impl Default for LogSession {
         Self::new()
     }
 }
+
+#[cfg(test)]
+#[path = "session_tests.rs"]
+mod session_tests;

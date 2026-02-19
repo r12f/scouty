@@ -49,3 +49,7 @@ impl Default for LogStore {
         Self::new()
     }
 }
+
+#[cfg(test)]
+#[path = "store_tests.rs"]
+mod store_tests;
