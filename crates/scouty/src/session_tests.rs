@@ -117,4 +117,82 @@ mod tests {
         assert_eq!(session.failing_parsing_logs[0].raw, "bad-line");
         assert_eq!(filtered, vec![0, 1]);
     }
+
+    #[test]
+    fn session_run_parallel_end_to_end() {
+        let mut session = LogSession::new();
+
+        // Create two loaders
+        for i in 0..2 {
+            let loader = MockLoader {
+                info: LoaderInfo {
+                    id: format!("mock-{}", i),
+                    loader_type: LoaderType::TextFile,
+                    multiline_enabled: false,
+                    sample_lines: vec![],
+                },
+                lines: vec![
+                    format!("line-{}-a", i),
+                    format!("line-{}-b", i),
+                    format!("bad-{}", i),
+                ],
+            };
+
+            let mut group = ParserGroup::new(format!("group-{}", i));
+            #[derive(Debug)]
+            struct LineParser;
+            impl LogParser for LineParser {
+                fn parse(&self, raw: &str, _source: &str, _loader_id: &str, id: u64) -> Option<LogRecord> {
+                    if raw.starts_with("line") {
+                        Some(make_record(id, raw))
+                    } else {
+                        None
+                    }
+                }
+                fn name(&self) -> &str { "line-parser" }
+            }
+            group.add_parser(Box::new(LineParser));
+            session.add_loader(Box::new(loader), group);
+        }
+
+        let filtered = session.run_parallel().unwrap();
+
+        // 2 loaders × 2 good lines = 4 records
+        assert_eq!(session.store().len(), 4);
+        // 2 loaders × 1 bad line = 2 failures
+        assert_eq!(session.failing_parsing_logs.len(), 2);
+        assert_eq!(filtered.len(), 4);
+    }
+
+    #[test]
+    fn session_parallel_matches_sequential() {
+        // Verify parallel and sequential produce same counts
+        let make_session = || {
+            let mut session = LogSession::new();
+            for i in 0..3 {
+                let loader = MockLoader {
+                    info: LoaderInfo {
+                        id: format!("loader-{}", i),
+                        loader_type: LoaderType::TextFile,
+                        multiline_enabled: false,
+                        sample_lines: vec![],
+                    },
+                    lines: (0..10).map(|j| format!("line-{}", j)).collect(),
+                };
+                let mut group = ParserGroup::new(format!("group-{}", i));
+                group.add_parser(Box::new(AlwaysSucceed));
+                session.add_loader(Box::new(loader), group);
+            }
+            session
+        };
+
+        let mut seq = make_session();
+        let seq_filtered = seq.run().unwrap();
+
+        let mut par = make_session();
+        let par_filtered = par.run_parallel().unwrap();
+
+        assert_eq!(seq.store().len(), par.store().len());
+        assert_eq!(seq_filtered.len(), par_filtered.len());
+    }
 }

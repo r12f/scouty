@@ -2,8 +2,10 @@
 
 use crate::filter::engine::FilterEngine;
 use crate::parser::group::ParserGroup;
+use crate::record::LogRecord;
 use crate::store::LogStore;
 use crate::traits::{LogLoader, LogProcessor, Result};
+use rayon::prelude::*;
 
 /// Represents a registered loader paired with its parser group.
 struct LoaderSlot {
@@ -110,6 +112,61 @@ impl LogSession {
     /// Get the filtered view based on current filters (without re-running load/parse).
     pub fn filtered_view(&self) -> Vec<usize> {
         self.filter_engine.apply(self.store.records())
+    }
+
+    /// Execute the pipeline with parallel loading and parsing across loader slots.
+    ///
+    /// Each loader slot is processed in its own rayon task. Results are merged
+    /// into the store after all slots complete.
+    pub fn run_parallel(&mut self) -> Result<Vec<usize>> {
+        // 1. Load + Parse in parallel
+        let results: Vec<Result<(Vec<LogRecord>, Vec<FailedLog>)>> = self
+            .loader_slots
+            .par_iter_mut()
+            .map(|slot| {
+                let info = slot.loader.info().clone();
+                let lines = slot.loader.load()?;
+                let source = &info.id;
+
+                let mut records = Vec::new();
+                let mut failures = Vec::new();
+
+                for (i, line) in lines.iter().enumerate() {
+                    // Use a placeholder ID; will be reassigned after merge
+                    match slot.parser_group.parse(line, source, &info.id, i as u64) {
+                        Some(record) => records.push(record),
+                        None => failures.push(FailedLog {
+                            raw: line.clone(),
+                            source: source.clone(),
+                            loader_id: info.id.clone(),
+                        }),
+                    }
+                }
+
+                Ok((records, failures))
+            })
+            .collect();
+
+        // 2. Merge results sequentially
+        for result in results {
+            let (records, failures) = result?;
+            for mut record in records {
+                record.id = self.next_id;
+                self.next_id += 1;
+                self.store.insert(record);
+            }
+            self.failing_parsing_logs.extend(failures);
+        }
+
+        // 3. Process
+        let records = self.store.records();
+        for processor in &self.processors {
+            processor.process(records)?;
+        }
+
+        // 4. Filter → Filtered View
+        let filtered = self.filter_engine.apply(records);
+        Ok(filtered)
     }
 }
 
