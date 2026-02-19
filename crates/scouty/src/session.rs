@@ -98,20 +98,22 @@ impl LogSession {
             }
         }
 
-        // 2. Process
-        let records = self.store.records();
-        for processor in &self.processors {
-            processor.process(&records)?;
+        // 2. Process (collect only if processors exist)
+        if !self.processors.is_empty() {
+            let records: Vec<LogRecord> = self.store.iter().cloned().collect();
+            for processor in &self.processors {
+                processor.process(&records)?;
+            }
         }
 
         // 3. Filter → Filtered View
-        let filtered = self.filter_engine.apply(&records);
+        let filtered = self.filter_engine.apply_iter(self.store.iter());
         Ok(filtered)
     }
 
     /// Get the filtered view based on current filters (without re-running load/parse).
     pub fn filtered_view(&self) -> Vec<usize> {
-        self.filter_engine.apply(&self.store.records())
+        self.filter_engine.apply_iter(self.store.iter())
     }
 
     /// Execute the pipeline with parallel loading and parsing across loader slots.
@@ -158,14 +160,16 @@ impl LogSession {
             self.failing_parsing_logs.extend(failures);
         }
 
-        // 3. Process
-        let records = self.store.records();
-        for processor in &self.processors {
-            processor.process(&records)?;
+        // 3. Process (collect only if processors exist)
+        if !self.processors.is_empty() {
+            let records: Vec<LogRecord> = self.store.iter().cloned().collect();
+            for processor in &self.processors {
+                processor.process(&records)?;
+            }
         }
 
         // 4. Filter → Filtered View
-        let filtered = self.filter_engine.apply(&records);
+        let filtered = self.filter_engine.apply_iter(self.store.iter());
         Ok(filtered)
     }
 }

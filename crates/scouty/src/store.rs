@@ -159,56 +159,190 @@ impl LogStore {
 
     /// Bulk insert records efficiently.
     ///
-    /// Sorts the batch, then creates frozen segments directly for large batches.
+    /// For empty stores: sorts batch and creates frozen segments directly.
+    /// For non-empty stores: uses merge-based approach — only affected segments are rebuilt.
     pub fn insert_batch(&mut self, mut batch: Vec<LogRecord>) {
         if batch.is_empty() {
             return;
         }
 
         batch.sort_by_key(|r| r.timestamp);
-        let count = batch.len();
 
         if self.total_len == 0 && self.active.is_empty() {
-            // Empty store: create frozen segments directly from sorted batch
-            for chunk in batch.chunks(self.segment_capacity) {
-                let seg = Segment::from_sorted(chunk.to_vec());
-                self.frozen.push(seg);
-            }
-            // Last chunk becomes active if under capacity
-            if let Some(last) = self.frozen.last() {
-                if last.len() < self.segment_capacity {
-                    let mut seg = self.frozen.pop().unwrap();
-                    seg.frozen = false;
-                    self.active = seg;
-                }
-            }
+            self.insert_batch_empty(batch);
         } else {
-            // Non-empty store: merge batch into existing segments
-            // Simple approach: insert remaining active records + batch, rebuild
-            let mut all_records: Vec<LogRecord> = Vec::with_capacity(self.total_len + count);
-            for seg in self.frozen.drain(..) {
-                all_records.extend(seg.records);
-            }
-            all_records.append(&mut self.active.records);
-            all_records.extend(batch);
-            all_records.sort_by_key(|r| r.timestamp);
+            self.insert_batch_merge(batch);
+        }
+        self.total_len = self.frozen.iter().map(|s| s.len()).sum::<usize>() + self.active.len();
+    }
 
-            self.frozen.clear();
+    /// Fast path for inserting into an empty store.
+    fn insert_batch_empty(&mut self, batch: Vec<LogRecord>) {
+        for chunk in batch.chunks(self.segment_capacity) {
+            let seg = Segment::from_sorted(chunk.to_vec());
+            self.frozen.push(seg);
+        }
+        // Last chunk becomes active if under capacity
+        if let Some(last) = self.frozen.last() {
+            if last.len() < self.segment_capacity {
+                let mut seg = self.frozen.pop().unwrap();
+                seg.frozen = false;
+                self.active = seg;
+            }
+        }
+    }
+
+    /// Merge-based batch insert for non-empty stores.
+    ///
+    /// Strategy:
+    /// 1. If batch timestamps are all >= max existing timestamp, just append (fast path).
+    /// 2. Otherwise, find affected segment range and merge only those segments with the batch.
+    ///    Unaffected frozen segments remain untouched (zero-copy).
+    fn insert_batch_merge(&mut self, batch: Vec<LogRecord>) {
+        let batch_min = batch.first().unwrap().timestamp;
+        let batch_max = batch.last().unwrap().timestamp;
+
+        // Fast path: batch is entirely after all existing records — just append
+        let store_max = self
+            .active
+            .max_timestamp()
+            .or_else(|| self.frozen.last().and_then(|s| s.max_timestamp()));
+
+        if store_max.is_none_or(|max| batch_min >= max) {
+            // Append: drain active into batch, re-segment
+            let mut combined = Vec::with_capacity(self.active.len() + batch.len());
+            combined.append(&mut self.active.records);
+            // Merge active (sorted) + batch (sorted) — both sorted, so merge
+            let merged = Self::merge_sorted(combined, batch);
             self.active = Segment::new(self.segment_capacity);
+            self.append_records_as_segments(merged);
+            return;
+        }
 
-            for chunk in all_records.chunks(self.segment_capacity) {
-                let seg = Segment::from_sorted(chunk.to_vec());
-                self.frozen.push(seg);
+        // General case: find affected frozen segment range
+        // Segments whose time range overlaps with [batch_min, batch_max]
+        let first_affected = self
+            .frozen
+            .partition_point(|s| s.max_timestamp().is_some_and(|max| max < batch_min));
+        let last_affected = self
+            .frozen
+            .partition_point(|s| s.min_timestamp().is_some_and(|min| min <= batch_max));
+
+        // Collect records from affected segments + active (if overlapping) + batch
+        let active_overlaps = self
+            .active
+            .min_timestamp()
+            .is_none_or(|min| min <= batch_max)
+            || self
+                .active
+                .max_timestamp()
+                .is_none_or(|max| max >= batch_min)
+            || self.active.is_empty();
+
+        let affected_count: usize = self.frozen[first_affected..last_affected]
+            .iter()
+            .map(|s| s.len())
+            .sum::<usize>()
+            + if active_overlaps {
+                self.active.len()
+            } else {
+                0
             }
-            if let Some(last) = self.frozen.last() {
+            + batch.len();
+
+        let mut merged_records = Vec::with_capacity(affected_count);
+
+        // Drain affected frozen segments
+        for seg in self.frozen.drain(first_affected..last_affected) {
+            merged_records = Self::merge_sorted(merged_records, seg.records);
+        }
+
+        // Include active segment if overlapping
+        if active_overlaps {
+            let active_records = std::mem::replace(
+                &mut self.active.records,
+                Vec::with_capacity(self.segment_capacity),
+            );
+            merged_records = Self::merge_sorted(merged_records, active_records);
+        }
+
+        // Merge with batch
+        merged_records = Self::merge_sorted(merged_records, batch);
+
+        // Create new segments from merged records and insert them at the right position
+        let mut new_segments = Vec::new();
+        for chunk in merged_records.chunks(self.segment_capacity) {
+            new_segments.push(Segment::from_sorted(chunk.to_vec()));
+        }
+
+        // Last new segment becomes active if under capacity and active was included
+        if active_overlaps {
+            self.active = Segment::new(self.segment_capacity);
+            if let Some(last) = new_segments.last() {
                 if last.len() < self.segment_capacity {
-                    let mut seg = self.frozen.pop().unwrap();
+                    let mut seg = new_segments.pop().unwrap();
                     seg.frozen = false;
                     self.active = seg;
                 }
             }
         }
-        self.total_len = self.frozen.iter().map(|s| s.len()).sum::<usize>() + self.active.len();
+
+        // Splice new frozen segments into position
+        let insert_pos = first_affected;
+        for (i, seg) in new_segments.into_iter().enumerate() {
+            self.frozen.insert(insert_pos + i, seg);
+        }
+    }
+
+    /// Merge two sorted Vec<LogRecord> into one sorted Vec.
+    fn merge_sorted(a: Vec<LogRecord>, b: Vec<LogRecord>) -> Vec<LogRecord> {
+        if a.is_empty() {
+            return b;
+        }
+        if b.is_empty() {
+            return a;
+        }
+
+        let mut result = Vec::with_capacity(a.len() + b.len());
+        let mut ai = a.into_iter().peekable();
+        let mut bi = b.into_iter().peekable();
+
+        loop {
+            match (ai.peek(), bi.peek()) {
+                (Some(a_rec), Some(b_rec)) => {
+                    if a_rec.timestamp <= b_rec.timestamp {
+                        result.push(ai.next().unwrap());
+                    } else {
+                        result.push(bi.next().unwrap());
+                    }
+                }
+                (Some(_), None) => {
+                    result.extend(ai);
+                    break;
+                }
+                (None, Some(_)) => {
+                    result.extend(bi);
+                    break;
+                }
+                (None, None) => break,
+            }
+        }
+        result
+    }
+
+    /// Append sorted records as frozen segments (+ possibly active).
+    fn append_records_as_segments(&mut self, records: Vec<LogRecord>) {
+        for chunk in records.chunks(self.segment_capacity) {
+            self.frozen.push(Segment::from_sorted(chunk.to_vec()));
+        }
+        // Last chunk becomes active if under capacity
+        if let Some(last) = self.frozen.last() {
+            if last.len() < self.segment_capacity {
+                let mut seg = self.frozen.pop().unwrap();
+                seg.frozen = false;
+                self.active = seg;
+            }
+        }
     }
 
     /// Get all records as a collected Vec (sorted by timestamp).

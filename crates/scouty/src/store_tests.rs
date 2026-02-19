@@ -330,6 +330,123 @@ mod tests {
     // ========================================
 
     #[test]
+    fn perf_1m_nonempty_batch_insert_10k() {
+        // The key benchmark: 1M existing records, insert 10K more via batch
+        let base = Utc::now();
+        let initial: Vec<LogRecord> = (0..1_000_000u64)
+            .map(|i| LogRecord {
+                id: i,
+                timestamp: base + Duration::microseconds(i as i64),
+                level: Some(LogLevel::Info),
+                source: "bench".into(),
+                pid: None,
+                tid: None,
+                component_name: None,
+                process_name: None,
+                message: format!("msg-{}", i),
+                raw: format!("msg-{}", i),
+                metadata: HashMap::new(),
+                loader_id: "bench".into(),
+            })
+            .collect();
+
+        let mut store = LogStore::new();
+        store.insert_batch(initial);
+        assert_eq!(store.len(), 1_000_000);
+
+        // Now insert 10K more records (appending — timestamps after existing)
+        let batch: Vec<LogRecord> = (0..10_000u64)
+            .map(|i| LogRecord {
+                id: 1_000_000 + i,
+                timestamp: base + Duration::microseconds(1_000_000 + i as i64),
+                level: Some(LogLevel::Info),
+                source: "bench".into(),
+                pid: None,
+                tid: None,
+                component_name: None,
+                process_name: None,
+                message: format!("new-{}", i),
+                raw: format!("new-{}", i),
+                metadata: HashMap::new(),
+                loader_id: "bench".into(),
+            })
+            .collect();
+
+        let start = std::time::Instant::now();
+        store.insert_batch(batch);
+        let elapsed = start.elapsed();
+
+        println!("[perf] 1M store + 10K batch insert (append): {:?}", elapsed);
+        assert_eq!(store.len(), 1_010_000);
+        // Target: < 10ms
+        assert!(
+            elapsed.as_millis() < 100,
+            "Batch insert took {:?}, expected < 100ms",
+            elapsed
+        );
+    }
+
+    #[test]
+    fn perf_1m_nonempty_batch_insert_10k_interleaved() {
+        // Batch inserts records interleaved with existing data
+        let base = Utc::now();
+        let initial: Vec<LogRecord> = (0..1_000_000u64)
+            .map(|i| LogRecord {
+                id: i,
+                timestamp: base + Duration::microseconds(i as i64 * 2), // even timestamps
+                level: Some(LogLevel::Info),
+                source: "bench".into(),
+                pid: None,
+                tid: None,
+                component_name: None,
+                process_name: None,
+                message: format!("msg-{}", i),
+                raw: format!("msg-{}", i),
+                metadata: HashMap::new(),
+                loader_id: "bench".into(),
+            })
+            .collect();
+
+        let mut store = LogStore::new();
+        store.insert_batch(initial);
+
+        // Insert 10K records at odd timestamps (interleaved)
+        let batch: Vec<LogRecord> = (0..10_000u64)
+            .map(|i| LogRecord {
+                id: 1_000_000 + i,
+                timestamp: base + Duration::microseconds(i as i64 * 200 + 1), // odd, spread across range
+                level: Some(LogLevel::Info),
+                source: "bench".into(),
+                pid: None,
+                tid: None,
+                component_name: None,
+                process_name: None,
+                message: format!("interleaved-{}", i),
+                raw: format!("interleaved-{}", i),
+                metadata: HashMap::new(),
+                loader_id: "bench".into(),
+            })
+            .collect();
+
+        let start = std::time::Instant::now();
+        store.insert_batch(batch);
+        let elapsed = start.elapsed();
+
+        println!(
+            "[perf] 1M store + 10K batch insert (interleaved): {:?}",
+            elapsed
+        );
+        assert_eq!(store.len(), 1_010_000);
+
+        // Verify order
+        let mut prev_ts = chrono::DateTime::<Utc>::MIN_UTC;
+        for record in store.iter() {
+            assert!(record.timestamp >= prev_ts);
+            prev_ts = record.timestamp;
+        }
+    }
+
+    #[test]
     fn perf_1m_monotonic_inserts() {
         let base = Utc::now();
         let mut store = LogStore::new();
