@@ -283,12 +283,9 @@ random garbage
 
     // ========================================
     // 6.2 Performance Tests
-    // These are marked #[ignore] and should be run with --release for meaningful results:
-    //   cargo test --release -p scouty -- --ignored
     // ========================================
 
     #[test]
-    #[ignore] // Run with: cargo test --release -- --ignored
     fn test_perf_large_file_loading() {
         // Generate 100K log lines (scaled down from 1M for CI speed, but tests the path)
         let mut content = String::with_capacity(100_000 * 60);
@@ -319,6 +316,7 @@ random garbage
 
         let records = session.store().records();
         assert_eq!(records.len(), 100_000);
+        println!("[perf] Load 100K records: {:?}", elapsed);
 
         // Should complete within 30 seconds even on slow CI
         assert!(
@@ -329,7 +327,6 @@ random garbage
     }
 
     #[test]
-    #[ignore] // Run with: cargo test --release -- --ignored
     fn test_perf_filter_large_dataset() {
         let mut content = String::with_capacity(50_000 * 60);
         for i in 0..50_000 {
@@ -365,6 +362,7 @@ random garbage
         let elapsed = start.elapsed();
 
         assert_eq!(view.len(), 500); // 50000 / 100
+        println!("[perf] Filter 50K records: {:?}", elapsed);
         assert!(
             elapsed.as_millis() < 5000,
             "Filtering 50K records took {:?}, expected < 5s",
@@ -373,7 +371,6 @@ random garbage
     }
 
     #[test]
-    #[ignore] // Run with: cargo test --release -- --ignored
     fn test_perf_store_operations() {
         use crate::record::LogRecord;
         use crate::store::LogStore;
@@ -402,6 +399,7 @@ random garbage
 
         let elapsed = start.elapsed();
         assert_eq!(store.len(), 100_000);
+        println!("[perf] Insert 100K records into store: {:?}", elapsed);
         assert!(
             elapsed.as_secs() < 10,
             "Inserting 100K records took {:?}, expected < 10s",
@@ -413,11 +411,11 @@ random garbage
         let slice = store.range(50_000, 50_100);
         let elapsed = start.elapsed();
         assert_eq!(slice.len(), 100);
+        println!("[perf] Range query (100 from 100K): {:?}", elapsed);
         assert!(elapsed.as_millis() < 100, "Range query took {:?}", elapsed);
     }
 
     #[test]
-    #[ignore] // Run with: cargo test --release -- --ignored
     fn test_perf_parallel_vs_sequential() {
         let content = "\
 2024-01-15 10:00:00 INFO msg1
