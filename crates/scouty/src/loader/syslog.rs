@@ -63,7 +63,10 @@ impl SyslogLoader {
             let sock = UdpSocket::bind(&self.config.bind_addr).map_err(|e| {
                 ScoutyError::Io(std::io::Error::new(
                     e.kind(),
-                    format!("Failed to bind syslog socket to {}: {}", self.config.bind_addr, e),
+                    format!(
+                        "Failed to bind syslog socket to {}: {}",
+                        self.config.bind_addr, e
+                    ),
                 ))
             })?;
             sock.set_nonblocking(true).map_err(ScoutyError::Io)?;
@@ -99,7 +102,7 @@ impl LogLoader for SyslogLoader {
             match socket.recv_from(&mut buf) {
                 Ok((len, _addr)) => {
                     if let Ok(msg) = std::str::from_utf8(&buf[..len]) {
-                        let trimmed = msg.trim_end_matches(|c| c == '\n' || c == '\r');
+                        let trimmed = msg.trim_end_matches(['\n', '\r']);
                         if !trimmed.is_empty() {
                             messages.push(trimmed.to_string());
                         }
