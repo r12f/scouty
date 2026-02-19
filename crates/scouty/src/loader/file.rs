@@ -1,4 +1,8 @@
-//! File-based log loader (placeholder for Phase 2).
+//! File-based log loader — loads log lines from a local text file.
+
+#[cfg(test)]
+#[path = "file_tests.rs"]
+mod file_tests;
 
 use crate::traits::{LoaderInfo, LoaderType, LogLoader, Result};
 use std::path::PathBuf;
