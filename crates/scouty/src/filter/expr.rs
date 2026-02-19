@@ -326,8 +326,7 @@ pub fn validate(expr: &Expr) -> Result<(), String> {
             value,
             ..
         } => {
-            regex::Regex::new(value)
-                .map_err(|e| format!("Invalid regex '{}': {}", value, e))?;
+            regex::Regex::new(value).map_err(|e| format!("Invalid regex '{}': {}", value, e))?;
             Ok(())
         }
         Expr::Comparison { .. } => Ok(()),

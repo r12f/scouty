@@ -146,10 +146,7 @@ mod tests {
             )
             .unwrap();
         engine
-            .add_expr_filter(
-                FilterAction::Exclude,
-                r#"message contains "ignore""#,
-            )
+            .add_expr_filter(FilterAction::Exclude, r#"message contains "ignore""#)
             .unwrap();
 
         let records = vec![
