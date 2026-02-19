@@ -208,12 +208,7 @@ impl LogStore {
                 }
             }
         }
-        self.total_len = self
-            .frozen
-            .iter()
-            .map(|s| s.len())
-            .sum::<usize>()
-            + self.active.len();
+        self.total_len = self.frozen.iter().map(|s| s.len()).sum::<usize>() + self.active.len();
     }
 
     /// Get all records as a collected Vec (sorted by timestamp).

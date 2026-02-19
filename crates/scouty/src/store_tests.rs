@@ -103,7 +103,10 @@ mod tests {
         let mut store = LogStore::new();
         let base = Utc::now();
         for i in 0..10 {
-            store.insert(make_record_with_ts(i, base + Duration::seconds(i as i64 * 10)));
+            store.insert(make_record_with_ts(
+                i,
+                base + Duration::seconds(i as i64 * 10),
+            ));
         }
 
         let target = base + Duration::seconds(25);
@@ -121,7 +124,12 @@ mod tests {
     fn range_query() {
         let mut store = LogStore::new();
         for i in 0..5 {
-            store.insert(make_record_at(i, LogLevel::Info, &format!("msg-{}", i), i as i64));
+            store.insert(make_record_at(
+                i,
+                LogLevel::Info,
+                &format!("msg-{}", i),
+                i as i64,
+            ));
         }
 
         let slice = store.range(1, 3);
@@ -160,7 +168,10 @@ mod tests {
         store.insert_batch(batch);
 
         for i in 100..110 {
-            store.insert(make_record_with_ts(i, base + Duration::milliseconds(i as i64 * 100)));
+            store.insert(make_record_with_ts(
+                i,
+                base + Duration::milliseconds(i as i64 * 100),
+            ));
         }
 
         assert_eq!(store.len(), 110);
@@ -203,7 +214,11 @@ mod tests {
         store.insert_batch(batch);
 
         assert_eq!(store.len(), 70_000);
-        assert!(store.segment_count() >= 2, "Expected multiple segments, got {}", store.segment_count());
+        assert!(
+            store.segment_count() >= 2,
+            "Expected multiple segments, got {}",
+            store.segment_count()
+        );
     }
 
     #[test]
@@ -244,9 +259,13 @@ mod tests {
         assert_eq!(store.len(), 103);
         let records = store.records();
         for i in 1..records.len() {
-            assert!(records[i].timestamp >= records[i - 1].timestamp,
+            assert!(
+                records[i].timestamp >= records[i - 1].timestamp,
                 "Order violation at index {}: {:?} > {:?}",
-                i, records[i - 1].timestamp, records[i].timestamp);
+                i,
+                records[i - 1].timestamp,
+                records[i].timestamp
+            );
         }
     }
 
@@ -299,7 +318,11 @@ mod tests {
         // Find in second segment
         let target = base + Duration::milliseconds(65_500);
         let idx = store.find_by_timestamp(&target);
-        assert!(idx >= 65_500 && idx <= 65_501, "Expected ~65500, got {}", idx);
+        assert!(
+            idx >= 65_500 && idx <= 65_501,
+            "Expected ~65500, got {}",
+            idx
+        );
     }
 
     // ========================================
@@ -318,7 +341,10 @@ mod tests {
                 timestamp: base + Duration::microseconds(i as i64),
                 level: Some(LogLevel::Info),
                 source: "bench".into(),
-                pid: None, tid: None, component_name: None, process_name: None,
+                pid: None,
+                tid: None,
+                component_name: None,
+                process_name: None,
                 message: format!("msg-{}", i),
                 raw: format!("msg-{}", i),
                 metadata: HashMap::new(),
@@ -341,7 +367,10 @@ mod tests {
                 timestamp: base + Duration::microseconds(i as i64),
                 level: Some(LogLevel::Info),
                 source: "bench".into(),
-                pid: None, tid: None, component_name: None, process_name: None,
+                pid: None,
+                tid: None,
+                component_name: None,
+                process_name: None,
                 message: format!("msg-{}", i),
                 raw: format!("msg-{}", i),
                 metadata: HashMap::new(),
@@ -356,7 +385,11 @@ mod tests {
 
         println!("[perf] 1M batch insert: {:?}", elapsed);
         assert_eq!(store.len(), 1_000_000);
-        assert!(elapsed.as_secs() < 10, "Batch insert took {:?}, expected < 10s", elapsed);
+        assert!(
+            elapsed.as_secs() < 10,
+            "Batch insert took {:?}, expected < 10s",
+            elapsed
+        );
     }
 
     #[test]
@@ -368,7 +401,10 @@ mod tests {
                 timestamp: base + Duration::microseconds(i as i64),
                 level: Some(LogLevel::Info),
                 source: "bench".into(),
-                pid: None, tid: None, component_name: None, process_name: None,
+                pid: None,
+                tid: None,
+                component_name: None,
+                process_name: None,
                 message: format!("msg-{}", i),
                 raw: format!("msg-{}", i),
                 metadata: HashMap::new(),
@@ -397,7 +433,10 @@ mod tests {
                 timestamp: base + Duration::microseconds(i as i64),
                 level: Some(LogLevel::Info),
                 source: "bench".into(),
-                pid: None, tid: None, component_name: None, process_name: None,
+                pid: None,
+                tid: None,
+                component_name: None,
+                process_name: None,
                 message: format!("msg-{}", i),
                 raw: format!("msg-{}", i),
                 metadata: HashMap::new(),
@@ -415,7 +454,10 @@ mod tests {
             count += record.id;
         }
         let elapsed = start.elapsed();
-        println!("[perf] Sequential traversal of 1M records: {:?} (checksum: {})", elapsed, count);
+        println!(
+            "[perf] Sequential traversal of 1M records: {:?} (checksum: {})",
+            elapsed, count
+        );
     }
 
     #[test]
@@ -427,7 +469,10 @@ mod tests {
                 timestamp: base + Duration::microseconds(i as i64),
                 level: Some(LogLevel::Info),
                 source: "bench".into(),
-                pid: None, tid: None, component_name: None, process_name: None,
+                pid: None,
+                tid: None,
+                component_name: None,
+                process_name: None,
                 message: format!("msg-{}", i),
                 raw: format!("msg-{}", i),
                 metadata: HashMap::new(),
@@ -442,7 +487,10 @@ mod tests {
         let target = base + Duration::microseconds(500_000);
         let idx = store.find_by_timestamp(&target);
         let elapsed = start.elapsed();
-        println!("[perf] Time range query on 1M store: {:?} (index: {})", elapsed, idx);
+        println!(
+            "[perf] Time range query on 1M store: {:?} (index: {})",
+            elapsed, idx
+        );
         assert!(idx >= 499_999 && idx <= 500_001);
     }
 }
