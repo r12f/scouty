@@ -23,21 +23,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut app = App::load_file(&args[1])?;
 
-    // Setup terminal
     enable_raw_mode()?;
     stdout().execute(EnterAlternateScreen)?;
     let mut terminal = Terminal::new(CrosstermBackend::new(stdout()))?;
 
-    // Main loop
     loop {
         terminal.draw(|frame| {
             let body_area = frame.area();
-            // Compute visible rows: total height - header row (1) - footer (1) - border overhead
             let table_height = if app.detail_open {
-                let body = body_area.height.saturating_sub(1); // footer
-                (body * 60 / 100).saturating_sub(1) as usize // 60% minus header row
+                let body = body_area.height.saturating_sub(1);
+                (body * 60 / 100).saturating_sub(1) as usize
             } else {
-                body_area.height.saturating_sub(2) as usize // minus header row and footer
+                body_area.height.saturating_sub(2) as usize
             };
             app.visible_rows = table_height.max(1);
             ui::render(frame, &app);
@@ -52,9 +49,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 continue;
             }
 
-            // Clear status message on any key
             app.status_message = None;
-
             let ctrl = key.modifiers.contains(KeyModifiers::CONTROL);
 
             match app.input_mode {
@@ -67,13 +62,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 app.input_mode = InputMode::GotoLine;
                                 app.goto_input.clear();
                             }
+                            KeyCode::Char('f') => {
+                                app.input_mode = InputMode::FilterManager;
+                                app.filter_manager_cursor = 0;
+                            }
                             _ => {}
                         }
                     } else {
                         match key.code {
                             KeyCode::Char('q') => break,
                             KeyCode::Esc => {
-                                // Close detail panel if open, otherwise do nothing
                                 if app.detail_open {
                                     app.detail_open = false;
                                 }
@@ -95,6 +93,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 app.input_mode = InputMode::TimeJump;
                                 app.time_input.clear();
                             }
+                            KeyCode::Char('-') => {
+                                app.input_mode = InputMode::QuickExclude;
+                                app.quick_filter_input.clear();
+                            }
+                            KeyCode::Char('+') => {
+                                app.input_mode = InputMode::QuickInclude;
+                                app.quick_filter_input.clear();
+                            }
+                            KeyCode::Char('F') => {
+                                app.open_field_filter();
+                            }
                             KeyCode::Char('n') => app.next_search_match(),
                             KeyCode::Char('N') => app.prev_search_match(),
                             KeyCode::Char('?') => {
@@ -111,9 +120,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                             app.input_mode = InputMode::Normal;
                         }
                     }
-                    KeyCode::Esc => {
-                        app.input_mode = InputMode::Normal;
-                    }
+                    KeyCode::Esc => app.input_mode = InputMode::Normal,
                     KeyCode::Backspace => {
                         app.filter_input.pop();
                         app.filter_error = None;
@@ -129,15 +136,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         app.execute_search();
                         app.input_mode = InputMode::Normal;
                     }
-                    KeyCode::Esc => {
-                        app.input_mode = InputMode::Normal;
-                    }
+                    KeyCode::Esc => app.input_mode = InputMode::Normal,
                     KeyCode::Backspace => {
                         app.search_input.pop();
                     }
-                    KeyCode::Char(c) => {
-                        app.search_input.push(c);
-                    }
+                    KeyCode::Char(c) => app.search_input.push(c),
                     _ => {}
                 },
                 InputMode::TimeJump => match key.code {
@@ -145,15 +148,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         app.jump_to_time();
                         app.input_mode = InputMode::Normal;
                     }
-                    KeyCode::Esc => {
-                        app.input_mode = InputMode::Normal;
-                    }
+                    KeyCode::Esc => app.input_mode = InputMode::Normal,
                     KeyCode::Backspace => {
                         app.time_input.pop();
                     }
-                    KeyCode::Char(c) => {
-                        app.time_input.push(c);
-                    }
+                    KeyCode::Char(c) => app.time_input.push(c),
                     _ => {}
                 },
                 InputMode::GotoLine => match key.code {
@@ -161,14 +160,96 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         app.goto_line();
                         app.input_mode = InputMode::Normal;
                     }
-                    KeyCode::Esc => {
-                        app.input_mode = InputMode::Normal;
-                    }
+                    KeyCode::Esc => app.input_mode = InputMode::Normal,
                     KeyCode::Backspace => {
                         app.goto_input.pop();
                     }
-                    KeyCode::Char(c) if c.is_ascii_digit() => {
-                        app.goto_input.push(c);
+                    KeyCode::Char(c) if c.is_ascii_digit() => app.goto_input.push(c),
+                    _ => {}
+                },
+                InputMode::QuickExclude => match key.code {
+                    KeyCode::Enter => {
+                        app.apply_quick_exclude();
+                        app.input_mode = InputMode::Normal;
+                    }
+                    KeyCode::Esc => app.input_mode = InputMode::Normal,
+                    KeyCode::Backspace => {
+                        app.quick_filter_input.pop();
+                    }
+                    KeyCode::Char(c) => app.quick_filter_input.push(c),
+                    _ => {}
+                },
+                InputMode::QuickInclude => match key.code {
+                    KeyCode::Enter => {
+                        app.apply_quick_include();
+                        app.input_mode = InputMode::Normal;
+                    }
+                    KeyCode::Esc => app.input_mode = InputMode::Normal,
+                    KeyCode::Backspace => {
+                        app.quick_filter_input.pop();
+                    }
+                    KeyCode::Char(c) => app.quick_filter_input.push(c),
+                    _ => {}
+                },
+                InputMode::FieldFilter => {
+                    if let Some(ref mut ff) = app.field_filter {
+                        match key.code {
+                            KeyCode::Up | KeyCode::Char('k') => {
+                                ff.cursor = ff.cursor.saturating_sub(1);
+                            }
+                            KeyCode::Down | KeyCode::Char('j') => {
+                                if ff.cursor + 1 < ff.fields.len() {
+                                    ff.cursor += 1;
+                                }
+                            }
+                            KeyCode::Char(' ') => {
+                                let cur = ff.cursor;
+                                ff.fields[cur].2 = !ff.fields[cur].2;
+                            }
+                            KeyCode::Tab => {
+                                ff.exclude = !ff.exclude;
+                            }
+                            KeyCode::Enter => {
+                                app.apply_field_filter();
+                            }
+                            KeyCode::Esc => {
+                                app.field_filter = None;
+                                app.input_mode = InputMode::Normal;
+                            }
+                            _ => {}
+                        }
+                    } else {
+                        app.input_mode = InputMode::Normal;
+                    }
+                }
+                InputMode::FilterManager => match key.code {
+                    KeyCode::Up | KeyCode::Char('k') => {
+                        app.filter_manager_cursor = app.filter_manager_cursor.saturating_sub(1);
+                    }
+                    KeyCode::Down | KeyCode::Char('j') => {
+                        if !app.filters.is_empty()
+                            && app.filter_manager_cursor + 1 < app.filters.len()
+                        {
+                            app.filter_manager_cursor += 1;
+                        }
+                    }
+                    KeyCode::Char('d') | KeyCode::Delete => {
+                        if !app.filters.is_empty() {
+                            let idx = app.filter_manager_cursor;
+                            app.remove_filter(idx);
+                            if app.filter_manager_cursor > 0
+                                && app.filter_manager_cursor >= app.filters.len()
+                            {
+                                app.filter_manager_cursor = app.filters.len().saturating_sub(1);
+                            }
+                        }
+                    }
+                    KeyCode::Char('c') => {
+                        app.clear_filters();
+                        app.filter_manager_cursor = 0;
+                    }
+                    KeyCode::Esc | KeyCode::Enter => {
+                        app.input_mode = InputMode::Normal;
                     }
                     _ => {}
                 },
@@ -179,7 +260,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
-    // Restore terminal
     disable_raw_mode()?;
     stdout().execute(LeaveAlternateScreen)?;
     Ok(())

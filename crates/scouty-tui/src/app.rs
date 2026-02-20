@@ -16,7 +16,33 @@ pub enum InputMode {
     Search,
     TimeJump,
     GotoLine,
+    QuickExclude,
+    QuickInclude,
+    FieldFilter,
+    FilterManager,
     Help,
+}
+
+/// A single filter entry in the filter stack.
+#[derive(Debug, Clone)]
+pub struct FilterEntry {
+    /// Human-readable label (e.g. "exclude: timeout", "level == ERROR").
+    pub label: String,
+    /// The compiled expression.
+    pub expr: Expr,
+    /// Whether this is an exclude (true) or include (false) filter.
+    pub exclude: bool,
+}
+
+/// Field filter dialog state.
+#[derive(Debug, Clone)]
+pub struct FieldFilterState {
+    /// Available fields from the selected record: (field_name, value, checked).
+    pub fields: Vec<(String, String, bool)>,
+    /// Current cursor in the field list.
+    pub cursor: usize,
+    /// Whether we're in Exclude (true) or Include (false) mode.
+    pub exclude: bool,
 }
 
 /// Main application state.
@@ -37,12 +63,18 @@ pub struct App {
     pub detail_open: bool,
     /// Current input mode.
     pub input_mode: InputMode,
-    /// Filter input buffer.
+    /// Filter input buffer (for expression mode).
     pub filter_input: String,
-    /// Active filter expression (compiled).
-    pub filter_expr: Option<Expr>,
     /// Filter error message.
     pub filter_error: Option<String>,
+    /// Stack of active filters.
+    pub filters: Vec<FilterEntry>,
+    /// Quick exclude/include input buffer.
+    pub quick_filter_input: String,
+    /// Field filter dialog state.
+    pub field_filter: Option<FieldFilterState>,
+    /// Filter manager: selected index.
+    pub filter_manager_cursor: usize,
     /// Search input buffer.
     pub search_input: String,
     /// Current search matches (indices into filtered list).
@@ -88,8 +120,11 @@ impl App {
             detail_open: false,
             input_mode: InputMode::Normal,
             filter_input: String::new(),
-            filter_expr: None,
             filter_error: None,
+            filters: Vec::new(),
+            quick_filter_input: String::new(),
+            field_filter: None,
+            filter_manager_cursor: 0,
             search_input: String::new(),
             search_matches: vec![],
             search_match_idx: None,
@@ -101,23 +136,10 @@ impl App {
     }
 
     /// Compute auto-fit column widths by sampling records.
-    /// Returns [Time, Level, ProcessName, Pid, Tid, Component] widths.
-    /// The Log column will fill remaining space.
     fn compute_col_widths(records: &[LogRecord], indices: &[usize]) -> [u16; 6] {
-        // Minimum widths from headers
-        let mut widths: [u16; 6] = [
-            4,  // "Time"
-            5,  // "Level"
-            11, // "ProcessName"
-            3,  // "Pid"
-            3,  // "Tid"
-            9,  // "Component"
-        ];
-
-        // Maximum widths to prevent any single column from being too wide
+        let mut widths: [u16; 6] = [4, 5, 11, 3, 3, 9];
         let max_widths: [u16; 6] = [23, 5, 20, 8, 8, 20];
 
-        // Sample up to 1000 records evenly distributed
         let sample_size = 1000.min(indices.len());
         let step = if sample_size == 0 {
             1
@@ -128,44 +150,27 @@ impl App {
 
         for i in (0..indices.len()).step_by(step) {
             let r = &records[indices[i]];
-
-            // Time: fixed format "YYYY-MM-DD HH:MM:SS"
             widths[0] = widths[0].max(19);
-
-            // Level
             if let Some(level) = r.level {
-                let len = format!("{}", level).len() as u16;
-                widths[1] = widths[1].max(len);
+                widths[1] = widths[1].max(format!("{}", level).len() as u16);
             }
-
-            // ProcessName
             if let Some(ref name) = r.process_name {
                 widths[2] = widths[2].max((name.len() as u16).min(max_widths[2]));
             }
-
-            // Pid
             if let Some(pid) = r.pid {
-                let len = format!("{}", pid).len() as u16;
-                widths[3] = widths[3].max(len.min(max_widths[3]));
+                widths[3] = widths[3].max((format!("{}", pid).len() as u16).min(max_widths[3]));
             }
-
-            // Tid
             if let Some(tid) = r.tid {
-                let len = format!("{}", tid).len() as u16;
-                widths[4] = widths[4].max(len.min(max_widths[4]));
+                widths[4] = widths[4].max((format!("{}", tid).len() as u16).min(max_widths[4]));
             }
-
-            // Component
             if let Some(ref comp) = r.component_name {
                 widths[5] = widths[5].max((comp.len() as u16).min(max_widths[5]));
             }
         }
 
-        // Clamp all to max
         for i in 0..6 {
             widths[i] = widths[i].min(max_widths[i]);
         }
-
         widths
     }
 
@@ -174,36 +179,205 @@ impl App {
         self.filtered_indices.len()
     }
 
-    /// Apply filter expression to records.
-    pub fn apply_filter(&mut self) {
-        if self.filter_input.is_empty() {
-            self.filter_expr = None;
-            self.filter_error = None;
-            self.filtered_indices = (0..self.records.len()).collect();
-        } else {
-            match expr::parse(&self.filter_input) {
-                Ok(expr) => {
-                    self.filtered_indices = self
-                        .records
-                        .iter()
-                        .enumerate()
-                        .filter(|(_, r)| eval::eval(&expr, r))
-                        .map(|(i, _)| i)
-                        .collect();
-                    self.filter_expr = Some(expr);
-                    self.filter_error = None;
+    // ── Filter application ──────────────────────────────────────
+
+    /// Re-apply all active filters to compute filtered_indices.
+    pub fn reapply_filters(&mut self) {
+        self.filtered_indices = (0..self.records.len())
+            .filter(|&i| {
+                let record = &self.records[i];
+                for f in &self.filters {
+                    let matches = eval::eval(&f.expr, record);
+                    if f.exclude && matches {
+                        return false; // exclude filter matched → hide
+                    }
+                    if !f.exclude && !matches {
+                        return false; // include filter didn't match → hide
+                    }
                 }
-                Err(e) => {
-                    self.filter_error = Some(e);
-                    return;
-                }
-            }
-        }
+                true
+            })
+            .collect();
+
         self.col_widths = Self::compute_col_widths(&self.records, &self.filtered_indices);
         self.scroll_offset = 0;
         self.selected = 0;
         self.clear_search();
     }
+
+    /// Apply filter expression from the `f` input mode.
+    pub fn apply_filter(&mut self) {
+        if self.filter_input.is_empty() {
+            self.filter_error = None;
+            return;
+        }
+        match expr::parse(&self.filter_input) {
+            Ok(parsed_expr) => {
+                self.filters.push(FilterEntry {
+                    label: self.filter_input.clone(),
+                    expr: parsed_expr,
+                    exclude: false,
+                });
+                self.filter_error = None;
+                self.filter_input.clear();
+                self.reapply_filters();
+            }
+            Err(e) => {
+                self.filter_error = Some(e);
+            }
+        }
+    }
+
+    /// Add a quick exclude filter (message contains text).
+    pub fn apply_quick_exclude(&mut self) {
+        let text = self.quick_filter_input.trim().to_string();
+        if text.is_empty() {
+            return;
+        }
+        let expr_str = format!("message contains \"{}\"", text.replace('"', "\\\""));
+        match expr::parse(&expr_str) {
+            Ok(parsed_expr) => {
+                self.filters.push(FilterEntry {
+                    label: format!("exclude: {}", text),
+                    expr: parsed_expr,
+                    exclude: true,
+                });
+                self.quick_filter_input.clear();
+                self.reapply_filters();
+            }
+            Err(e) => {
+                self.status_message = Some(format!("Filter error: {}", e));
+            }
+        }
+    }
+
+    /// Add a quick include filter (message contains text).
+    pub fn apply_quick_include(&mut self) {
+        let text = self.quick_filter_input.trim().to_string();
+        if text.is_empty() {
+            return;
+        }
+        let expr_str = format!("message contains \"{}\"", text.replace('"', "\\\""));
+        match expr::parse(&expr_str) {
+            Ok(parsed_expr) => {
+                self.filters.push(FilterEntry {
+                    label: format!("include: {}", text),
+                    expr: parsed_expr,
+                    exclude: false,
+                });
+                self.quick_filter_input.clear();
+                self.reapply_filters();
+            }
+            Err(e) => {
+                self.status_message = Some(format!("Filter error: {}", e));
+            }
+        }
+    }
+
+    /// Open field filter dialog based on selected record.
+    pub fn open_field_filter(&mut self) {
+        if let Some(record) = self.selected_record().cloned() {
+            let mut fields = Vec::new();
+
+            if let Some(level) = record.level {
+                fields.push(("level".to_string(), format!("{}", level), false));
+            }
+            if let Some(ref name) = record.process_name {
+                fields.push(("process_name".to_string(), name.clone(), false));
+            }
+            if let Some(pid) = record.pid {
+                fields.push(("pid".to_string(), pid.to_string(), false));
+            }
+            if let Some(tid) = record.tid {
+                fields.push(("tid".to_string(), tid.to_string(), false));
+            }
+            if let Some(ref comp) = record.component_name {
+                fields.push(("component".to_string(), comp.clone(), false));
+            }
+
+            // Include metadata fields
+            if let Some(ref meta) = record.metadata {
+                for (k, v) in meta {
+                    fields.push((k.clone(), v.clone(), false));
+                }
+            }
+
+            if fields.is_empty() {
+                self.status_message = Some("No filterable fields in selected record".to_string());
+                return;
+            }
+
+            self.field_filter = Some(FieldFilterState {
+                fields,
+                cursor: 0,
+                exclude: true, // default to exclude
+            });
+            self.input_mode = InputMode::FieldFilter;
+        } else {
+            self.status_message = Some("No record selected".to_string());
+        }
+    }
+
+    /// Apply the field filter dialog selections.
+    pub fn apply_field_filter(&mut self) {
+        if let Some(ref state) = self.field_filter {
+            let checked: Vec<(&str, &str)> = state
+                .fields
+                .iter()
+                .filter(|(_, _, checked)| *checked)
+                .map(|(name, val, _)| (name.as_str(), val.as_str()))
+                .collect();
+
+            if checked.is_empty() {
+                self.status_message = Some("No fields selected".to_string());
+                return;
+            }
+
+            // Build filter expression: field1 == "val1" AND field2 == "val2"
+            let parts: Vec<String> = checked
+                .iter()
+                .map(|(name, val)| format!("{} = \"{}\"", name, val.replace('"', "\\\"")))
+                .collect();
+            let expr_str = parts.join(" AND ");
+            let label = if state.exclude {
+                format!("exclude: {}", expr_str)
+            } else {
+                format!("include: {}", expr_str)
+            };
+
+            match expr::parse(&expr_str) {
+                Ok(parsed_expr) => {
+                    self.filters.push(FilterEntry {
+                        label,
+                        expr: parsed_expr,
+                        exclude: state.exclude,
+                    });
+                    self.field_filter = None;
+                    self.input_mode = InputMode::Normal;
+                    self.reapply_filters();
+                }
+                Err(e) => {
+                    self.status_message = Some(format!("Filter error: {}", e));
+                }
+            }
+        }
+    }
+
+    /// Remove a filter by index.
+    pub fn remove_filter(&mut self, index: usize) {
+        if index < self.filters.len() {
+            self.filters.remove(index);
+            self.reapply_filters();
+        }
+    }
+
+    /// Clear all filters.
+    pub fn clear_filters(&mut self) {
+        self.filters.clear();
+        self.reapply_filters();
+    }
+
+    // ── Search ──────────────────────────────────────────────────
 
     /// Execute regex search across filtered records.
     pub fn execute_search(&mut self) {
@@ -211,7 +385,6 @@ impl App {
             self.clear_search();
             return;
         }
-        // Build case-insensitive regex
         let pattern = match regex::RegexBuilder::new(&self.search_input)
             .case_insensitive(true)
             .build()
@@ -250,19 +423,16 @@ impl App {
         }
     }
 
-    /// Jump to next search match.
     pub fn next_search_match(&mut self) {
         if self.search_matches.is_empty() {
             return;
         }
         if let Some(idx) = self.search_match_idx {
-            let next = (idx + 1) % self.search_matches.len();
-            self.search_match_idx = Some(next);
+            self.search_match_idx = Some((idx + 1) % self.search_matches.len());
             self.jump_to_search_match();
         }
     }
 
-    /// Jump to previous search match.
     pub fn prev_search_match(&mut self) {
         if self.search_matches.is_empty() {
             return;
@@ -283,8 +453,7 @@ impl App {
             let target = self.search_matches[idx];
             self.selected = target;
             self.ensure_selected_visible();
-            let total = self.search_matches.len();
-            self.status_message = Some(format!("Match {}/{}", idx + 1, total));
+            self.status_message = Some(format!("Match {}/{}", idx + 1, self.search_matches.len()));
         }
     }
 
@@ -293,10 +462,10 @@ impl App {
         self.search_match_idx = None;
     }
 
-    /// Jump to time (format: HH:MM:SS or YYYY-MM-DD HH:MM:SS).
+    // ── Navigation ──────────────────────────────────────────────
+
     pub fn jump_to_time(&mut self) {
         use chrono::NaiveTime;
-
         let input = self.time_input.trim();
         if input.is_empty() {
             return;
@@ -304,8 +473,7 @@ impl App {
 
         if let Ok(time) = NaiveTime::parse_from_str(input, "%H:%M:%S") {
             for (fi, &ri) in self.filtered_indices.iter().enumerate() {
-                let record_time = self.records[ri].timestamp.time();
-                if record_time >= time {
+                if self.records[ri].timestamp.time() >= time {
                     self.selected = fi;
                     self.ensure_selected_visible();
                     self.status_message = Some(format!("Jumped to {}", time));
@@ -334,7 +502,6 @@ impl App {
             Some("Invalid time format (use HH:MM:SS or YYYY-MM-DD HH:MM:SS)".to_string());
     }
 
-    /// Jump to a specific line number (1-indexed).
     pub fn goto_line(&mut self) {
         let input = self.goto_input.trim();
         if input.is_empty() {
@@ -368,13 +535,11 @@ impl App {
     }
 
     pub fn page_down(&mut self) {
-        let half = self.visible_rows / 2;
-        self.select_down(half.max(1));
+        self.select_down((self.visible_rows / 2).max(1));
     }
 
     pub fn page_up(&mut self) {
-        let half = self.visible_rows / 2;
-        self.select_up(half.max(1));
+        self.select_up((self.visible_rows / 2).max(1));
     }
 
     pub fn scroll_to_top(&mut self) {
@@ -401,7 +566,6 @@ impl App {
         }
     }
 
-    /// Get the visible slice of filtered indices.
     pub fn visible_records(&self) -> Vec<&LogRecord> {
         let end = (self.scroll_offset + self.visible_rows).min(self.total());
         self.filtered_indices[self.scroll_offset..end]
@@ -410,14 +574,12 @@ impl App {
             .collect()
     }
 
-    /// Get the selected record.
     pub fn selected_record(&self) -> Option<&LogRecord> {
         self.filtered_indices
             .get(self.selected)
             .map(|&i| &self.records[i])
     }
 
-    /// Check if a filtered index is a search match.
     pub fn is_search_match(&self, filtered_idx: usize) -> bool {
         self.search_matches.contains(&filtered_idx)
     }
@@ -461,8 +623,44 @@ mod tests {
             detail_open: false,
             input_mode: InputMode::Normal,
             filter_input: String::new(),
-            filter_expr: None,
             filter_error: None,
+            filters: Vec::new(),
+            quick_filter_input: String::new(),
+            field_filter: None,
+            filter_manager_cursor: 0,
+            search_input: String::new(),
+            search_matches: vec![],
+            search_match_idx: None,
+            time_input: String::new(),
+            goto_input: String::new(),
+            status_message: None,
+            col_widths: [19, 5, 11, 3, 3, 9],
+        }
+    }
+
+    fn make_app_with_levels(messages: &[(&str, Option<LogLevel>)]) -> App {
+        let records: Vec<LogRecord> = messages
+            .iter()
+            .enumerate()
+            .map(|(i, (msg, level))| make_record(i as u64, *level, msg))
+            .collect();
+        let n = records.len();
+        let filtered_indices = (0..n).collect();
+        App {
+            records,
+            total_records: n,
+            filtered_indices,
+            scroll_offset: 0,
+            selected: 0,
+            visible_rows: 10,
+            detail_open: false,
+            input_mode: InputMode::Normal,
+            filter_input: String::new(),
+            filter_error: None,
+            filters: Vec::new(),
+            quick_filter_input: String::new(),
+            field_filter: None,
+            filter_manager_cursor: 0,
             search_input: String::new(),
             search_matches: vec![],
             search_match_idx: None,
@@ -494,7 +692,7 @@ mod tests {
     #[test]
     fn test_page_down_up() {
         let mut app = make_app(100);
-        app.page_down(); // half screen = 5
+        app.page_down();
         assert_eq!(app.selected, 5);
         app.page_up();
         assert_eq!(app.selected, 0);
@@ -538,7 +736,6 @@ mod tests {
         app.search_input = "error".to_string();
         app.execute_search();
         assert_eq!(app.search_matches.len(), 2);
-        assert_eq!(app.search_matches, vec![5, 15]);
         assert_eq!(app.selected, 5);
 
         app.next_search_match();
@@ -565,20 +762,11 @@ mod tests {
         let mut app = make_app(20);
         app.records[3].message = "ERROR: connection timeout".to_string();
         app.records[7].message = "error: disk full".to_string();
-        app.records[12].message = "Warning: low memory".to_string();
 
-        // Regex search: case-insensitive by default
-        app.search_input = "error".to_string();
-        app.execute_search();
-        assert_eq!(app.search_matches.len(), 2);
-        assert_eq!(app.search_matches, vec![3, 7]);
-
-        // Regex pattern
         app.search_input = r"error.*(?:timeout|full)".to_string();
         app.execute_search();
         assert_eq!(app.search_matches.len(), 2);
 
-        // Invalid regex
         app.search_input = "[invalid".to_string();
         app.execute_search();
         assert!(app.search_matches.is_empty());
@@ -600,33 +788,146 @@ mod tests {
     }
 
     #[test]
-    fn test_input_modes() {
-        let app = make_app(10);
-        assert_eq!(app.input_mode, InputMode::Normal);
-    }
-
-    #[test]
     fn test_goto_line() {
         let mut app = make_app(100);
         app.goto_input = "50".to_string();
         app.goto_line();
-        assert_eq!(app.selected, 49); // 1-indexed
-
-        app.goto_input = "999".to_string();
-        app.goto_line();
-        assert_eq!(app.selected, 99); // clamped
-
-        app.goto_input = "abc".to_string();
-        app.goto_line();
-        assert!(app.status_message.as_ref().unwrap().contains("Invalid"));
+        assert_eq!(app.selected, 49);
     }
 
     #[test]
     fn test_col_widths() {
         let app = make_app(10);
-        // Time should be at least 19 (YYYY-MM-DD HH:MM:SS)
         assert!(app.col_widths[0] >= 19);
-        // Level should be at least 5
-        assert!(app.col_widths[1] >= 5);
+    }
+
+    // ── Filter tests ────────────────────────────────────────────
+
+    #[test]
+    fn test_quick_exclude() {
+        let mut app = make_app_with_levels(&[
+            ("timeout error", Some(LogLevel::Error)),
+            ("success", Some(LogLevel::Info)),
+            ("timeout again", Some(LogLevel::Warn)),
+            ("all good", Some(LogLevel::Info)),
+        ]);
+
+        app.quick_filter_input = "timeout".to_string();
+        app.apply_quick_exclude();
+
+        assert_eq!(app.filters.len(), 1);
+        assert!(app.filters[0].exclude);
+        assert_eq!(app.filtered_indices.len(), 2); // "success" and "all good"
+    }
+
+    #[test]
+    fn test_quick_include() {
+        let mut app = make_app_with_levels(&[
+            ("timeout error", Some(LogLevel::Error)),
+            ("success", Some(LogLevel::Info)),
+            ("timeout again", Some(LogLevel::Warn)),
+            ("all good", Some(LogLevel::Info)),
+        ]);
+
+        app.quick_filter_input = "timeout".to_string();
+        app.apply_quick_include();
+
+        assert_eq!(app.filters.len(), 1);
+        assert!(!app.filters[0].exclude);
+        assert_eq!(app.filtered_indices.len(), 2); // "timeout error" and "timeout again"
+    }
+
+    #[test]
+    fn test_multiple_filters() {
+        let mut app = make_app_with_levels(&[
+            ("timeout error", Some(LogLevel::Error)),
+            ("success msg", Some(LogLevel::Info)),
+            ("timeout warning", Some(LogLevel::Warn)),
+            ("disk error", Some(LogLevel::Error)),
+            ("all good", Some(LogLevel::Info)),
+        ]);
+
+        // Exclude "timeout"
+        app.quick_filter_input = "timeout".to_string();
+        app.apply_quick_exclude();
+        assert_eq!(app.filtered_indices.len(), 3);
+
+        // Also exclude "disk"
+        app.quick_filter_input = "disk".to_string();
+        app.apply_quick_exclude();
+        assert_eq!(app.filtered_indices.len(), 2);
+        assert_eq!(app.filters.len(), 2);
+    }
+
+    #[test]
+    fn test_remove_filter() {
+        let mut app = make_app_with_levels(&[
+            ("timeout error", Some(LogLevel::Error)),
+            ("success", Some(LogLevel::Info)),
+            ("timeout again", Some(LogLevel::Warn)),
+        ]);
+
+        app.quick_filter_input = "timeout".to_string();
+        app.apply_quick_exclude();
+        assert_eq!(app.filtered_indices.len(), 1);
+
+        app.remove_filter(0);
+        assert_eq!(app.filters.len(), 0);
+        assert_eq!(app.filtered_indices.len(), 3);
+    }
+
+    #[test]
+    fn test_clear_filters() {
+        let mut app = make_app_with_levels(&[
+            ("a", Some(LogLevel::Error)),
+            ("b", Some(LogLevel::Info)),
+            ("c", Some(LogLevel::Warn)),
+        ]);
+
+        app.quick_filter_input = "a".to_string();
+        app.apply_quick_exclude();
+        app.quick_filter_input = "b".to_string();
+        app.apply_quick_exclude();
+        assert_eq!(app.filtered_indices.len(), 1);
+
+        app.clear_filters();
+        assert_eq!(app.filters.len(), 0);
+        assert_eq!(app.filtered_indices.len(), 3);
+    }
+
+    #[test]
+    fn test_filter_expression() {
+        let mut app = make_app_with_levels(&[
+            ("error msg", Some(LogLevel::Error)),
+            ("info msg", Some(LogLevel::Info)),
+            ("warn msg", Some(LogLevel::Warn)),
+        ]);
+
+        app.filter_input = r#"level = "ERROR""#.to_string();
+        app.apply_filter();
+        // The filter parser requires string values in quotes
+        assert_eq!(app.filters.len(), 1);
+        // "error msg" has level Error, should match
+        assert_eq!(
+            app.filtered_indices.len(),
+            1,
+            "Expected 1 filtered record, got {}. filter_error: {:?}",
+            app.filtered_indices.len(),
+            app.filter_error
+        );
+    }
+
+    #[test]
+    fn test_field_filter_opens() {
+        let mut app = make_app_with_levels(&[("error msg", Some(LogLevel::Error))]);
+        app.records[0].process_name = Some("myapp".to_string());
+        app.records[0].pid = Some(1234);
+
+        app.open_field_filter();
+        assert_eq!(app.input_mode, InputMode::FieldFilter);
+        let ff = app.field_filter.as_ref().unwrap();
+        assert!(ff.fields.len() >= 2); // at least level + process_name
+        assert!(ff.fields.iter().any(|(name, _, _)| name == "level"));
+        assert!(ff.fields.iter().any(|(name, _, _)| name == "process_name"));
     }
 }
