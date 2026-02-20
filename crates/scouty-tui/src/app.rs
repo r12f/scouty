@@ -140,6 +140,8 @@ pub struct FieldFilterState {
     pub cursor: usize,
     /// Whether we're in Exclude (true) or Include (false) mode.
     pub exclude: bool,
+    /// Whether to combine with OR (true) or AND (false). Default: OR.
+    pub logic_or: bool,
 }
 
 /// Main application state.
@@ -378,13 +380,21 @@ impl App {
     }
 
     /// Open field filter dialog based on selected record.
-    pub fn open_field_filter(&mut self) {
+    /// `exclude` determines initial mode (Ctrl+- = true, Ctrl++ = false).
+    pub fn open_field_filter(&mut self, exclude: bool) {
         if let Some(record) = self.selected_record().cloned() {
             let mut fields = Vec::new();
 
+            // ALL fields from LogRecord
+            fields.push((
+                "timestamp".to_string(),
+                record.timestamp.format("%Y-%m-%d %H:%M:%S%.3f").to_string(),
+                false,
+            ));
             if let Some(level) = record.level {
                 fields.push(("level".to_string(), format!("{}", level), false));
             }
+            fields.push(("source".to_string(), record.source.to_string(), false));
             if let Some(ref name) = record.process_name {
                 fields.push(("process_name".to_string(), name.clone(), false));
             }
@@ -397,6 +407,7 @@ impl App {
             if let Some(ref comp) = record.component_name {
                 fields.push(("component".to_string(), comp.clone(), false));
             }
+            fields.push(("message".to_string(), record.message.clone(), false));
 
             // Include metadata fields
             if let Some(ref meta) = record.metadata {
@@ -405,15 +416,11 @@ impl App {
                 }
             }
 
-            if fields.is_empty() {
-                self.status_message = Some("No filterable fields in selected record".to_string());
-                return;
-            }
-
             self.field_filter = Some(FieldFilterState {
                 fields,
                 cursor: 0,
-                exclude: true, // default to exclude
+                exclude,
+                logic_or: true, // default OR
             });
             self.input_mode = InputMode::FieldFilter;
         } else {
@@ -436,12 +443,13 @@ impl App {
                 return;
             }
 
-            // Build filter expression: field1 == "val1" AND field2 == "val2"
+            // Build filter expression with OR or AND
+            let joiner = if state.logic_or { " OR " } else { " AND " };
             let parts: Vec<String> = checked
                 .iter()
                 .map(|(name, val)| format!("{} = \"{}\"", name, val.replace('"', "\\\"")))
                 .collect();
-            let expr_str = parts.join(" AND ");
+            let expr_str = parts.join(joiner);
             let label = if state.exclude {
                 format!("exclude: {}", expr_str)
             } else {
@@ -1046,12 +1054,156 @@ mod tests {
         app.records[0].process_name = Some("myapp".to_string());
         app.records[0].pid = Some(1234);
 
-        app.open_field_filter();
+        app.open_field_filter(true);
         assert_eq!(app.input_mode, InputMode::FieldFilter);
         let ff = app.field_filter.as_ref().unwrap();
-        assert!(ff.fields.len() >= 2); // at least level + process_name
+        assert!(ff.fields.len() >= 4); // timestamp, level, source, process_name, pid, message
         assert!(ff.fields.iter().any(|(name, _, _)| name == "level"));
         assert!(ff.fields.iter().any(|(name, _, _)| name == "process_name"));
+        assert!(ff.fields.iter().any(|(name, _, _)| name == "source"));
+        assert!(ff.fields.iter().any(|(name, _, _)| name == "timestamp"));
+        assert!(ff.fields.iter().any(|(name, _, _)| name == "message"));
+        assert!(ff.fields.iter().any(|(name, _, _)| name == "pid"));
+        assert!(ff.logic_or); // default OR
+    }
+}
+
+#[cfg(test)]
+mod field_filter_v2_tests {
+    use super::*;
+    use chrono::Utc;
+    use scouty::record::{LogLevel, LogRecord};
+
+    fn make_record_full(id: u64, msg: &str, level: LogLevel) -> LogRecord {
+        LogRecord {
+            id,
+            timestamp: Utc::now(),
+            level: Some(level),
+            source: "syslog".into(),
+            pid: Some(1000 + id as u32),
+            tid: Some(2000 + id as u32),
+            component_name: Some("comp".into()),
+            process_name: Some("myapp".into()),
+            message: msg.to_string(),
+            raw: msg.to_string(),
+            metadata: None,
+            loader_id: "test".into(),
+        }
+    }
+
+    fn make_app_full(records: Vec<LogRecord>) -> App {
+        let n = records.len();
+        let filtered_indices = (0..n).collect();
+        App {
+            records,
+            total_records: n,
+            filtered_indices,
+            scroll_offset: 0,
+            selected: 0,
+            visible_rows: 10,
+            detail_open: false,
+            input_mode: InputMode::Normal,
+            filter_input: String::new(),
+            filter_error: None,
+            filters: Vec::new(),
+            quick_filter_input: String::new(),
+            field_filter: None,
+            filter_manager_cursor: 0,
+            search_input: String::new(),
+            search_matches: vec![],
+            search_match_idx: None,
+            time_input: String::new(),
+            goto_input: String::new(),
+            status_message: None,
+            col_widths: [19, 5, 11, 3, 3, 9],
+            column_config: ColumnConfig::default(),
+            follow_mode: false,
+        }
+    }
+
+    #[test]
+    fn test_field_filter_all_fields() {
+        let records = vec![make_record_full(0, "test msg", LogLevel::Error)];
+        let mut app = make_app_full(records);
+
+        app.open_field_filter(true);
+        let ff = app.field_filter.as_ref().unwrap();
+        // Should have: timestamp, level, source, process_name, pid, tid, component, message
+        assert_eq!(ff.fields.len(), 8);
+        assert!(ff.exclude);
+        assert!(ff.logic_or);
+    }
+
+    #[test]
+    fn test_field_filter_include_mode() {
+        let records = vec![make_record_full(0, "test msg", LogLevel::Info)];
+        let mut app = make_app_full(records);
+
+        app.open_field_filter(false);
+        let ff = app.field_filter.as_ref().unwrap();
+        assert!(!ff.exclude);
+    }
+
+    #[test]
+    fn test_field_filter_or_logic() {
+        let records = vec![
+            make_record_full(0, "err msg", LogLevel::Error),
+            make_record_full(1, "info msg", LogLevel::Info),
+            make_record_full(2, "warn msg", LogLevel::Warn),
+        ];
+        let mut app = make_app_full(records);
+
+        app.open_field_filter(false); // include mode
+        let ff = app.field_filter.as_mut().unwrap();
+        assert!(ff.logic_or);
+
+        // Check level field (index 1) and message field
+        let level_idx = ff.fields.iter().position(|(n, _, _)| n == "level").unwrap();
+        ff.fields[level_idx].2 = true; // check level = ERROR
+
+        // Apply — should include only record with level=ERROR
+        app.apply_field_filter();
+        assert_eq!(app.filtered_indices.len(), 1);
+    }
+
+    #[test]
+    fn test_field_filter_and_logic() {
+        let records = vec![
+            make_record_full(0, "err msg", LogLevel::Error),
+            make_record_full(1, "info msg", LogLevel::Info),
+        ];
+        let mut app = make_app_full(records);
+
+        app.open_field_filter(false); // include
+        let ff = app.field_filter.as_mut().unwrap();
+        ff.logic_or = false; // AND
+
+        // Check both level and pid
+        let level_idx = ff.fields.iter().position(|(n, _, _)| n == "level").unwrap();
+        let pid_idx = ff.fields.iter().position(|(n, _, _)| n == "pid").unwrap();
+        ff.fields[level_idx].2 = true;
+        ff.fields[pid_idx].2 = true;
+
+        app.apply_field_filter();
+        // Only record 0 has level=ERROR AND pid=1000
+        assert_eq!(app.filtered_indices.len(), 1);
+    }
+
+    #[test]
+    fn test_field_filter_metadata_fields() {
+        let mut record = make_record_full(0, "test", LogLevel::Info);
+        let mut meta = std::collections::HashMap::new();
+        meta.insert("env".to_string(), "prod".to_string());
+        meta.insert("region".to_string(), "us-west".to_string());
+        record.metadata = Some(meta);
+
+        let mut app = make_app_full(vec![record]);
+        app.open_field_filter(true);
+        let ff = app.field_filter.as_ref().unwrap();
+        // 8 standard fields + 2 metadata
+        assert_eq!(ff.fields.len(), 10);
+        assert!(ff.fields.iter().any(|(n, _, _)| n == "env"));
+        assert!(ff.fields.iter().any(|(n, _, _)| n == "region"));
     }
 }
 

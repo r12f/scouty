@@ -69,6 +69,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                             KeyCode::Char(']') => {
                                 app.toggle_follow();
                             }
+                            KeyCode::Char('-') => {
+                                app.open_field_filter(true); // Ctrl+- = exclude
+                            }
+                            KeyCode::Char('+') => {
+                                app.open_field_filter(false); // Ctrl++ = include
+                            }
                             _ => {}
                         }
                     } else {
@@ -105,7 +111,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 app.quick_filter_input.clear();
                             }
                             KeyCode::Char('F') => {
-                                app.open_field_filter();
+                                app.input_mode = InputMode::FilterManager;
+                                app.filter_manager_cursor = 0;
                             }
                             KeyCode::Char('n') => app.next_search_match(),
                             KeyCode::Char('N') => app.prev_search_match(),
@@ -209,12 +216,21 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                     ff.cursor += 1;
                                 }
                             }
+                            KeyCode::PageUp => {
+                                ff.cursor = ff.cursor.saturating_sub(10);
+                            }
+                            KeyCode::PageDown => {
+                                ff.cursor = (ff.cursor + 10).min(ff.fields.len().saturating_sub(1));
+                            }
                             KeyCode::Char(' ') => {
                                 let cur = ff.cursor;
                                 ff.fields[cur].2 = !ff.fields[cur].2;
                             }
                             KeyCode::Tab => {
                                 ff.exclude = !ff.exclude;
+                            }
+                            KeyCode::Char('o') => {
+                                ff.logic_or = !ff.logic_or;
                             }
                             KeyCode::Enter => {
                                 app.apply_field_filter();
@@ -238,6 +254,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                             && app.filter_manager_cursor + 1 < app.filters.len()
                         {
                             app.filter_manager_cursor += 1;
+                        }
+                    }
+                    KeyCode::PageUp => {
+                        app.filter_manager_cursor = app.filter_manager_cursor.saturating_sub(10);
+                    }
+                    KeyCode::PageDown => {
+                        if !app.filters.is_empty() {
+                            app.filter_manager_cursor = (app.filter_manager_cursor + 10)
+                                .min(app.filters.len().saturating_sub(1));
                         }
                     }
                     KeyCode::Char('d') | KeyCode::Delete => {
