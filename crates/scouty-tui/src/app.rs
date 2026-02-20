@@ -21,6 +21,7 @@ pub enum InputMode {
     FieldFilter,
     FilterManager,
     ColumnSelector,
+    CopyFormat,
     Help,
 }
 
@@ -710,6 +711,56 @@ impl App {
     pub fn is_search_match(&self, filtered_idx: usize) -> bool {
         self.search_matches.contains(&filtered_idx)
     }
+
+    /// Copy the selected record's raw text to clipboard via OSC 52.
+    pub fn copy_raw(&mut self) -> Option<String> {
+        if let Some(record) = self.selected_record() {
+            let text = record.raw.clone();
+            self.status_message = Some("Copied raw log to clipboard".to_string());
+            Some(text)
+        } else {
+            None
+        }
+    }
+
+    /// Copy the selected record in the given format to clipboard via OSC 52.
+    pub fn copy_as_format(&mut self, format: CopyFormat) -> Option<String> {
+        if let Some(record) = self.selected_record() {
+            let text = match format {
+                CopyFormat::Json => {
+                    serde_json::to_string_pretty(record).unwrap_or_else(|_| record.raw.clone())
+                }
+                CopyFormat::Yaml => {
+                    serde_yaml::to_string(record).unwrap_or_else(|_| record.raw.clone())
+                }
+            };
+            let label = match format {
+                CopyFormat::Json => "JSON",
+                CopyFormat::Yaml => "YAML",
+            };
+            self.status_message = Some(format!("Copied as {} to clipboard", label));
+            self.input_mode = InputMode::Normal;
+            Some(text)
+        } else {
+            None
+        }
+    }
+}
+
+/// Copy format options.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum CopyFormat {
+    Json,
+    Yaml,
+}
+
+/// Write text to system clipboard via OSC 52 escape sequence.
+/// Works in most modern terminals including over SSH.
+pub fn osc52_copy(text: &str) {
+    use base64::Engine;
+    let encoded = base64::engine::general_purpose::STANDARD.encode(text);
+    // OSC 52 ; c ; <base64> ST
+    print!("\x1b]52;c;{}\x07", encoded);
 }
 
 #[cfg(test)]
@@ -1388,5 +1439,100 @@ mod column_follow_tests {
         // Already at bottom, select_down shouldn't exit follow
         app.select_down(1);
         assert!(app.follow_mode);
+    }
+}
+
+#[cfg(test)]
+mod copy_tests {
+    use super::*;
+    use chrono::Utc;
+    use scouty::record::{LogLevel, LogRecord};
+
+    fn make_record(id: u64, msg: &str) -> LogRecord {
+        LogRecord {
+            id,
+            timestamp: Utc::now(),
+            level: Some(LogLevel::Info),
+            source: "test".into(),
+            pid: Some(1234),
+            tid: None,
+            component_name: None,
+            process_name: Some("app".into()),
+            message: msg.to_string(),
+            raw: msg.to_string(),
+            metadata: None,
+            loader_id: "test".into(),
+        }
+    }
+
+    fn make_app_copy(records: Vec<LogRecord>) -> App {
+        let n = records.len();
+        App {
+            records,
+            total_records: n,
+            filtered_indices: (0..n).collect(),
+            scroll_offset: 0,
+            selected: 0,
+            visible_rows: 10,
+            detail_open: false,
+            input_mode: InputMode::Normal,
+            filter_input: String::new(),
+            filter_error: None,
+            filters: Vec::new(),
+            quick_filter_input: String::new(),
+            field_filter: None,
+            filter_manager_cursor: 0,
+            search_input: String::new(),
+            search_matches: vec![],
+            search_match_idx: None,
+            time_input: String::new(),
+            goto_input: String::new(),
+            status_message: None,
+            col_widths: [19, 5, 11, 3, 3, 9],
+            column_config: ColumnConfig::default(),
+            follow_mode: false,
+        }
+    }
+
+    #[test]
+    fn test_copy_raw() {
+        let mut app = make_app_copy(vec![make_record(0, "hello world")]);
+        let result = app.copy_raw();
+        assert_eq!(result, Some("hello world".to_string()));
+        assert!(app.status_message.unwrap().contains("raw"));
+    }
+
+    #[test]
+    fn test_copy_raw_empty() {
+        let mut app = make_app_copy(vec![]);
+        let result = app.copy_raw();
+        assert_eq!(result, None);
+    }
+
+    #[test]
+    fn test_copy_as_json() {
+        let mut app = make_app_copy(vec![make_record(0, "test msg")]);
+        let result = app.copy_as_format(CopyFormat::Json);
+        assert!(result.is_some());
+        let json = result.unwrap();
+        assert!(json.contains("\"message\""));
+        assert!(json.contains("test msg"));
+        assert_eq!(app.input_mode, InputMode::Normal);
+    }
+
+    #[test]
+    fn test_copy_as_yaml() {
+        let mut app = make_app_copy(vec![make_record(0, "test msg")]);
+        let result = app.copy_as_format(CopyFormat::Yaml);
+        assert!(result.is_some());
+        let yaml = result.unwrap();
+        assert!(yaml.contains("message"));
+        assert!(yaml.contains("test msg"));
+    }
+
+    #[test]
+    fn test_osc52_does_not_panic() {
+        // Just ensure it doesn't panic; actual clipboard is terminal-dependent
+        osc52_copy("test data");
     }
 }
