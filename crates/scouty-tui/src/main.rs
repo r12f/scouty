@@ -316,6 +316,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     _ => {}
                 },
                 InputMode::CopyFormat => match key.code {
+                    KeyCode::Enter | KeyCode::Char('r') => {
+                        if let Some(text) = app.copy_as_format(app::CopyFormat::Raw) {
+                            app::osc52_copy(&text);
+                        }
+                    }
                     KeyCode::Char('j') => {
                         if let Some(text) = app.copy_as_format(app::CopyFormat::Json) {
                             app::osc52_copy(&text);

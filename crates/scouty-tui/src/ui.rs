@@ -647,7 +647,7 @@ fn render_column_selector_overlay(frame: &mut Frame, app: &App, area: Rect) {
 
 fn render_copy_format_overlay(frame: &mut Frame, area: Rect) {
     let width = 35u16.min(area.width.saturating_sub(4));
-    let height = 8u16.min(area.height.saturating_sub(4));
+    let height = 9u16.min(area.height.saturating_sub(4));
     let x = (area.width.saturating_sub(width)) / 2;
     let y = (area.height.saturating_sub(height)) / 2;
     let overlay = Rect::new(x, y, width, height);
@@ -656,6 +656,15 @@ fn render_copy_format_overlay(frame: &mut Frame, area: Rect) {
 
     let lines = vec![
         Line::from(""),
+        Line::from(vec![
+            Span::styled(
+                " [r] ",
+                Style::default()
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::raw("Raw text (default)"),
+        ]),
         Line::from(vec![
             Span::styled(
                 " [j] ",
@@ -675,7 +684,10 @@ fn render_copy_format_overlay(frame: &mut Frame, area: Rect) {
             Span::raw("YAML"),
         ]),
         Line::from(""),
-        Line::styled(" Esc: Cancel", Style::default().fg(Color::DarkGray)),
+        Line::styled(
+            " Enter: Raw  Esc: Cancel",
+            Style::default().fg(Color::DarkGray),
+        ),
     ];
 
     let dialog = Paragraph::new(lines)

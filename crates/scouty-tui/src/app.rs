@@ -727,6 +727,7 @@ impl App {
     pub fn copy_as_format(&mut self, format: CopyFormat) -> Option<String> {
         if let Some(record) = self.selected_record() {
             let text = match format {
+                CopyFormat::Raw => record.raw.clone(),
                 CopyFormat::Json => {
                     serde_json::to_string_pretty(record).unwrap_or_else(|_| record.raw.clone())
                 }
@@ -735,6 +736,7 @@ impl App {
                 }
             };
             let label = match format {
+                CopyFormat::Raw => "raw",
                 CopyFormat::Json => "JSON",
                 CopyFormat::Yaml => "YAML",
             };
@@ -750,6 +752,7 @@ impl App {
 /// Copy format options.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum CopyFormat {
+    Raw,
     Json,
     Yaml,
 }
