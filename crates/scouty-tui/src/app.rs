@@ -1570,4 +1570,41 @@ mod copy_tests {
         // Just ensure it doesn't panic; actual clipboard is terminal-dependent
         osc52_copy("test data");
     }
+
+    // ── Hostname & Container column tests ────────────────────
+
+    #[test]
+    fn test_hostname_container_columns_default_hidden() {
+        let config = ColumnConfig::default();
+        assert!(!config.is_visible(Column::Hostname));
+        assert!(!config.is_visible(Column::Container));
+    }
+
+    #[test]
+    fn test_hostname_container_columns_togglable() {
+        let mut config = ColumnConfig::default();
+        let host_idx = config
+            .columns
+            .iter()
+            .position(|(c, _)| *c == Column::Hostname)
+            .unwrap();
+        let ctr_idx = config
+            .columns
+            .iter()
+            .position(|(c, _)| *c == Column::Container)
+            .unwrap();
+        config.toggle(host_idx);
+        config.toggle(ctr_idx);
+        assert!(config.is_visible(Column::Hostname));
+        assert!(config.is_visible(Column::Container));
+        assert_eq!(config.visible_columns().len(), 4); // Time + Log + Hostname + Container
+    }
+
+    #[test]
+    fn test_hostname_container_in_column_selector() {
+        let config = ColumnConfig::default();
+        let labels: Vec<&str> = config.columns.iter().map(|(c, _)| c.label()).collect();
+        assert!(labels.contains(&"Hostname"));
+        assert!(labels.contains(&"Container"));
+    }
 }
