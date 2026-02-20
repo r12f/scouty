@@ -1053,6 +1053,16 @@ mod tests {
         assert!(ff.fields.iter().any(|(name, _, _)| name == "level"));
         assert!(ff.fields.iter().any(|(name, _, _)| name == "process_name"));
     }
+
+    #[test]
+    fn test_help_mode_toggle() {
+        let mut app = make_app(3);
+        assert_eq!(app.input_mode, InputMode::Normal);
+        app.input_mode = InputMode::Help;
+        assert_eq!(app.input_mode, InputMode::Help);
+        app.input_mode = InputMode::Normal;
+        assert_eq!(app.input_mode, InputMode::Normal);
+    }
 }
 
 #[cfg(test)]
