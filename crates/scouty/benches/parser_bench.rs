@@ -41,7 +41,7 @@ fn generate_syslog_lines(count: usize) -> Vec<String> {
 fn create_syslog_parser() -> RegexParser {
     RegexParser::new(
         "syslog",
-        r"^(?P<timestamp>\w{3}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2})\s+\S+\s+(?P<process>[^\[]+)\[(?P<pid>\d+)\]:\s+(?P<message>.+)$",
+        r"^(?P<timestamp>[A-Z][a-z]{2}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2})\s+\S+\s+(?P<process>[^\[]+)\[(?P<pid>\d+)\]:\s+(?P<message>.+)$",
         Some("%b %e %H:%M:%S".to_string()),
     )
     .unwrap()
@@ -90,13 +90,32 @@ fn bench_parse_syslog_batch_1k(c: &mut Criterion) {
 
     let mut group = c.benchmark_group("parse_syslog_batch");
     group.throughput(Throughput::Elements(1_000));
-    group.bench_function("1k", |b| {
+
+    // Manual loop with parse_shared
+    group.bench_function("1k_shared", |b| {
         b.iter(|| {
             for (i, line) in lines.iter().enumerate() {
                 black_box(parser.parse_shared(line, &source, &loader_id, i as u64));
             }
         })
     });
+
+    // Batch API
+    let line_refs: Vec<&str> = lines.iter().map(|s| s.as_str()).collect();
+    group.bench_function("1k_batch_api", |b| {
+        b.iter(|| {
+            black_box(parser.parse_batch(&line_refs, &source, &loader_id, 0));
+        })
+    });
+
+    // Batch owned API
+    group.bench_function("1k_batch_owned", |b| {
+        b.iter(|| {
+            let owned: Vec<String> = lines.clone();
+            black_box(parser.parse_batch_owned(owned, &source, &loader_id, 0));
+        })
+    });
+
     group.finish();
 }
 
@@ -106,23 +125,35 @@ fn bench_parse_syslog_batch_100k(c: &mut Criterion) {
     let source: Arc<str> = Arc::from("test");
     let loader_id: Arc<str> = Arc::from("loader");
 
-    let mut group = c.benchmark_group("parse_syslog_batch");
+    let mut group = c.benchmark_group("parse_syslog_100k");
     group.throughput(Throughput::Elements(100_000));
     group.sample_size(10);
-    group.bench_function("100k", |b| {
+
+    // Manual loop
+    group.bench_function("shared", |b| {
         b.iter(|| {
             for (i, line) in lines.iter().enumerate() {
                 black_box(parser.parse_shared(line, &source, &loader_id, i as u64));
             }
         })
     });
-    group.bench_function("100k_owned", |b| {
+
+    // Batch API
+    let line_refs: Vec<&str> = lines.iter().map(|s| s.as_str()).collect();
+    group.bench_function("batch_api", |b| {
         b.iter(|| {
-            for (i, line) in lines.iter().enumerate() {
-                black_box(parser.parse_shared_owned(line.clone(), &source, &loader_id, i as u64));
-            }
+            black_box(parser.parse_batch(&line_refs, &source, &loader_id, 0));
         })
     });
+
+    // Batch owned
+    group.bench_function("batch_owned", |b| {
+        b.iter(|| {
+            let owned: Vec<String> = lines.clone();
+            black_box(parser.parse_batch_owned(owned, &source, &loader_id, 0));
+        })
+    });
+
     group.finish();
 }
 
