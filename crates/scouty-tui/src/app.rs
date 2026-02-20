@@ -15,6 +15,7 @@ pub enum InputMode {
     Filter,
     Search,
     TimeJump,
+    GotoLine,
     Help,
 }
 
@@ -22,6 +23,8 @@ pub enum InputMode {
 pub struct App {
     /// All log records loaded from the file.
     pub records: Vec<LogRecord>,
+    /// Total records before filtering.
+    pub total_records: usize,
     /// Filtered indices into records.
     pub filtered_indices: Vec<usize>,
     /// Current scroll offset (index into filtered list).
@@ -48,8 +51,12 @@ pub struct App {
     pub search_match_idx: Option<usize>,
     /// Time jump input buffer.
     pub time_input: String,
+    /// Goto line input buffer.
+    pub goto_input: String,
     /// Status message shown temporarily.
     pub status_message: Option<String>,
+    /// Column widths computed from data (Time, Level, ProcessName, Pid, Tid, Component).
+    pub col_widths: [u16; 6],
 }
 
 impl App {
@@ -66,10 +73,14 @@ impl App {
         let _filtered = session.run()?;
 
         let records: Vec<LogRecord> = session.store().iter().cloned().collect();
+        let total_records = records.len();
         let filtered_indices: Vec<usize> = (0..records.len()).collect();
+
+        let col_widths = Self::compute_col_widths(&records, &filtered_indices);
 
         Ok(Self {
             records,
+            total_records,
             filtered_indices,
             scroll_offset: 0,
             selected: 0,
@@ -83,8 +94,79 @@ impl App {
             search_matches: vec![],
             search_match_idx: None,
             time_input: String::new(),
+            goto_input: String::new(),
             status_message: None,
+            col_widths,
         })
+    }
+
+    /// Compute auto-fit column widths by sampling records.
+    /// Returns [Time, Level, ProcessName, Pid, Tid, Component] widths.
+    /// The Log column will fill remaining space.
+    fn compute_col_widths(records: &[LogRecord], indices: &[usize]) -> [u16; 6] {
+        // Minimum widths from headers
+        let mut widths: [u16; 6] = [
+            4,  // "Time"
+            5,  // "Level"
+            11, // "ProcessName"
+            3,  // "Pid"
+            3,  // "Tid"
+            9,  // "Component"
+        ];
+
+        // Maximum widths to prevent any single column from being too wide
+        let max_widths: [u16; 6] = [23, 5, 20, 8, 8, 20];
+
+        // Sample up to 1000 records evenly distributed
+        let sample_size = 1000.min(indices.len());
+        let step = if sample_size == 0 {
+            1
+        } else {
+            indices.len().max(1) / sample_size.max(1)
+        }
+        .max(1);
+
+        for i in (0..indices.len()).step_by(step) {
+            let r = &records[indices[i]];
+
+            // Time: fixed format "YYYY-MM-DD HH:MM:SS"
+            widths[0] = widths[0].max(19);
+
+            // Level
+            if let Some(level) = r.level {
+                let len = format!("{}", level).len() as u16;
+                widths[1] = widths[1].max(len);
+            }
+
+            // ProcessName
+            if let Some(ref name) = r.process_name {
+                widths[2] = widths[2].max((name.len() as u16).min(max_widths[2]));
+            }
+
+            // Pid
+            if let Some(pid) = r.pid {
+                let len = format!("{}", pid).len() as u16;
+                widths[3] = widths[3].max(len.min(max_widths[3]));
+            }
+
+            // Tid
+            if let Some(tid) = r.tid {
+                let len = format!("{}", tid).len() as u16;
+                widths[4] = widths[4].max(len.min(max_widths[4]));
+            }
+
+            // Component
+            if let Some(ref comp) = r.component_name {
+                widths[5] = widths[5].max((comp.len() as u16).min(max_widths[5]));
+            }
+        }
+
+        // Clamp all to max
+        for i in 0..6 {
+            widths[i] = widths[i].min(max_widths[i]);
+        }
+
+        widths
     }
 
     /// Total filtered record count.
@@ -113,12 +195,11 @@ impl App {
                 }
                 Err(e) => {
                     self.filter_error = Some(e);
-                    // Keep current filter active
                     return;
                 }
             }
         }
-        // Reset selection
+        self.col_widths = Self::compute_col_widths(&self.records, &self.filtered_indices);
         self.scroll_offset = 0;
         self.selected = 0;
         self.clear_search();
@@ -146,7 +227,6 @@ impl App {
             self.search_match_idx = None;
             self.status_message = Some("No matches found".to_string());
         } else {
-            // Jump to first match at or after current selected
             let idx = self
                 .search_matches
                 .iter()
@@ -209,9 +289,7 @@ impl App {
             return;
         }
 
-        // Try parsing as HH:MM:SS
         if let Ok(time) = NaiveTime::parse_from_str(input, "%H:%M:%S") {
-            // Find first filtered record with time >= input
             for (fi, &ri) in self.filtered_indices.iter().enumerate() {
                 let record_time = self.records[ri].timestamp.time();
                 if record_time >= time {
@@ -225,7 +303,6 @@ impl App {
             return;
         }
 
-        // Try parsing as full datetime
         if let Ok(dt) = chrono::NaiveDateTime::parse_from_str(input, "%Y-%m-%d %H:%M:%S") {
             let dt_utc = dt.and_utc();
             for (fi, &ri) in self.filtered_indices.iter().enumerate() {
@@ -244,6 +321,28 @@ impl App {
             Some("Invalid time format (use HH:MM:SS or YYYY-MM-DD HH:MM:SS)".to_string());
     }
 
+    /// Jump to a specific line number (1-indexed).
+    pub fn goto_line(&mut self) {
+        let input = self.goto_input.trim();
+        if input.is_empty() {
+            return;
+        }
+        match input.parse::<usize>() {
+            Ok(line) if line >= 1 && line <= self.total() => {
+                self.selected = line - 1;
+                self.ensure_selected_visible();
+                self.status_message = Some(format!("Line {}", line));
+            }
+            Ok(line) if line > self.total() => {
+                self.scroll_to_bottom();
+                self.status_message = Some(format!("Line {} (clamped to {})", line, self.total()));
+            }
+            _ => {
+                self.status_message = Some("Invalid line number".to_string());
+            }
+        }
+    }
+
     pub fn select_down(&mut self, n: usize) {
         let max = self.total().saturating_sub(1);
         self.selected = (self.selected + n).min(max);
@@ -255,23 +354,14 @@ impl App {
         self.ensure_selected_visible();
     }
 
-    #[allow(dead_code)]
-    pub fn scroll_down(&mut self, n: usize) {
-        let max = self.total().saturating_sub(self.visible_rows);
-        self.scroll_offset = (self.scroll_offset + n).min(max);
-    }
-
-    #[allow(dead_code)]
-    pub fn scroll_up(&mut self, n: usize) {
-        self.scroll_offset = self.scroll_offset.saturating_sub(n);
-    }
-
     pub fn page_down(&mut self) {
-        self.select_down(self.visible_rows);
+        let half = self.visible_rows / 2;
+        self.select_down(half.max(1));
     }
 
     pub fn page_up(&mut self) {
-        self.select_up(self.visible_rows);
+        let half = self.visible_rows / 2;
+        self.select_up(half.max(1));
     }
 
     pub fn scroll_to_top(&mut self) {
@@ -325,7 +415,6 @@ mod tests {
     use super::*;
     use chrono::Utc;
     use scouty::record::{LogLevel, LogRecord};
-    use std::collections::HashMap;
 
     fn make_record(id: u64, level: Option<LogLevel>, message: &str) -> LogRecord {
         LogRecord {
@@ -351,6 +440,7 @@ mod tests {
         let filtered_indices = (0..n).collect();
         App {
             records,
+            total_records: n,
             filtered_indices,
             scroll_offset: 0,
             selected: 0,
@@ -364,7 +454,9 @@ mod tests {
             search_matches: vec![],
             search_match_idx: None,
             time_input: String::new(),
+            goto_input: String::new(),
             status_message: None,
+            col_widths: [19, 5, 11, 3, 3, 9],
         }
     }
 
@@ -389,8 +481,8 @@ mod tests {
     #[test]
     fn test_page_down_up() {
         let mut app = make_app(100);
-        app.page_down();
-        assert_eq!(app.selected, 10);
+        app.page_down(); // half screen = 5
+        assert_eq!(app.selected, 5);
         app.page_up();
         assert_eq!(app.selected, 0);
     }
@@ -439,10 +531,10 @@ mod tests {
         app.next_search_match();
         assert_eq!(app.selected, 15);
 
-        app.next_search_match(); // wrap
+        app.next_search_match();
         assert_eq!(app.selected, 5);
 
-        app.prev_search_match(); // wrap back
+        app.prev_search_match();
         assert_eq!(app.selected, 15);
     }
 
@@ -469,5 +561,30 @@ mod tests {
     fn test_input_modes() {
         let app = make_app(10);
         assert_eq!(app.input_mode, InputMode::Normal);
+    }
+
+    #[test]
+    fn test_goto_line() {
+        let mut app = make_app(100);
+        app.goto_input = "50".to_string();
+        app.goto_line();
+        assert_eq!(app.selected, 49); // 1-indexed
+
+        app.goto_input = "999".to_string();
+        app.goto_line();
+        assert_eq!(app.selected, 99); // clamped
+
+        app.goto_input = "abc".to_string();
+        app.goto_line();
+        assert!(app.status_message.as_ref().unwrap().contains("Invalid"));
+    }
+
+    #[test]
+    fn test_col_widths() {
+        let app = make_app(10);
+        // Time should be at least 19 (YYYY-MM-DD HH:MM:SS)
+        assert!(app.col_widths[0] >= 19);
+        // Level should be at least 5
+        assert!(app.col_widths[1] >= 5);
     }
 }

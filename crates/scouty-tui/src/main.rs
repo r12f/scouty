@@ -5,7 +5,7 @@ mod ui;
 
 use app::{App, InputMode};
 use crossterm::{
-    event::{self, Event, KeyCode, KeyEventKind},
+    event::{self, Event, KeyCode, KeyEventKind, KeyModifiers},
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
     ExecutableCommand,
 };
@@ -30,18 +30,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Main loop
     loop {
         terminal.draw(|frame| {
-            let log_area_height = if app.detail_open {
-                // 60% of body area (body = total - header - footer)
-                let body = frame.area().height.saturating_sub(3);
-                (body * 60 / 100) as usize
+            let body_area = frame.area();
+            // Compute visible rows: total height - header row (1) - footer (1) - border overhead
+            let table_height = if app.detail_open {
+                let body = body_area.height.saturating_sub(1); // footer
+                (body * 60 / 100).saturating_sub(1) as usize // 60% minus header row
             } else {
-                frame.area().height.saturating_sub(2) as usize
+                body_area.height.saturating_sub(2) as usize // minus header row and footer
             };
-            app.visible_rows = log_area_height;
+            app.visible_rows = table_height.max(1);
             ui::render(frame, &app);
         })?;
 
-        // Poll with timeout for potential live refresh support
         if !event::poll(Duration::from_millis(250))? {
             continue;
         }
@@ -54,33 +54,55 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             // Clear status message on any key
             app.status_message = None;
 
+            let ctrl = key.modifiers.contains(KeyModifiers::CONTROL);
+
             match app.input_mode {
-                InputMode::Normal => match key.code {
-                    KeyCode::Char('q') | KeyCode::Esc => break,
-                    KeyCode::Down | KeyCode::Char('j') => app.select_down(1),
-                    KeyCode::Up | KeyCode::Char('k') => app.select_up(1),
-                    KeyCode::PageDown => app.page_down(),
-                    KeyCode::PageUp => app.page_up(),
-                    KeyCode::Home | KeyCode::Char('g') => app.scroll_to_top(),
-                    KeyCode::End | KeyCode::Char('G') => app.scroll_to_bottom(),
-                    KeyCode::Enter => app.toggle_detail(),
-                    KeyCode::Char('f') => {
-                        app.input_mode = InputMode::Filter;
+                InputMode::Normal => {
+                    if ctrl {
+                        match key.code {
+                            KeyCode::Char('j') | KeyCode::Down => app.page_down(),
+                            KeyCode::Char('k') | KeyCode::Up => app.page_up(),
+                            KeyCode::Char('g') => {
+                                app.input_mode = InputMode::GotoLine;
+                                app.goto_input.clear();
+                            }
+                            _ => {}
+                        }
+                    } else {
+                        match key.code {
+                            KeyCode::Char('q') => break,
+                            KeyCode::Esc => {
+                                // Close detail panel if open, otherwise do nothing
+                                if app.detail_open {
+                                    app.detail_open = false;
+                                }
+                            }
+                            KeyCode::Down | KeyCode::Char('j') => app.select_down(1),
+                            KeyCode::Up | KeyCode::Char('k') => app.select_up(1),
+                            KeyCode::PageDown => app.page_down(),
+                            KeyCode::PageUp => app.page_up(),
+                            KeyCode::Home | KeyCode::Char('g') => app.scroll_to_top(),
+                            KeyCode::End | KeyCode::Char('G') => app.scroll_to_bottom(),
+                            KeyCode::Enter => app.toggle_detail(),
+                            KeyCode::Char('f') => {
+                                app.input_mode = InputMode::Filter;
+                            }
+                            KeyCode::Char('/') => {
+                                app.input_mode = InputMode::Search;
+                            }
+                            KeyCode::Char('t') => {
+                                app.input_mode = InputMode::TimeJump;
+                                app.time_input.clear();
+                            }
+                            KeyCode::Char('n') => app.next_search_match(),
+                            KeyCode::Char('N') => app.prev_search_match(),
+                            KeyCode::Char('?') => {
+                                app.input_mode = InputMode::Help;
+                            }
+                            _ => {}
+                        }
                     }
-                    KeyCode::Char('/') => {
-                        app.input_mode = InputMode::Search;
-                    }
-                    KeyCode::Char('t') => {
-                        app.input_mode = InputMode::TimeJump;
-                        app.time_input.clear();
-                    }
-                    KeyCode::Char('n') => app.next_search_match(),
-                    KeyCode::Char('N') => app.prev_search_match(),
-                    KeyCode::Char('?') | KeyCode::Char('h') => {
-                        app.input_mode = InputMode::Help;
-                    }
-                    _ => {}
-                },
+                }
                 InputMode::Filter => match key.code {
                     KeyCode::Enter => {
                         app.apply_filter();
@@ -133,8 +155,23 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     }
                     _ => {}
                 },
+                InputMode::GotoLine => match key.code {
+                    KeyCode::Enter => {
+                        app.goto_line();
+                        app.input_mode = InputMode::Normal;
+                    }
+                    KeyCode::Esc => {
+                        app.input_mode = InputMode::Normal;
+                    }
+                    KeyCode::Backspace => {
+                        app.goto_input.pop();
+                    }
+                    KeyCode::Char(c) if c.is_ascii_digit() => {
+                        app.goto_input.push(c);
+                    }
+                    _ => {}
+                },
                 InputMode::Help => {
-                    // Any key closes help
                     app.input_mode = InputMode::Normal;
                 }
             }
