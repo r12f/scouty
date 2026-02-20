@@ -179,9 +179,9 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
 
       - name: Publish scouty
-        run: cargo publish -p scouty --token ${{ secrets.CRATE_IO_TOKEN }}
+        run: cargo publish -p scouty --token ${{ secrets.CRATES_IO_TOKEN }}
 
       - name: Publish scouty-tui
         run: |
           sleep 30  # Wait for crates.io to index scouty
-          cargo publish -p scouty-tui --token ${{ secrets.CRATE_IO_TOKEN }}
+          cargo publish -p scouty-tui --token ${{ secrets.CRATES_IO_TOKEN }}
