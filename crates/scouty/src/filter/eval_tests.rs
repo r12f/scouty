@@ -18,6 +18,8 @@ mod tests {
             tid: None,
             component_name: component.map(|s| s.to_string()),
             process_name: None,
+            hostname: None,
+            container: None,
             message: message.into(),
             raw: message.into(),
             metadata: Some(metadata),

@@ -232,6 +232,12 @@ impl RegexParser {
         let process_name = caps
             .name("process")
             .map(|m| unsafe { String::from_utf8_unchecked(m.as_bytes().to_vec()) });
+        let hostname = caps
+            .name("hostname")
+            .map(|m| unsafe { String::from_utf8_unchecked(m.as_bytes().to_vec()) });
+        let container = caps
+            .name("container")
+            .map(|m| unsafe { String::from_utf8_unchecked(m.as_bytes().to_vec()) });
 
         let metadata = if self.has_extra_groups {
             let mut map = HashMap::new();
@@ -260,6 +266,8 @@ impl RegexParser {
             tid,
             component_name,
             process_name,
+            hostname,
+            container,
             message,
             raw: raw.to_string(),
             metadata,
@@ -313,6 +321,12 @@ impl RegexParser {
         let process_name = caps
             .name("process")
             .map(|m| unsafe { String::from_utf8_unchecked(m.as_bytes().to_vec()) });
+        let hostname = caps
+            .name("hostname")
+            .map(|m| unsafe { String::from_utf8_unchecked(m.as_bytes().to_vec()) });
+        let container = caps
+            .name("container")
+            .map(|m| unsafe { String::from_utf8_unchecked(m.as_bytes().to_vec()) });
 
         let metadata = if self.has_extra_groups {
             let mut map = HashMap::new();
@@ -344,6 +358,8 @@ impl RegexParser {
             tid,
             component_name,
             process_name,
+            hostname,
+            container,
             message,
             raw,
             metadata,
@@ -385,6 +401,8 @@ impl RegexParser {
 
         let component_name = caps.name("component").map(|m| m.as_str().to_string());
         let process_name = caps.name("process").map(|m| m.as_str().to_string());
+        let hostname = caps.name("hostname").map(|m| m.as_str().to_string());
+        let container = caps.name("container").map(|m| m.as_str().to_string());
 
         let metadata = if self.has_extra_groups {
             let mut map = HashMap::new();
@@ -411,6 +429,8 @@ impl RegexParser {
             tid,
             component_name,
             process_name,
+            hostname,
+            container,
             message,
             raw: raw.to_string(),
             metadata,
@@ -428,6 +448,8 @@ const KNOWN_FIELDS: &[&str] = &[
     "tid",
     "component",
     "process",
+    "hostname",
+    "container",
 ];
 
 impl LogParser for RegexParser {

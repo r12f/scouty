@@ -99,6 +99,10 @@ pub struct LogRecord {
     pub component_name: Option<String>,
     /// Process name.
     pub process_name: Option<String>,
+    /// Hostname.
+    pub hostname: Option<String>,
+    /// Container name.
+    pub container: Option<String>,
     /// Log message body.
     pub message: String,
     /// Raw original log text (may be multi-line).
