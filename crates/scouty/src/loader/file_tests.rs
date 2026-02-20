@@ -53,6 +53,56 @@ mod tests {
     }
 
     #[test]
+    fn test_load_gzip_file() {
+        use flate2::write::GzEncoder;
+        use flate2::Compression;
+
+        let dir = tempfile::tempdir().unwrap();
+        let file_path = dir.path().join("test.log.gz");
+        let f = std::fs::File::create(&file_path).unwrap();
+        let mut encoder = GzEncoder::new(f, Compression::default());
+        encoder
+            .write_all(b"line one\nline two\nline three\n")
+            .unwrap();
+        encoder.finish().unwrap();
+
+        let mut loader = FileLoader::new(&file_path, false);
+        let lines = loader.load().unwrap();
+        assert_eq!(lines, vec!["line one", "line two", "line three"]);
+    }
+
+    #[test]
+    fn test_load_corrupted_gzip_file() {
+        let dir = tempfile::tempdir().unwrap();
+        let file_path = dir.path().join("corrupt.gz");
+        let mut f = std::fs::File::create(&file_path).unwrap();
+        f.write_all(b"this is not gzip data").unwrap();
+        drop(f);
+
+        let mut loader = FileLoader::new(&file_path, false);
+        let result = loader.load();
+        assert!(result.is_err());
+        let err_msg = format!("{}", result.unwrap_err());
+        assert!(err_msg.contains("decompress") || err_msg.contains("gzip"));
+    }
+
+    #[test]
+    fn test_load_empty_gzip_file() {
+        use flate2::write::GzEncoder;
+        use flate2::Compression;
+
+        let dir = tempfile::tempdir().unwrap();
+        let file_path = dir.path().join("empty.log.gz");
+        let f = std::fs::File::create(&file_path).unwrap();
+        let encoder = GzEncoder::new(f, Compression::default());
+        encoder.finish().unwrap();
+
+        let mut loader = FileLoader::new(&file_path, false);
+        let lines = loader.load().unwrap();
+        assert!(lines.is_empty());
+    }
+
+    #[test]
     fn test_loader_info() {
         let loader = FileLoader::new("/tmp/test.log", true);
         let info = loader.info();

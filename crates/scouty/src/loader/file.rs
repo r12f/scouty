@@ -36,7 +36,45 @@ impl LogLoader for FileLoader {
     }
 
     fn load(&mut self) -> Result<Vec<String>> {
-        let content = std::fs::read_to_string(&self.path)?;
+        let is_gzip = self
+            .path
+            .extension()
+            .and_then(|e| e.to_str())
+            .map(|ext| {
+                let ext = ext.to_ascii_lowercase();
+                ext == "gz" || ext == "gzip"
+            })
+            .unwrap_or(false);
+
+        let content = if is_gzip {
+            use flate2::read::GzDecoder;
+            use std::io::Read;
+            let file = std::fs::File::open(&self.path)?;
+            let mut decoder = GzDecoder::new(file);
+            let mut decompressed = Vec::new();
+            decoder.read_to_end(&mut decompressed).map_err(|e| {
+                std::io::Error::new(
+                    e.kind(),
+                    format!(
+                        "Failed to decompress gzip file '{}': {}",
+                        self.path.display(),
+                        e
+                    ),
+                )
+            })?;
+            String::from_utf8(decompressed).map_err(|e| {
+                std::io::Error::new(
+                    std::io::ErrorKind::InvalidData,
+                    format!(
+                        "Decompressed gzip file '{}' contains invalid UTF-8: {}",
+                        self.path.display(),
+                        e
+                    ),
+                )
+            })?
+        } else {
+            std::fs::read_to_string(&self.path)?
+        };
         let lines: Vec<String> = content.lines().map(|l| l.to_string()).collect();
 
         // Store sample lines for parser auto-detection
