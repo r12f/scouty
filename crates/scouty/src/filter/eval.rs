@@ -31,6 +31,8 @@ fn get_field(record: &LogRecord, field: &str) -> Option<String> {
         "tid" => record.tid.map(|t| t.to_string()),
         "component_name" | "component" => record.component_name.clone(),
         "process_name" | "process" => record.process_name.clone(),
+        "hostname" => record.hostname.clone(),
+        "container" => record.container.clone(),
         "message" => Some(record.message.clone()),
         "raw" => Some(record.raw.clone()),
         "loader_id" => Some(record.loader_id.to_string()),

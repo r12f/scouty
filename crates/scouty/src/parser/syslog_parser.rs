@@ -62,6 +62,7 @@ impl SyslogParser {
 
         // Find end of hostname (next space after position 16)
         let hostname_end = memchr_space(b, 16)?;
+        let hostname = unsafe { std::str::from_utf8_unchecked(&b[16..hostname_end]) }.to_string();
 
         // After hostname: "process[pid]: message" or "process: message"
         let after_host = hostname_end + 1;
@@ -94,6 +95,8 @@ impl SyslogParser {
             tid: None,
             component_name: None,
             process_name: Some(process_name),
+            hostname: Some(hostname),
+            container: None,
             message,
             raw: raw.to_string(),
             metadata: None,
@@ -122,6 +125,7 @@ impl SyslogParser {
         }
 
         let hostname_end = memchr_space(b, 16)?;
+        let hostname = unsafe { std::str::from_utf8_unchecked(&b[16..hostname_end]) }.to_string();
         let after_host = hostname_end + 1;
         if after_host >= b.len() {
             return None;
@@ -147,6 +151,8 @@ impl SyslogParser {
             tid: None,
             component_name: None,
             process_name: Some(process_name),
+            hostname: Some(hostname),
+            container: None,
             message,
             raw,
             metadata: None,

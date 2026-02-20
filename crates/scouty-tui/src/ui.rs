@@ -98,6 +98,8 @@ fn render_log_table(frame: &mut Frame, app: &App, area: Rect) {
         .map(|col| match col {
             Column::Time => Constraint::Length(cw[0]),
             Column::Level => Constraint::Length(cw[1]),
+            Column::Hostname => Constraint::Length(20),
+            Column::Container => Constraint::Length(15),
             Column::ProcessName => Constraint::Length(cw[2]),
             Column::Pid => Constraint::Length(cw[3]),
             Column::Tid => Constraint::Length(cw[4]),
@@ -133,6 +135,12 @@ fn render_log_table(frame: &mut Frame, app: &App, area: Rect) {
                     }
                     Column::Level => {
                         Cell::from(record.level.map(|l| format!("{}", l)).unwrap_or_default())
+                    }
+                    Column::Hostname => {
+                        Cell::from(record.hostname.as_deref().unwrap_or("").to_string())
+                    }
+                    Column::Container => {
+                        Cell::from(record.container.as_deref().unwrap_or("").to_string())
                     }
                     Column::ProcessName => {
                         Cell::from(record.process_name.as_deref().unwrap_or("").to_string())
@@ -196,6 +204,18 @@ fn render_detail_panel(frame: &mut Frame, app: &App, area: Rect) {
             ]),
         ];
 
+        if let Some(ref host) = record.hostname {
+            lines.push(Line::from(vec![
+                Span::styled("Hostname:  ", Style::default().fg(Color::Cyan)),
+                Span::raw(host),
+            ]));
+        }
+        if let Some(ref ctr) = record.container {
+            lines.push(Line::from(vec![
+                Span::styled("Container: ", Style::default().fg(Color::Cyan)),
+                Span::raw(ctr),
+            ]));
+        }
         if let Some(ref comp) = record.component_name {
             lines.push(Line::from(vec![
                 Span::styled("Component: ", Style::default().fg(Color::Cyan)),

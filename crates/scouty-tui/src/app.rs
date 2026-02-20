@@ -30,6 +30,8 @@ pub enum InputMode {
 pub enum Column {
     Time,
     Level,
+    Hostname,
+    Container,
     ProcessName,
     Pid,
     Tid,
@@ -40,9 +42,11 @@ pub enum Column {
 
 impl Column {
     #[allow(dead_code)]
-    pub const ALL: [Column; 8] = [
+    pub const ALL: [Column; 10] = [
         Column::Time,
         Column::Level,
+        Column::Hostname,
+        Column::Container,
         Column::ProcessName,
         Column::Pid,
         Column::Tid,
@@ -55,6 +59,8 @@ impl Column {
         match self {
             Column::Time => "Time",
             Column::Level => "Level",
+            Column::Hostname => "Hostname",
+            Column::Container => "Container",
             Column::ProcessName => "ProcessName",
             Column::Pid => "Pid",
             Column::Tid => "Tid",
@@ -80,6 +86,8 @@ impl Default for ColumnConfig {
             columns: vec![
                 (Column::Time, true),
                 (Column::Level, false),
+                (Column::Hostname, false),
+                (Column::Container, false),
                 (Column::ProcessName, false),
                 (Column::Pid, false),
                 (Column::Tid, false),
@@ -396,6 +404,12 @@ impl App {
                 fields.push(("level".to_string(), format!("{}", level), false));
             }
             fields.push(("source".to_string(), record.source.to_string(), false));
+            if let Some(ref name) = record.hostname {
+                fields.push(("hostname".to_string(), name.clone(), false));
+            }
+            if let Some(ref name) = record.container {
+                fields.push(("container".to_string(), name.clone(), false));
+            }
             if let Some(ref name) = record.process_name {
                 fields.push(("process_name".to_string(), name.clone(), false));
             }
@@ -793,6 +807,8 @@ mod tests {
             component_name: None,
             process_name: None,
             message: message.to_string(),
+            hostname: None,
+            container: None,
             raw: message.to_string(),
             metadata: None,
             loader_id: "test".into(),
@@ -1148,6 +1164,8 @@ mod field_filter_v2_tests {
             tid: Some(2000 + id as u32),
             component_name: Some("comp".into()),
             process_name: Some("myapp".into()),
+            hostname: None,
+            container: None,
             message: msg.to_string(),
             raw: msg.to_string(),
             metadata: None,
@@ -1302,6 +1320,8 @@ mod column_follow_tests {
             tid: Some(200),
             component_name: Some("comp".into()),
             process_name: Some("proc".into()),
+            hostname: None,
+            container: None,
             message: message.to_string(),
             raw: message.to_string(),
             metadata: None,
@@ -1471,6 +1491,8 @@ mod copy_tests {
             tid: None,
             component_name: None,
             process_name: Some("app".into()),
+            hostname: None,
+            container: None,
             message: msg.to_string(),
             raw: msg.to_string(),
             metadata: None,

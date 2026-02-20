@@ -19,6 +19,7 @@ mod tests {
 
         assert_eq!(record.id, 1);
         assert_eq!(record.process_name.as_deref(), Some("myapp"));
+        assert_eq!(record.hostname.as_deref(), Some("myhost"));
         assert_eq!(record.pid, Some(12345));
         assert_eq!(record.message, "This is a log message");
         assert_eq!(record.timestamp.month(), 2);

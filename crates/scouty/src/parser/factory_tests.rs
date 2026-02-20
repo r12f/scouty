@@ -76,15 +76,7 @@ mod tests {
             .unwrap();
         assert_eq!(record.process_name.as_deref(), Some("sshd"));
         assert_eq!(record.pid, Some(1234));
-        // hostname should be in metadata
-        assert_eq!(
-            record
-                .metadata
-                .as_ref()
-                .and_then(|m| m.get("hostname"))
-                .map(|s| s.as_str()),
-            Some("myhost")
-        );
+        assert_eq!(record.hostname.as_deref(), Some("myhost"));
     }
 
     #[test]

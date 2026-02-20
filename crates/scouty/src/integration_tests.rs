@@ -392,6 +392,8 @@ random garbage
                 tid: None,
                 component_name: None,
                 process_name: None,
+                hostname: None,
+                container: None,
                 message: format!("message {}", i),
                 raw: format!("message {}", i),
                 metadata: None,

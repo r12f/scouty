@@ -22,6 +22,8 @@ mod tests {
             tid: None,
             component_name: None,
             process_name: None,
+            hostname: None,
+            container: None,
             message: message.to_string(),
             raw: message.to_string(),
             metadata: None,
