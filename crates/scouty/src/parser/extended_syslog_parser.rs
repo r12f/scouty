@@ -124,8 +124,7 @@ impl ExtendedSyslogParser {
 
         // Find hostname (ends at next space)
         let hostname_end = memchr_space(rest, 0)?;
-        let hostname =
-            unsafe { std::str::from_utf8_unchecked(&rest[..hostname_end]) }.to_string();
+        let hostname = unsafe { std::str::from_utf8_unchecked(&rest[..hostname_end]) }.to_string();
 
         let after_host = hostname_end + 1;
         if after_host >= rest.len() {
@@ -223,7 +222,10 @@ fn parse_month(b: &[u8]) -> Option<u32> {
 
 #[inline]
 fn memchr_space(b: &[u8], start: usize) -> Option<usize> {
-    b[start..].iter().position(|&c| c == b' ').map(|p| p + start)
+    b[start..]
+        .iter()
+        .position(|&c| c == b' ')
+        .map(|p| p + start)
 }
 
 #[inline]
@@ -259,11 +261,13 @@ fn parse_process_part(b: &[u8]) -> (Option<String>, String, Option<u32>) {
     let bracket_pos = proc_bytes.iter().position(|&c| c == b'[');
     let (process_name, pid) = match bracket_pos {
         Some(pos) => {
-            let name =
-                unsafe { std::str::from_utf8_unchecked(&proc_bytes[..pos]) }.to_string();
+            let name = unsafe { std::str::from_utf8_unchecked(&proc_bytes[..pos]) }.to_string();
             // Extract pid between [ and ]
             let pid_start = pos + 1;
-            let pid_end = proc_bytes.iter().position(|&c| c == b']').unwrap_or(proc_bytes.len());
+            let pid_end = proc_bytes
+                .iter()
+                .position(|&c| c == b']')
+                .unwrap_or(proc_bytes.len());
             let pid = parse_u32(&proc_bytes[pid_start..pid_end]);
             (name, pid)
         }

@@ -21,7 +21,10 @@ mod tests {
         assert_eq!(r.container, None);
         assert_eq!(r.pid, None);
         assert_eq!(r.message, "[memory_checker] ...");
-        assert_eq!(r.timestamp.format("%Y-%m-%d %H:%M:%S%.6f").to_string(), "2025-11-24 17:56:03.073872");
+        assert_eq!(
+            r.timestamp.format("%Y-%m-%d %H:%M:%S%.6f").to_string(),
+            "2025-11-24 17:56:03.073872"
+        );
     }
 
     #[test]
@@ -108,20 +111,14 @@ mod tests {
 
     #[test]
     fn notice_is_independent_level() {
-        let r = parse(
-            "2025 Nov 24 17:55:51.558366 HOST NOTICE proc: msg",
-        )
-        .unwrap();
+        let r = parse("2025 Nov 24 17:55:51.558366 HOST NOTICE proc: msg").unwrap();
         assert_eq!(r.level, Some(LogLevel::Notice));
         assert_ne!(r.level, Some(LogLevel::Info));
     }
 
     #[test]
     fn hostname_extracted() {
-        let r = parse(
-            "2025 Nov 24 17:56:03.073872 my-special-host INFO proc: msg",
-        )
-        .unwrap();
+        let r = parse("2025 Nov 24 17:56:03.073872 my-special-host INFO proc: msg").unwrap();
         assert_eq!(r.hostname.as_deref(), Some("my-special-host"));
     }
 
