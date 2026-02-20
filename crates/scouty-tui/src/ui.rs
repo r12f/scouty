@@ -227,7 +227,7 @@ fn render_footer(frame: &mut Frame, app: &App, area: Rect) {
             render_input_footer(frame, area, "Go to line: ", &app.goto_input, None);
         }
         _ => {
-            // Status bar: position info
+            // Status bar: density chart │ position info
             let position = if app.total() == 0 {
                 format!("0/0 (Total: {})", app.total_records)
             } else {
@@ -241,19 +241,65 @@ fn render_footer(frame: &mut Frame, app: &App, area: Rect) {
                 }
             };
 
-            let mut right_spans = vec![Span::styled(
-                format!(" {} ", position),
-                Style::default().fg(Color::White).bg(Color::DarkGray),
-            )];
-
+            // Right side: position + optional status message
+            let mut right_text = format!(" {} ", position);
             if let Some(ref msg) = app.status_message {
-                right_spans.insert(
-                    0,
-                    Span::styled(format!(" {} │", msg), Style::default().fg(Color::Yellow)),
-                );
+                right_text = format!(" {} │{}", msg, right_text);
+            }
+            let right_width = right_text.len() as u16 + 1; // +1 for separator
+
+            // Left side: density chart (adaptive width)
+            let chart_width = area.width.saturating_sub(right_width + 3) as usize; // 3 for " │ "
+
+            let mut spans: Vec<Span> = Vec::new();
+
+            if chart_width >= 4 && app.total() > 0 {
+                // Collect filtered timestamps
+                let timestamps: Vec<chrono::DateTime<chrono::Utc>> = app
+                    .filtered_indices
+                    .iter()
+                    .map(|&i| app.records[i].timestamp)
+                    .collect();
+
+                // 2 data points per braille char
+                let num_buckets = (chart_width * 2).min(200);
+                let buckets = crate::density::compute_density(&timestamps, num_buckets);
+
+                let cursor_ts = app.selected_record().map(|r| r.timestamp);
+                let cursor_bucket = cursor_ts
+                    .and_then(|ts| crate::density::cursor_bucket(ts, &timestamps, num_buckets));
+
+                let (braille_text, cursor_char_idx) =
+                    crate::density::render_braille(&buckets, cursor_bucket);
+
+                // Render braille with cursor highlight
+                for (i, ch) in braille_text.chars().enumerate() {
+                    let style = if Some(i) == cursor_char_idx {
+                        Style::default()
+                            .fg(Color::Yellow)
+                            .bg(Color::Rgb(40, 40, 60))
+                    } else {
+                        Style::default().fg(Color::Cyan)
+                    };
+                    spans.push(Span::styled(ch.to_string(), style));
+                }
+
+                spans.push(Span::styled(" │", Style::default().fg(Color::DarkGray)));
             }
 
-            let footer = Paragraph::new(Line::from(right_spans)).alignment(Alignment::Right);
+            // Right side
+            if let Some(ref msg) = app.status_message {
+                spans.push(Span::styled(
+                    format!(" {} │", msg),
+                    Style::default().fg(Color::Yellow),
+                ));
+            }
+            spans.push(Span::styled(
+                format!(" {} ", position),
+                Style::default().fg(Color::White).bg(Color::DarkGray),
+            ));
+
+            let footer = Paragraph::new(Line::from(spans));
             frame.render_widget(footer, area);
         }
     }

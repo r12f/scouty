@@ -1,6 +1,7 @@
 //! scouty-tui — Terminal UI for scouty log viewer.
 
 mod app;
+mod density;
 mod ui;
 
 use app::{App, InputMode};
