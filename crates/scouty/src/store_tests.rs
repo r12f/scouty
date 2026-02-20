@@ -832,4 +832,132 @@ mod tests {
             elapsed
         );
     }
+
+    // ========================================
+    // Segment Capacity Auto-tuning Tests
+    // ========================================
+
+    #[test]
+    fn autotune_small_dataset_uses_16k() {
+        let base = Utc::now();
+        let mut store = LogStore::new();
+
+        let batch: Vec<LogRecord> = (0..50_000u64)
+            .map(|i| make_record_with_ts(i, base + Duration::microseconds(i as i64)))
+            .collect();
+        store.insert_batch(batch);
+
+        assert_eq!(store.segment_capacity(), 16 * 1024);
+    }
+
+    #[test]
+    fn autotune_medium_dataset_uses_64k() {
+        let base = Utc::now();
+        let mut store = LogStore::new();
+
+        let batch: Vec<LogRecord> = (0..500_000u64)
+            .map(|i| make_record_with_ts(i, base + Duration::microseconds(i as i64)))
+            .collect();
+        store.insert_batch(batch);
+
+        assert_eq!(store.segment_capacity(), 64 * 1024);
+    }
+
+    #[test]
+    fn autotune_large_dataset_uses_128k() {
+        let base = Utc::now();
+        let mut store = LogStore::new();
+
+        let batch: Vec<LogRecord> = (0..2_000_000u64)
+            .map(|i| make_record_with_ts(i, base + Duration::microseconds(i as i64)))
+            .collect();
+        store.insert_batch(batch);
+
+        assert_eq!(store.segment_capacity(), 128 * 1024);
+    }
+
+    #[test]
+    fn autotune_user_override_disables_tuning() {
+        use crate::store::LogStoreConfig;
+
+        let base = Utc::now();
+        let mut store = LogStore::with_config(LogStoreConfig {
+            segment_capacity: Some(32 * 1024),
+            auto_tune: true,
+        });
+
+        let batch: Vec<LogRecord> = (0..200_000u64)
+            .map(|i| make_record_with_ts(i, base + Duration::microseconds(i as i64)))
+            .collect();
+        store.insert_batch(batch);
+
+        assert_eq!(store.segment_capacity(), 32 * 1024);
+    }
+
+    #[test]
+    fn autotune_disabled_keeps_default() {
+        use crate::store::LogStoreConfig;
+
+        let base = Utc::now();
+        let mut store = LogStore::with_config(LogStoreConfig {
+            segment_capacity: None,
+            auto_tune: false,
+        });
+
+        let batch: Vec<LogRecord> = (0..50_000u64)
+            .map(|i| make_record_with_ts(i, base + Duration::microseconds(i as i64)))
+            .collect();
+        store.insert_batch(batch);
+
+        assert_eq!(store.segment_capacity(), 64 * 1024);
+    }
+
+    #[test]
+    fn autotune_clear_resets_capacity() {
+        let base = Utc::now();
+        let mut store = LogStore::new();
+
+        let batch: Vec<LogRecord> = (0..50_000u64)
+            .map(|i| make_record_with_ts(i, base + Duration::microseconds(i as i64)))
+            .collect();
+        store.insert_batch(batch);
+        assert_eq!(store.segment_capacity(), 16 * 1024);
+
+        store.clear();
+        assert_eq!(store.segment_capacity(), 64 * 1024);
+    }
+
+    #[test]
+    fn perf_autotune_no_regression_100k() {
+        let base = Utc::now();
+        let batch: Vec<LogRecord> = (0..100_000u64)
+            .map(|i| make_record_with_ts(i, base + Duration::microseconds(i as i64)))
+            .collect();
+
+        let mut store_auto = LogStore::new();
+        let start = std::time::Instant::now();
+        store_auto.insert_batch(batch.clone());
+        let auto_elapsed = start.elapsed();
+
+        use crate::store::LogStoreConfig;
+        let mut store_fixed = LogStore::with_config(LogStoreConfig {
+            segment_capacity: None,
+            auto_tune: false,
+        });
+        let start = std::time::Instant::now();
+        store_fixed.insert_batch(batch);
+        let fixed_elapsed = start.elapsed();
+
+        println!(
+            "[perf] 100K insert: auto-tune={:?} fixed={:?}",
+            auto_elapsed, fixed_elapsed
+        );
+
+        assert!(
+            auto_elapsed.as_millis() < fixed_elapsed.as_millis() * 3 + 100,
+            "Auto-tune regression: auto={:?} vs fixed={:?}",
+            auto_elapsed,
+            fixed_elapsed
+        );
+    }
 }

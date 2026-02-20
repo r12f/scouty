@@ -14,6 +14,21 @@ use chrono::{DateTime, Utc};
 /// Default segment capacity (number of records per segment).
 const DEFAULT_SEGMENT_CAPACITY: usize = 64 * 1024; // 64K
 
+/// Compute optimal segment capacity based on total record count.
+///
+/// - < 100K records: 16K segments (reduce memory waste for small datasets)
+/// - 100K - 1M records: 64K segments (balanced default)
+/// - > 1M records: 128K segments (reduce segment count overhead)
+/// - > 10M records: 256K segments (minimize traversal overhead)
+fn optimal_segment_capacity(total_records: usize) -> usize {
+    match total_records {
+        0..100_000 => 16 * 1024,             // 16K
+        100_000..1_000_000 => 64 * 1024,     // 64K
+        1_000_000..10_000_000 => 128 * 1024, // 128K
+        _ => 256 * 1024,                     // 256K
+    }
+}
+
 /// A single segment of log records, sorted by timestamp.
 #[derive(Debug)]
 struct Segment {
@@ -123,6 +138,25 @@ impl<'a> Iterator for SegmentRangeIter<'a> {
 
 impl<'a> ExactSizeIterator for SegmentRangeIter<'a> {}
 
+/// Configuration for LogStore segment capacity.
+#[derive(Debug, Clone)]
+pub struct LogStoreConfig {
+    /// If set, use this fixed segment capacity (overrides auto-tuning).
+    pub segment_capacity: Option<usize>,
+    /// Enable dynamic segment capacity auto-tuning based on total record count.
+    /// Default: true. Ignored if `segment_capacity` is set.
+    pub auto_tune: bool,
+}
+
+impl Default for LogStoreConfig {
+    fn default() -> Self {
+        Self {
+            segment_capacity: None,
+            auto_tune: true,
+        }
+    }
+}
+
 /// Stores log records in timestamp-sorted order using segmented arrays.
 ///
 /// Provides O(1) append for monotonic live inserts. Out-of-order records
@@ -140,6 +174,10 @@ pub struct LogStore {
     segment_capacity: usize,
     /// Cached total record count (frozen + active, excluding OOO).
     main_len: usize,
+    /// Whether auto-tuning is enabled.
+    auto_tune: bool,
+    /// Whether segment capacity was explicitly set by user.
+    user_override: bool,
 }
 
 impl LogStore {
@@ -150,12 +188,27 @@ impl LogStore {
             ooo_buffer: Vec::new(),
             segment_capacity: DEFAULT_SEGMENT_CAPACITY,
             main_len: 0,
+            auto_tune: true,
+            user_override: false,
+        }
+    }
+
+    /// Create a store with explicit configuration.
+    pub fn with_config(config: LogStoreConfig) -> Self {
+        let capacity = config.segment_capacity.unwrap_or(DEFAULT_SEGMENT_CAPACITY);
+        Self {
+            frozen: Vec::new(),
+            active: Segment::new(capacity),
+            ooo_buffer: Vec::new(),
+            segment_capacity: capacity,
+            main_len: 0,
+            auto_tune: config.auto_tune && config.segment_capacity.is_none(),
+            user_override: config.segment_capacity.is_some(),
         }
     }
 
     /// Create a store with pre-allocated capacity hint.
     pub fn with_capacity(_capacity: usize) -> Self {
-        // Capacity hint used for initial segment sizing
         Self::new()
     }
 
@@ -218,6 +271,7 @@ impl LogStore {
             self.insert_batch_merge(batch);
         }
         self.main_len = self.frozen.iter().map(|s| s.len()).sum::<usize>() + self.active.len();
+        self.maybe_auto_tune();
     }
 
     /// Fast path for inserting into an empty store.
@@ -573,9 +627,12 @@ impl LogStore {
     /// Clear all records.
     pub fn clear(&mut self) {
         self.frozen.clear();
-        self.active = Segment::new(self.segment_capacity);
         self.ooo_buffer.clear();
         self.main_len = 0;
+        if self.auto_tune && !self.user_override {
+            self.segment_capacity = DEFAULT_SEGMENT_CAPACITY;
+        }
+        self.active = Segment::new(self.segment_capacity);
     }
 
     /// Number of segments (frozen + active).
@@ -583,7 +640,24 @@ impl LogStore {
         self.frozen.len() + 1
     }
 
+    /// Current segment capacity.
+    pub fn segment_capacity(&self) -> usize {
+        self.segment_capacity
+    }
+
     // --- Internal helpers ---
+
+    /// Auto-tune segment capacity based on current total record count.
+    /// Only affects future segments — existing segments are not resized.
+    fn maybe_auto_tune(&mut self) {
+        if !self.auto_tune || self.user_override {
+            return;
+        }
+        let optimal = optimal_segment_capacity(self.main_len);
+        if optimal != self.segment_capacity {
+            self.segment_capacity = optimal;
+        }
+    }
 
     /// Freeze active segment and create a new one if capacity reached.
     fn maybe_freeze_active(&mut self) {
