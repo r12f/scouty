@@ -13,6 +13,7 @@ fn level_style(level: Option<LogLevel>) -> Style {
         Some(LogLevel::Fatal) => Style::default().fg(Color::Red).add_modifier(Modifier::BOLD),
         Some(LogLevel::Error) => Style::default().fg(Color::Red),
         Some(LogLevel::Warn) => Style::default().fg(Color::Yellow),
+        Some(LogLevel::Notice) => Style::default().fg(Color::Cyan),
         Some(LogLevel::Info) => Style::default().fg(Color::Green),
         Some(LogLevel::Debug) => Style::default().fg(Color::Gray),
         Some(LogLevel::Trace) => Style::default().fg(Color::DarkGray),
