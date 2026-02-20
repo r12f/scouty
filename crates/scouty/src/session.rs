@@ -8,6 +8,7 @@ use crate::traits::{LogLoader, LogProcessor, Result};
 use crate::view::LogStoreView;
 use rayon::prelude::*;
 use std::sync::mpsc;
+use std::sync::Arc;
 
 /// Represents a registered loader paired with its parser group.
 struct LoaderSlot {
@@ -116,18 +117,16 @@ impl LogSession {
     /// (receiver dropped, thread result discarded).
     pub fn update_filter_async(&mut self, filter_engine: FilterEngine) {
         self.pending_view = None; // discard sync pending
-                                  // Snapshot store records for the background thread
-        let records: Vec<LogRecord> = self.store.iter().cloned().collect();
+                                  // Share store records with the background thread via Arc (no deep clone)
+        let records: Arc<Vec<LogRecord>> = Arc::new(self.store.iter().cloned().collect());
+        let total_count = records.len();
 
         let (tx, rx) = mpsc::channel();
         self.async_pending = Some(rx);
 
         std::thread::spawn(move || {
             let mut view = LogStoreView::new(filter_engine);
-            // Build a temporary store from the snapshot for apply
-            let mut temp_store = LogStore::new();
-            temp_store.insert_batch(records);
-            view.apply(&temp_store);
+            view.apply_from_records(records.iter(), total_count);
             // Send might fail if receiver was dropped (cancelled) — that's OK
             let _ = tx.send(view);
         });
