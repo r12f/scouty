@@ -20,7 +20,104 @@ pub enum InputMode {
     QuickInclude,
     FieldFilter,
     FilterManager,
+    ColumnSelector,
     Help,
+}
+
+/// Column identifiers for the log table.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum Column {
+    Time,
+    Level,
+    ProcessName,
+    Pid,
+    Tid,
+    Component,
+    Source,
+    Log,
+}
+
+impl Column {
+    #[allow(dead_code)]
+    pub const ALL: [Column; 8] = [
+        Column::Time,
+        Column::Level,
+        Column::ProcessName,
+        Column::Pid,
+        Column::Tid,
+        Column::Component,
+        Column::Source,
+        Column::Log,
+    ];
+
+    pub fn label(&self) -> &'static str {
+        match self {
+            Column::Time => "Time",
+            Column::Level => "Level",
+            Column::ProcessName => "ProcessName",
+            Column::Pid => "Pid",
+            Column::Tid => "Tid",
+            Column::Component => "Component",
+            Column::Source => "Source",
+            Column::Log => "Log",
+        }
+    }
+}
+
+/// Column visibility configuration.
+#[derive(Debug, Clone)]
+pub struct ColumnConfig {
+    /// (Column, visible) for each column.
+    pub columns: Vec<(Column, bool)>,
+    /// Cursor in the column selector dialog.
+    pub cursor: usize,
+}
+
+impl Default for ColumnConfig {
+    fn default() -> Self {
+        Self {
+            columns: vec![
+                (Column::Time, true),
+                (Column::Level, true),
+                (Column::ProcessName, true),
+                (Column::Pid, true),
+                (Column::Tid, true),
+                (Column::Component, true),
+                (Column::Source, false), // hidden by default
+                (Column::Log, true),
+            ],
+            cursor: 0,
+        }
+    }
+}
+
+impl ColumnConfig {
+    #[allow(dead_code)]
+    pub fn is_visible(&self, col: Column) -> bool {
+        self.columns
+            .iter()
+            .find(|(c, _)| *c == col)
+            .map(|(_, v)| *v)
+            .unwrap_or(false)
+    }
+
+    pub fn visible_columns(&self) -> Vec<Column> {
+        self.columns
+            .iter()
+            .filter(|(_, v)| *v)
+            .map(|(c, _)| *c)
+            .collect()
+    }
+
+    pub fn toggle(&mut self, index: usize) {
+        if index < self.columns.len() {
+            // Don't allow hiding Log column
+            if self.columns[index].0 == Column::Log {
+                return;
+            }
+            self.columns[index].1 = !self.columns[index].1;
+        }
+    }
 }
 
 /// A single filter entry in the filter stack.
@@ -89,6 +186,10 @@ pub struct App {
     pub status_message: Option<String>,
     /// Column widths computed from data (Time, Level, ProcessName, Pid, Tid, Component).
     pub col_widths: [u16; 6],
+    /// Column visibility configuration.
+    pub column_config: ColumnConfig,
+    /// Follow mode: auto-scroll to bottom.
+    pub follow_mode: bool,
 }
 
 impl App {
@@ -132,6 +233,8 @@ impl App {
             goto_input: String::new(),
             status_message: None,
             col_widths,
+            column_config: ColumnConfig::default(),
+            follow_mode: false,
         })
     }
 
@@ -532,6 +635,9 @@ impl App {
     pub fn select_up(&mut self, n: usize) {
         self.selected = self.selected.saturating_sub(n);
         self.ensure_selected_visible();
+        if n > 0 && self.selected < self.total().saturating_sub(1) {
+            self.exit_follow();
+        }
     }
 
     pub fn page_down(&mut self) {
@@ -556,6 +662,19 @@ impl App {
 
     pub fn toggle_detail(&mut self) {
         self.detail_open = !self.detail_open;
+    }
+
+    /// Toggle follow mode.
+    pub fn toggle_follow(&mut self) {
+        self.follow_mode = !self.follow_mode;
+        if self.follow_mode {
+            self.scroll_to_bottom();
+        }
+    }
+
+    /// Exit follow mode (called on manual scroll up).
+    pub fn exit_follow(&mut self) {
+        self.follow_mode = false;
     }
 
     fn ensure_selected_visible(&mut self) {
@@ -635,6 +754,8 @@ mod tests {
             goto_input: String::new(),
             status_message: None,
             col_widths: [19, 5, 11, 3, 3, 9],
+            column_config: ColumnConfig::default(),
+            follow_mode: false,
         }
     }
 
@@ -668,6 +789,8 @@ mod tests {
             goto_input: String::new(),
             status_message: None,
             col_widths: [19, 5, 11, 3, 3, 9],
+            column_config: ColumnConfig::default(),
+            follow_mode: false,
         }
     }
 
@@ -929,5 +1052,173 @@ mod tests {
         assert!(ff.fields.len() >= 2); // at least level + process_name
         assert!(ff.fields.iter().any(|(name, _, _)| name == "level"));
         assert!(ff.fields.iter().any(|(name, _, _)| name == "process_name"));
+    }
+}
+
+#[cfg(test)]
+mod column_follow_tests {
+    use super::*;
+    use chrono::Utc;
+    use scouty::record::{LogLevel, LogRecord};
+
+    fn make_record(id: u64, message: &str) -> LogRecord {
+        LogRecord {
+            id,
+            timestamp: Utc::now(),
+            level: Some(LogLevel::Info),
+            source: "test".into(),
+            pid: Some(100),
+            tid: Some(200),
+            component_name: Some("comp".into()),
+            process_name: Some("proc".into()),
+            message: message.to_string(),
+            raw: message.to_string(),
+            metadata: None,
+            loader_id: "test".into(),
+        }
+    }
+
+    fn make_app_cf(n: usize) -> App {
+        let records: Vec<LogRecord> = (0..n)
+            .map(|i| make_record(i as u64, &format!("msg {}", i)))
+            .collect();
+        let filtered_indices = (0..n).collect();
+        App {
+            records,
+            total_records: n,
+            filtered_indices,
+            scroll_offset: 0,
+            selected: 0,
+            visible_rows: 10,
+            detail_open: false,
+            input_mode: InputMode::Normal,
+            filter_input: String::new(),
+            filter_error: None,
+            filters: Vec::new(),
+            quick_filter_input: String::new(),
+            field_filter: None,
+            filter_manager_cursor: 0,
+            search_input: String::new(),
+            search_matches: vec![],
+            search_match_idx: None,
+            time_input: String::new(),
+            goto_input: String::new(),
+            status_message: None,
+            col_widths: [19, 5, 11, 3, 3, 9],
+            column_config: ColumnConfig::default(),
+            follow_mode: false,
+        }
+    }
+
+    // ── Column config tests ──────────────────────────────────
+
+    #[test]
+    fn test_default_column_config() {
+        let config = ColumnConfig::default();
+        assert!(config.is_visible(Column::Time));
+        assert!(config.is_visible(Column::Level));
+        assert!(config.is_visible(Column::Log));
+        assert!(!config.is_visible(Column::Source)); // hidden by default
+    }
+
+    #[test]
+    fn test_toggle_column() {
+        let mut config = ColumnConfig::default();
+        // Find ProcessName index
+        let idx = config
+            .columns
+            .iter()
+            .position(|(c, _)| *c == Column::ProcessName)
+            .unwrap();
+        assert!(config.is_visible(Column::ProcessName));
+        config.toggle(idx);
+        assert!(!config.is_visible(Column::ProcessName));
+        config.toggle(idx);
+        assert!(config.is_visible(Column::ProcessName));
+    }
+
+    #[test]
+    fn test_cannot_toggle_log() {
+        let mut config = ColumnConfig::default();
+        let idx = config
+            .columns
+            .iter()
+            .position(|(c, _)| *c == Column::Log)
+            .unwrap();
+        assert!(config.is_visible(Column::Log));
+        config.toggle(idx);
+        assert!(config.is_visible(Column::Log)); // still visible
+    }
+
+    #[test]
+    fn test_visible_columns() {
+        let mut config = ColumnConfig::default();
+        let default_visible = config.visible_columns();
+        assert_eq!(default_visible.len(), 7); // all except Source
+
+        // Hide ProcessName
+        let idx = config
+            .columns
+            .iter()
+            .position(|(c, _)| *c == Column::ProcessName)
+            .unwrap();
+        config.toggle(idx);
+        let visible = config.visible_columns();
+        assert_eq!(visible.len(), 6);
+        assert!(!visible.contains(&Column::ProcessName));
+    }
+
+    #[test]
+    fn test_show_source_column() {
+        let mut config = ColumnConfig::default();
+        let idx = config
+            .columns
+            .iter()
+            .position(|(c, _)| *c == Column::Source)
+            .unwrap();
+        config.toggle(idx);
+        assert!(config.is_visible(Column::Source));
+        assert_eq!(config.visible_columns().len(), 8); // all visible
+    }
+
+    // ── Follow mode tests ────────────────────────────────────
+
+    #[test]
+    fn test_follow_mode_toggle() {
+        let mut app = make_app_cf(100);
+        assert!(!app.follow_mode);
+        app.toggle_follow();
+        assert!(app.follow_mode);
+        assert_eq!(app.selected, 99); // scrolled to bottom
+        app.toggle_follow();
+        assert!(!app.follow_mode);
+    }
+
+    #[test]
+    fn test_follow_mode_exits_on_scroll_up() {
+        let mut app = make_app_cf(100);
+        app.toggle_follow();
+        assert!(app.follow_mode);
+        app.select_up(5);
+        assert!(!app.follow_mode);
+    }
+
+    #[test]
+    fn test_follow_mode_exits_on_page_up() {
+        let mut app = make_app_cf(100);
+        app.toggle_follow();
+        assert!(app.follow_mode);
+        app.page_up();
+        assert!(!app.follow_mode);
+    }
+
+    #[test]
+    fn test_follow_mode_persists_on_down() {
+        let mut app = make_app_cf(100);
+        app.toggle_follow();
+        assert!(app.follow_mode);
+        // Already at bottom, select_down shouldn't exit follow
+        app.select_down(1);
+        assert!(app.follow_mode);
     }
 }

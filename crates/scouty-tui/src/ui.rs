@@ -74,33 +74,42 @@ pub fn render(frame: &mut Frame, app: &App) {
     if app.input_mode == InputMode::FilterManager {
         render_filter_manager_overlay(frame, app, area);
     }
+
+    // Column selector overlay
+    if app.input_mode == InputMode::ColumnSelector {
+        render_column_selector_overlay(frame, app, area);
+    }
 }
 
 fn render_log_table(frame: &mut Frame, app: &App, area: Rect) {
+    use crate::app::Column;
+
     let visible = app.visible_records();
     let cw = &app.col_widths;
+    let vis_cols = app.column_config.visible_columns();
 
-    // Build column constraints: fixed widths for first 6, Fill for Log
-    let widths = [
-        Constraint::Length(cw[0]),
-        Constraint::Length(cw[1]),
-        Constraint::Length(cw[2]),
-        Constraint::Length(cw[3]),
-        Constraint::Length(cw[4]),
-        Constraint::Length(cw[5]),
-        Constraint::Fill(1), // Log column fills remaining
-    ];
+    // Build column constraints based on visible columns
+    let widths: Vec<Constraint> = vis_cols
+        .iter()
+        .map(|col| match col {
+            Column::Time => Constraint::Length(cw[0]),
+            Column::Level => Constraint::Length(cw[1]),
+            Column::ProcessName => Constraint::Length(cw[2]),
+            Column::Pid => Constraint::Length(cw[3]),
+            Column::Tid => Constraint::Length(cw[4]),
+            Column::Component => Constraint::Length(cw[5]),
+            Column::Source => Constraint::Length(15),
+            Column::Log => Constraint::Fill(1),
+        })
+        .collect();
 
-    let header = Row::new(vec![
-        Cell::from("Time").style(Style::default().add_modifier(Modifier::BOLD)),
-        Cell::from("Level").style(Style::default().add_modifier(Modifier::BOLD)),
-        Cell::from("ProcessName").style(Style::default().add_modifier(Modifier::BOLD)),
-        Cell::from("Pid").style(Style::default().add_modifier(Modifier::BOLD)),
-        Cell::from("Tid").style(Style::default().add_modifier(Modifier::BOLD)),
-        Cell::from("Component").style(Style::default().add_modifier(Modifier::BOLD)),
-        Cell::from("Log").style(Style::default().add_modifier(Modifier::BOLD)),
-    ])
-    .style(Style::default().bg(Color::DarkGray).fg(Color::White));
+    let header_cells: Vec<Cell> = vis_cols
+        .iter()
+        .map(|col| Cell::from(col.label()).style(Style::default().add_modifier(Modifier::BOLD)))
+        .collect();
+
+    let header =
+        Row::new(header_cells).style(Style::default().bg(Color::DarkGray).fg(Color::White));
 
     let rows: Vec<Row> = visible
         .iter()
@@ -112,22 +121,31 @@ fn render_log_table(frame: &mut Frame, app: &App, area: Rect) {
 
             let row_style = level_style(record.level);
 
-            let ts = record.timestamp.format("%Y-%m-%d %H:%M:%S").to_string();
-            let level_str = record.level.map(|l| format!("{}", l)).unwrap_or_default();
-            let proc_name = record.process_name.as_deref().unwrap_or("");
-            let pid = record.pid.map(|p| p.to_string()).unwrap_or_default();
-            let tid = record.tid.map(|t| t.to_string()).unwrap_or_default();
-            let component = record.component_name.as_deref().unwrap_or("");
-
-            let cells = vec![
-                Cell::from(ts),
-                Cell::from(level_str),
-                Cell::from(proc_name.to_string()),
-                Cell::from(pid),
-                Cell::from(tid),
-                Cell::from(component.to_string()),
-                Cell::from(record.message.clone()),
-            ];
+            let cells: Vec<Cell> = vis_cols
+                .iter()
+                .map(|col| match col {
+                    Column::Time => {
+                        Cell::from(record.timestamp.format("%Y-%m-%d %H:%M:%S").to_string())
+                    }
+                    Column::Level => {
+                        Cell::from(record.level.map(|l| format!("{}", l)).unwrap_or_default())
+                    }
+                    Column::ProcessName => {
+                        Cell::from(record.process_name.as_deref().unwrap_or("").to_string())
+                    }
+                    Column::Pid => {
+                        Cell::from(record.pid.map(|p| p.to_string()).unwrap_or_default())
+                    }
+                    Column::Tid => {
+                        Cell::from(record.tid.map(|t| t.to_string()).unwrap_or_default())
+                    }
+                    Column::Component => {
+                        Cell::from(record.component_name.as_deref().unwrap_or("").to_string())
+                    }
+                    Column::Source => Cell::from(record.source.to_string()),
+                    Column::Log => Cell::from(record.message.clone()),
+                })
+                .collect();
 
             let mut row = Row::new(cells).style(row_style);
             if is_selected && is_match {
@@ -262,8 +280,9 @@ fn render_footer(frame: &mut Frame, app: &App, area: Rect) {
                 }
             };
 
-            // Right side: position + optional status message
-            let mut right_text = format!(" {} ", position);
+            // Right side: position + optional follow indicator + status message
+            let follow_indicator = if app.follow_mode { " [FOLLOW]" } else { "" };
+            let mut right_text = format!(" {}{} ", position, follow_indicator);
             if let Some(ref msg) = app.status_message {
                 right_text = format!(" {} │{}", msg, right_text);
             }
@@ -316,7 +335,7 @@ fn render_footer(frame: &mut Frame, app: &App, area: Rect) {
                 ));
             }
             spans.push(Span::styled(
-                format!(" {} ", position),
+                format!(" {}{} ", position, follow_indicator),
                 Style::default().fg(Color::White).bg(Color::DarkGray),
             ));
 
@@ -506,6 +525,60 @@ fn render_filter_manager_overlay(frame: &mut Frame, app: &App, area: Rect) {
         .block(
             Block::default()
                 .title(" Filter Manager (Ctrl+F) ")
+                .borders(Borders::ALL)
+                .border_style(Style::default().fg(Color::Cyan)),
+        )
+        .style(Style::default().bg(Color::Black));
+    frame.render_widget(dialog, overlay);
+}
+
+fn render_column_selector_overlay(frame: &mut Frame, app: &App, area: Rect) {
+    let cols = &app.column_config.columns;
+    let width = 35u16.min(area.width.saturating_sub(4));
+    let height = (cols.len() as u16 + 5).min(area.height.saturating_sub(4));
+    let x = (area.width.saturating_sub(width)) / 2;
+    let y = (area.height.saturating_sub(height)) / 2;
+    let overlay = Rect::new(x, y, width, height);
+
+    frame.render_widget(Clear, overlay);
+
+    let mut lines = vec![
+        Line::styled(
+            " Toggle columns (Space/Enter)",
+            Style::default().fg(Color::DarkGray),
+        ),
+        Line::from(""),
+    ];
+
+    for (i, (col, visible)) in cols.iter().enumerate() {
+        let checkbox = if *visible { "[x]" } else { "[ ]" };
+        let is_cursor = i == app.column_config.cursor;
+        let suffix = if *col == crate::app::Column::Log {
+            " (always on)"
+        } else {
+            ""
+        };
+        let style = if is_cursor {
+            Style::default().bg(Color::DarkGray).fg(Color::White)
+        } else {
+            Style::default()
+        };
+        lines.push(Line::styled(
+            format!(" {} {:<12}{}", checkbox, col.label(), suffix),
+            style,
+        ));
+    }
+
+    lines.push(Line::from(""));
+    lines.push(Line::styled(
+        " Esc: Close",
+        Style::default().fg(Color::DarkGray),
+    ));
+
+    let dialog = Paragraph::new(lines)
+        .block(
+            Block::default()
+                .title(" Columns (c) ")
                 .borders(Borders::ALL)
                 .border_style(Style::default().fg(Color::Cyan)),
         )

@@ -66,6 +66,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 app.input_mode = InputMode::FilterManager;
                                 app.filter_manager_cursor = 0;
                             }
+                            KeyCode::Char(']') => {
+                                app.toggle_follow();
+                            }
                             _ => {}
                         }
                     } else {
@@ -106,6 +109,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                             }
                             KeyCode::Char('n') => app.next_search_match(),
                             KeyCode::Char('N') => app.prev_search_match(),
+                            KeyCode::Char('c') => {
+                                app.input_mode = InputMode::ColumnSelector;
+                                app.column_config.cursor = 0;
+                            }
                             KeyCode::Char('?') => {
                                 app.input_mode = InputMode::Help;
                             }
@@ -249,6 +256,24 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         app.filter_manager_cursor = 0;
                     }
                     KeyCode::Esc | KeyCode::Enter => {
+                        app.input_mode = InputMode::Normal;
+                    }
+                    _ => {}
+                },
+                InputMode::ColumnSelector => match key.code {
+                    KeyCode::Up | KeyCode::Char('k') => {
+                        app.column_config.cursor = app.column_config.cursor.saturating_sub(1);
+                    }
+                    KeyCode::Down | KeyCode::Char('j') => {
+                        if app.column_config.cursor + 1 < app.column_config.columns.len() {
+                            app.column_config.cursor += 1;
+                        }
+                    }
+                    KeyCode::Char(' ') | KeyCode::Enter => {
+                        let cur = app.column_config.cursor;
+                        app.column_config.toggle(cur);
+                    }
+                    KeyCode::Esc => {
                         app.input_mode = InputMode::Normal;
                     }
                     _ => {}
