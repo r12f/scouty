@@ -205,20 +205,33 @@ impl App {
         self.clear_search();
     }
 
-    /// Execute text search across filtered records.
+    /// Execute regex search across filtered records.
     pub fn execute_search(&mut self) {
         if self.search_input.is_empty() {
             self.clear_search();
             return;
         }
-        let query = self.search_input.to_lowercase();
+        // Build case-insensitive regex
+        let pattern = match regex::RegexBuilder::new(&self.search_input)
+            .case_insensitive(true)
+            .build()
+        {
+            Ok(re) => re,
+            Err(e) => {
+                self.search_matches.clear();
+                self.search_match_idx = None;
+                self.status_message = Some(format!("Invalid regex: {}", e));
+                return;
+            }
+        };
+
         self.search_matches = self
             .filtered_indices
             .iter()
             .enumerate()
             .filter(|(_, &ri)| {
-                self.records[ri].message.to_lowercase().contains(&query)
-                    || self.records[ri].raw.to_lowercase().contains(&query)
+                pattern.is_match(&self.records[ri].message)
+                    || pattern.is_match(&self.records[ri].raw)
             })
             .map(|(i, _)| i)
             .collect();
@@ -545,6 +558,35 @@ mod tests {
         app.execute_search();
         assert!(app.search_matches.is_empty());
         assert!(app.status_message.is_some());
+    }
+
+    #[test]
+    fn test_search_regex() {
+        let mut app = make_app(20);
+        app.records[3].message = "ERROR: connection timeout".to_string();
+        app.records[7].message = "error: disk full".to_string();
+        app.records[12].message = "Warning: low memory".to_string();
+
+        // Regex search: case-insensitive by default
+        app.search_input = "error".to_string();
+        app.execute_search();
+        assert_eq!(app.search_matches.len(), 2);
+        assert_eq!(app.search_matches, vec![3, 7]);
+
+        // Regex pattern
+        app.search_input = r"error.*(?:timeout|full)".to_string();
+        app.execute_search();
+        assert_eq!(app.search_matches.len(), 2);
+
+        // Invalid regex
+        app.search_input = "[invalid".to_string();
+        app.execute_search();
+        assert!(app.search_matches.is_empty());
+        assert!(app
+            .status_message
+            .as_ref()
+            .unwrap()
+            .contains("Invalid regex"));
     }
 
     #[test]
