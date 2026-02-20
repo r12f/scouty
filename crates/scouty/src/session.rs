@@ -7,6 +7,7 @@ use crate::store::LogStore;
 use crate::traits::{LogLoader, LogProcessor, Result};
 use crate::view::LogStoreView;
 use rayon::prelude::*;
+use std::sync::mpsc;
 
 /// Represents a registered loader paired with its parser group.
 struct LoaderSlot {
@@ -22,8 +23,11 @@ pub struct LogSession {
     processors: Vec<Box<dyn LogProcessor>>,
     /// Currently active view — serves TUI, always has valid results.
     active_view: LogStoreView,
-    /// Pending view — created when filter changes, not yet applied.
+    /// Pending view — created when filter changes, not yet applied (sync path).
     pending_view: Option<LogStoreView>,
+    /// Receiver for async background filtering result.
+    /// When present, a background thread is filtering.
+    async_pending: Option<mpsc::Receiver<LogStoreView>>,
     /// Records that failed parsing by all parsers in their group.
     pub failing_parsing_logs: Vec<FailedLog>,
     /// Auto-incrementing record ID counter.
@@ -47,6 +51,7 @@ impl LogSession {
             processors: Vec::new(),
             active_view: LogStoreView::new(FilterEngine::new()),
             pending_view: None,
+            async_pending: None,
             failing_parsing_logs: Vec::new(),
             next_id: 0,
         }
@@ -83,22 +88,78 @@ impl LogSession {
         &self.active_view
     }
 
-    /// Whether a pending view exists (filter update in progress).
+    /// Whether a pending view exists (sync or async filter update in progress).
     pub fn has_pending_view(&self) -> bool {
-        self.pending_view.is_some()
+        self.pending_view.is_some() || self.async_pending.is_some()
     }
 
-    /// Start a filter update using the dual-buffer mechanism.
+    /// Whether an async background filter is in progress.
+    pub fn is_filtering(&self) -> bool {
+        self.async_pending.is_some()
+    }
+
+    /// Start a filter update using the synchronous dual-buffer mechanism.
     ///
     /// Creates a new pending view with the given filter engine.
     /// If a pending view already exists, it is discarded and replaced.
+    /// Also cancels any in-flight async filtering.
     pub fn update_filter(&mut self, filter_engine: FilterEngine) {
+        self.async_pending = None; // cancel any async work
         self.pending_view = Some(LogStoreView::new(filter_engine));
     }
 
-    /// Apply the pending view's filter against the store, then replace active view.
+    /// Start a filter update that runs in a background thread.
     ///
-    /// If no pending view exists, this is a no-op.
+    /// Snapshots current store records and spawns a thread to apply the filter.
+    /// Call `poll_pending()` to check for completion and swap views.
+    /// If called again before completion, the previous async work is cancelled
+    /// (receiver dropped, thread result discarded).
+    pub fn update_filter_async(&mut self, filter_engine: FilterEngine) {
+        self.pending_view = None; // discard sync pending
+                                  // Snapshot store records for the background thread
+        let records: Vec<LogRecord> = self.store.iter().cloned().collect();
+
+        let (tx, rx) = mpsc::channel();
+        self.async_pending = Some(rx);
+
+        std::thread::spawn(move || {
+            let mut view = LogStoreView::new(filter_engine);
+            // Build a temporary store from the snapshot for apply
+            let mut temp_store = LogStore::new();
+            temp_store.insert_batch(records);
+            view.apply(&temp_store);
+            // Send might fail if receiver was dropped (cancelled) — that's OK
+            let _ = tx.send(view);
+        });
+    }
+
+    /// Poll for async filtering completion. If the background thread finished,
+    /// swap the completed view into active_view and return `true`.
+    /// Returns `false` if no async work is pending or it hasn't completed yet.
+    pub fn poll_pending(&mut self) -> bool {
+        if let Some(ref rx) = self.async_pending {
+            match rx.try_recv() {
+                Ok(view) => {
+                    self.active_view = view;
+                    self.async_pending = None;
+                    true
+                }
+                Err(mpsc::TryRecvError::Empty) => false,
+                Err(mpsc::TryRecvError::Disconnected) => {
+                    // Thread finished but send failed (shouldn't happen normally)
+                    self.async_pending = None;
+                    false
+                }
+            }
+        } else {
+            false
+        }
+    }
+
+    /// Apply the pending view's filter against the store, then replace active view.
+    /// For synchronous pending views only.
+    ///
+    /// If no sync pending view exists, this is a no-op.
     pub fn apply_pending(&mut self) {
         if let Some(mut pending) = self.pending_view.take() {
             pending.apply(&self.store);

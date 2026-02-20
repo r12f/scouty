@@ -361,4 +361,171 @@ mod tests {
         session.refresh_active_view();
         assert_eq!(session.filtered_view().len(), 1);
     }
+
+    #[test]
+    fn test_async_filter_basic() {
+        use crate::filter::engine::{FilterAction, FilterEngine};
+
+        let mut session = LogSession::new();
+        let mut group = ParserGroup::new("test");
+        group.add_parser(Box::new(AllParser));
+
+        session.add_loader(
+            Box::new(make_mock_loader(
+                "l1",
+                vec!["msg1".into(), "msg2".into(), "msg3".into()],
+            )),
+            group,
+        );
+        session.run().unwrap();
+        assert_eq!(session.active_view().len(), 3);
+
+        // Start async filter
+        let mut engine = FilterEngine::new();
+        engine
+            .add_expr_filter(FilterAction::Include, r#"message contains "msg1""#)
+            .unwrap();
+        session.update_filter_async(engine);
+        assert!(session.is_filtering());
+
+        // Poll until done
+        while !session.poll_pending() {
+            std::thread::sleep(std::time::Duration::from_millis(1));
+        }
+
+        assert!(!session.is_filtering());
+        assert_eq!(session.active_view().len(), 1);
+        let record = session
+            .active_view()
+            .get_record(0, session.store())
+            .unwrap();
+        assert_eq!(record.message, "msg1");
+    }
+
+    #[test]
+    fn test_async_filter_cancel() {
+        use crate::filter::engine::{FilterAction, FilterEngine};
+
+        let mut session = LogSession::new();
+        let mut group = ParserGroup::new("test");
+        group.add_parser(Box::new(AllParser));
+
+        session.add_loader(
+            Box::new(make_mock_loader(
+                "l1",
+                vec!["msg1".into(), "msg2".into(), "msg3".into()],
+            )),
+            group,
+        );
+        session.run().unwrap();
+
+        // Start first async filter (include msg1)
+        let mut engine1 = FilterEngine::new();
+        engine1
+            .add_expr_filter(FilterAction::Include, r#"message contains "msg1""#)
+            .unwrap();
+        session.update_filter_async(engine1);
+
+        // Cancel by starting a new async filter (include msg2)
+        let mut engine2 = FilterEngine::new();
+        engine2
+            .add_expr_filter(FilterAction::Include, r#"message contains "msg2""#)
+            .unwrap();
+        session.update_filter_async(engine2);
+
+        // Poll until done — should get msg2 (second filter)
+        while !session.poll_pending() {
+            std::thread::sleep(std::time::Duration::from_millis(1));
+        }
+
+        assert_eq!(session.active_view().len(), 1);
+        let record = session
+            .active_view()
+            .get_record(0, session.store())
+            .unwrap();
+        assert_eq!(record.message, "msg2");
+    }
+
+    #[test]
+    fn test_async_filter_does_not_block_active_view() {
+        use crate::filter::engine::{FilterAction, FilterEngine};
+
+        let mut session = LogSession::new();
+        let mut group = ParserGroup::new("test");
+        group.add_parser(Box::new(AllParser));
+
+        session.add_loader(
+            Box::new(make_mock_loader(
+                "l1",
+                vec!["msg1".into(), "msg2".into(), "msg3".into()],
+            )),
+            group,
+        );
+        session.run().unwrap();
+        assert_eq!(session.active_view().len(), 3);
+
+        // Start async filter
+        let mut engine = FilterEngine::new();
+        engine
+            .add_expr_filter(FilterAction::Include, r#"message contains "msg1""#)
+            .unwrap();
+        session.update_filter_async(engine);
+
+        // Active view still shows all 3 while filtering
+        assert_eq!(session.active_view().len(), 3);
+        assert!(session.is_filtering());
+
+        // Wait for completion
+        while !session.poll_pending() {
+            std::thread::sleep(std::time::Duration::from_millis(1));
+        }
+
+        // Now active view is updated
+        assert_eq!(session.active_view().len(), 1);
+    }
+
+    #[test]
+    fn test_async_cancels_sync_pending() {
+        use crate::filter::engine::{FilterAction, FilterEngine};
+
+        let mut session = LogSession::new();
+        let mut group = ParserGroup::new("test");
+        group.add_parser(Box::new(AllParser));
+
+        session.add_loader(
+            Box::new(make_mock_loader("l1", vec!["msg1".into(), "msg2".into()])),
+            group,
+        );
+        session.run().unwrap();
+
+        // Create a sync pending
+        let mut engine1 = FilterEngine::new();
+        engine1
+            .add_expr_filter(FilterAction::Include, r#"message contains "msg1""#)
+            .unwrap();
+        session.update_filter(engine1);
+        assert!(session.has_pending_view());
+
+        // Async replaces it
+        let mut engine2 = FilterEngine::new();
+        engine2
+            .add_expr_filter(FilterAction::Include, r#"message contains "msg2""#)
+            .unwrap();
+        session.update_filter_async(engine2);
+
+        // Sync apply_pending should be no-op now
+        session.apply_pending();
+        assert_eq!(session.active_view().len(), 2); // unchanged
+
+        // Async finishes
+        while !session.poll_pending() {
+            std::thread::sleep(std::time::Duration::from_millis(1));
+        }
+        assert_eq!(session.active_view().len(), 1);
+        let record = session
+            .active_view()
+            .get_record(0, session.store())
+            .unwrap();
+        assert_eq!(record.message, "msg2");
+    }
 }
