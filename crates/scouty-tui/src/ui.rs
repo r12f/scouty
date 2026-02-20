@@ -26,7 +26,12 @@ pub fn render(frame: &mut Frame, app: &App) {
 
     let footer_height = if matches!(
         app.input_mode,
-        InputMode::Filter | InputMode::Search | InputMode::TimeJump | InputMode::GotoLine
+        InputMode::Filter
+            | InputMode::Search
+            | InputMode::TimeJump
+            | InputMode::GotoLine
+            | InputMode::QuickExclude
+            | InputMode::QuickInclude
     ) {
         2
     } else {
@@ -58,6 +63,16 @@ pub fn render(frame: &mut Frame, app: &App) {
     // Help overlay
     if app.input_mode == InputMode::Help {
         render_help_overlay(frame, area);
+    }
+
+    // Field filter overlay
+    if app.input_mode == InputMode::FieldFilter {
+        render_field_filter_overlay(frame, app, area);
+    }
+
+    // Filter manager overlay
+    if app.input_mode == InputMode::FilterManager {
+        render_filter_manager_overlay(frame, app, area);
     }
 }
 
@@ -226,6 +241,12 @@ fn render_footer(frame: &mut Frame, app: &App, area: Rect) {
         InputMode::GotoLine => {
             render_input_footer(frame, area, "Go to line: ", &app.goto_input, None);
         }
+        InputMode::QuickExclude => {
+            render_input_footer(frame, area, "Exclude text: ", &app.quick_filter_input, None);
+        }
+        InputMode::QuickInclude => {
+            render_input_footer(frame, area, "Include text: ", &app.quick_filter_input, None);
+        }
         _ => {
             // Status bar: density chart │ position info
             let position = if app.total() == 0 {
@@ -374,4 +395,120 @@ fn render_help_overlay(frame: &mut Frame, area: Rect) {
         )
         .style(Style::default().bg(Color::Black));
     frame.render_widget(help, overlay);
+}
+
+fn render_field_filter_overlay(frame: &mut Frame, app: &App, area: Rect) {
+    let ff = match &app.field_filter {
+        Some(ff) => ff,
+        None => return,
+    };
+
+    let width = 45u16.min(area.width.saturating_sub(4));
+    let height = (ff.fields.len() as u16 + 6).min(area.height.saturating_sub(4));
+    let x = (area.width.saturating_sub(width)) / 2;
+    let y = (area.height.saturating_sub(height)) / 2;
+    let overlay = Rect::new(x, y, width, height);
+
+    frame.render_widget(Clear, overlay);
+
+    let action = if ff.exclude { "Exclude" } else { "Include" };
+    let mut lines = vec![
+        Line::from(vec![
+            Span::raw(" Action: "),
+            Span::styled(
+                format!("[{}]", action),
+                Style::default()
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::styled(" (Tab to toggle)", Style::default().fg(Color::DarkGray)),
+        ]),
+        Line::from(""),
+    ];
+
+    for (i, (name, val, checked)) in ff.fields.iter().enumerate() {
+        let checkbox = if *checked { "[x]" } else { "[ ]" };
+        let is_cursor = i == ff.cursor;
+        let style = if is_cursor {
+            Style::default().bg(Color::DarkGray).fg(Color::White)
+        } else {
+            Style::default()
+        };
+        lines.push(Line::styled(
+            format!(" {} {:<12} = {}", checkbox, name, val),
+            style,
+        ));
+    }
+
+    lines.push(Line::from(""));
+    lines.push(Line::styled(
+        " Enter: Apply  Esc: Cancel  Space: Toggle  Tab: Action",
+        Style::default().fg(Color::DarkGray),
+    ));
+
+    let dialog = Paragraph::new(lines)
+        .block(
+            Block::default()
+                .title(" Quick Filter ")
+                .borders(Borders::ALL)
+                .border_style(Style::default().fg(Color::Cyan)),
+        )
+        .style(Style::default().bg(Color::Black));
+    frame.render_widget(dialog, overlay);
+}
+
+fn render_filter_manager_overlay(frame: &mut Frame, app: &App, area: Rect) {
+    let width = 55u16.min(area.width.saturating_sub(4));
+    let height = (app.filters.len() as u16 + 7)
+        .min(area.height.saturating_sub(4))
+        .max(8);
+    let x = (area.width.saturating_sub(width)) / 2;
+    let y = (area.height.saturating_sub(height)) / 2;
+    let overlay = Rect::new(x, y, width, height);
+
+    frame.render_widget(Clear, overlay);
+
+    let mut lines = vec![
+        Line::styled(
+            format!(" Active Filters ({})", app.filters.len()),
+            Style::default()
+                .fg(Color::White)
+                .add_modifier(Modifier::BOLD),
+        ),
+        Line::from(""),
+    ];
+
+    if app.filters.is_empty() {
+        lines.push(Line::styled(
+            " (no active filters)",
+            Style::default().fg(Color::DarkGray),
+        ));
+    } else {
+        for (i, filter) in app.filters.iter().enumerate() {
+            let is_cursor = i == app.filter_manager_cursor;
+            let prefix = if filter.exclude { "−" } else { "+" };
+            let style = if is_cursor {
+                Style::default().bg(Color::DarkGray).fg(Color::White)
+            } else {
+                Style::default()
+            };
+            lines.push(Line::styled(format!(" {} {}", prefix, filter.label), style));
+        }
+    }
+
+    lines.push(Line::from(""));
+    lines.push(Line::styled(
+        " d: Delete  c: Clear all  Esc: Close",
+        Style::default().fg(Color::DarkGray),
+    ));
+
+    let dialog = Paragraph::new(lines)
+        .block(
+            Block::default()
+                .title(" Filter Manager (Ctrl+F) ")
+                .borders(Borders::ALL)
+                .border_style(Style::default().fg(Color::Cyan)),
+        )
+        .style(Style::default().bg(Color::Black));
+    frame.render_widget(dialog, overlay);
 }
