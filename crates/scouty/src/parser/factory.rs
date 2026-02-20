@@ -56,7 +56,7 @@ impl ParserFactory {
         // BSD syslog format: "Jan 15 10:30:00 hostname process[pid]: message"
         if let Ok(p) = RegexParser::new(
             "syslog-bsd",
-            r"^(?P<timestamp>\w{3}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2})\s+(?P<process>\S+)\s+(?P<component>\S+?)(?:\[(?P<pid>\d+)\])?:\s+(?P<message>.*)",
+            r"^(?P<timestamp>\w{3}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2})\s+(?P<hostname>\S+)\s+(?P<process>\S+?)(?:\[(?P<pid>\d+)\])?:\s+(?P<message>.*)",
             Some("%b %d %H:%M:%S".to_string()),
         ) {
             group.add_parser(Box::new(p));
