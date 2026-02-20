@@ -18,7 +18,7 @@ mod tests {
             process_name: None,
             message: message.into(),
             raw: message.into(),
-            metadata: HashMap::new(),
+            metadata: None,
             loader_id: "test-loader".into(),
         }
     }
@@ -58,7 +58,7 @@ mod tests {
         assert_eq!(r.id, 42);
         assert_eq!(r.level, Some(LogLevel::Error));
         assert_eq!(r.message, "something broke");
-        assert_eq!(r.loader_id, "test-loader");
-        assert!(r.metadata.is_empty());
+        assert_eq!(&*r.loader_id, "test-loader");
+        assert!(r.metadata.is_none());
     }
 }

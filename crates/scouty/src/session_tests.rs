@@ -10,9 +10,14 @@ mod tests {
     use std::collections::HashMap;
 
     fn make_record(id: u64, message: &str) -> LogRecord {
+        // Use a fixed timestamp to avoid non-deterministic ordering when
+        // records are created across parallel threads with Utc::now().
+        let ts = chrono::DateTime::parse_from_rfc3339("2025-01-01T00:00:00Z")
+            .unwrap()
+            .with_timezone(&Utc);
         LogRecord {
             id,
-            timestamp: Utc::now(),
+            timestamp: ts,
             level: Some(LogLevel::Info),
             source: "test".into(),
             pid: None,
@@ -21,7 +26,7 @@ mod tests {
             process_name: None,
             message: message.into(),
             raw: message.into(),
-            metadata: HashMap::new(),
+            metadata: None,
             loader_id: "test-loader".into(),
         }
     }

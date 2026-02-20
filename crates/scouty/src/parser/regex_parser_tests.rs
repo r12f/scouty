@@ -77,7 +77,10 @@ mod tests {
                 2,
             )
             .unwrap();
-        assert_eq!(record.metadata.get("thread").unwrap(), "main");
+        assert_eq!(
+            record.metadata.as_ref().unwrap().get("thread").unwrap(),
+            "main"
+        );
     }
 
     #[test]

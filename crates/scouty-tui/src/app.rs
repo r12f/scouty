@@ -332,15 +332,15 @@ mod tests {
             id,
             timestamp: Utc::now(),
             level,
-            source: "test".to_string(),
+            source: "test".into(),
             pid: None,
             tid: None,
             component_name: None,
             process_name: None,
             message: message.to_string(),
             raw: message.to_string(),
-            metadata: HashMap::new(),
-            loader_id: "test".to_string(),
+            metadata: None,
+            loader_id: "test".into(),
         }
     }
 

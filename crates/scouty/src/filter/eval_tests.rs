@@ -20,7 +20,7 @@ mod tests {
             process_name: None,
             message: message.into(),
             raw: message.into(),
-            metadata,
+            metadata: Some(metadata),
             loader_id: "loader-1".into(),
         }
     }

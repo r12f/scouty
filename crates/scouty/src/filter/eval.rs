@@ -26,20 +26,20 @@ fn get_field(record: &LogRecord, field: &str) -> Option<String> {
         "id" => Some(record.id.to_string()),
         "timestamp" => Some(record.timestamp.to_rfc3339()),
         "level" => record.level.map(|l| l.to_string()),
-        "source" => Some(record.source.clone()),
+        "source" => Some(record.source.to_string()),
         "pid" => record.pid.map(|p| p.to_string()),
         "tid" => record.tid.map(|t| t.to_string()),
         "component_name" | "component" => record.component_name.clone(),
         "process_name" | "process" => record.process_name.clone(),
         "message" => Some(record.message.clone()),
         "raw" => Some(record.raw.clone()),
-        "loader_id" => Some(record.loader_id.clone()),
+        "loader_id" => Some(record.loader_id.to_string()),
         _ => {
             // Check metadata with "metadata." prefix or direct key
             if let Some(key) = field.strip_prefix("metadata.") {
-                record.metadata.get(key).cloned()
+                record.metadata.as_ref().and_then(|m| m.get(key).cloned())
             } else {
-                record.metadata.get(field).cloned()
+                record.metadata.as_ref().and_then(|m| m.get(field).cloned())
             }
         }
     }
