@@ -119,6 +119,38 @@ impl LogStoreView {
         self.status = ViewStatus::Ready;
     }
 
+    /// Apply the filter engine against a record iterator, updating cached indices and stats.
+    ///
+    /// Unlike `apply()`, this doesn't require a `&LogStore` — useful for background
+    /// filtering where records are shared via `Arc`.
+    pub fn apply_from_records<'a>(
+        &mut self,
+        records: impl Iterator<Item = &'a LogRecord>,
+        total_count: usize,
+    ) {
+        self.status = ViewStatus::Filtering;
+        let mut level_counts_total: HashMap<Option<LogLevel>, usize> = HashMap::new();
+        let mut level_counts_filtered: HashMap<Option<LogLevel>, usize> = HashMap::new();
+        self.filtered_indices.clear();
+
+        for (i, record) in records.enumerate() {
+            *level_counts_total.entry(record.level).or_insert(0) += 1;
+            if self.filter_engine.matches(record) {
+                self.filtered_indices.push(i);
+                *level_counts_filtered.entry(record.level).or_insert(0) += 1;
+            }
+        }
+
+        self.last_applied_count = total_count;
+        self.stats = ViewStats {
+            total_records: total_count,
+            filtered_records: self.filtered_indices.len(),
+            level_counts_total,
+            level_counts_filtered,
+        };
+        self.status = ViewStatus::Ready;
+    }
+
     /// Get the cached filtered indices.
     pub fn indices(&self) -> &[usize] {
         &self.filtered_indices

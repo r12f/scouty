@@ -4,6 +4,7 @@ mod tests {
     use crate::store::LogStore;
     use chrono::{Duration, Utc};
     use std::collections::HashMap;
+    use std::sync::Arc;
 
     fn make_record_at(id: u64, level: LogLevel, message: &str, offset_secs: i64) -> LogRecord {
         let base = Utc::now();
@@ -815,10 +816,10 @@ mod tests {
         store.insert_batch(batch);
 
         for i in 0..16_000u64 {
-            store.ooo_buffer.push(make_record_with_ts(
+            store.ooo_buffer.push(Arc::new(make_record_with_ts(
                 200_000 + i,
                 base + Duration::seconds(i as i64),
-            ));
+            )));
         }
 
         let start = std::time::Instant::now();
