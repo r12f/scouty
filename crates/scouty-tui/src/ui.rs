@@ -438,8 +438,8 @@ fn render_field_filter_overlay(frame: &mut Frame, app: &App, area: Rect) {
         None => return,
     };
 
-    let width = 45u16.min(area.width.saturating_sub(4));
-    let height = (ff.fields.len() as u16 + 6).min(area.height.saturating_sub(4));
+    let width = 60u16.min(area.width.saturating_sub(4));
+    let height = (ff.fields.len() as u16 + 8).min(area.height.saturating_sub(4));
     let x = (area.width.saturating_sub(width)) / 2;
     let y = (area.height.saturating_sub(height)) / 2;
     let overlay = Rect::new(x, y, width, height);
@@ -447,6 +447,7 @@ fn render_field_filter_overlay(frame: &mut Frame, app: &App, area: Rect) {
     frame.render_widget(Clear, overlay);
 
     let action = if ff.exclude { "Exclude" } else { "Include" };
+    let logic = if ff.logic_or { "OR" } else { "AND" };
     let mut lines = vec![
         Line::from(vec![
             Span::raw(" Action: "),
@@ -456,12 +457,30 @@ fn render_field_filter_overlay(frame: &mut Frame, app: &App, area: Rect) {
                     .fg(Color::Yellow)
                     .add_modifier(Modifier::BOLD),
             ),
-            Span::styled(" (Tab to toggle)", Style::default().fg(Color::DarkGray)),
+            Span::styled(" (Tab)", Style::default().fg(Color::DarkGray)),
+            Span::raw("  Logic: "),
+            Span::styled(
+                format!("[{}]", logic),
+                Style::default()
+                    .fg(Color::Cyan)
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::styled(" (o)", Style::default().fg(Color::DarkGray)),
         ]),
         Line::from(""),
     ];
 
-    for (i, (name, val, checked)) in ff.fields.iter().enumerate() {
+    // Calculate visible window for scrolling
+    let max_visible = (height as usize).saturating_sub(6); // header + footer lines
+    let scroll_offset = if ff.cursor >= max_visible {
+        ff.cursor - max_visible + 1
+    } else {
+        0
+    };
+    let visible_end = (scroll_offset + max_visible).min(ff.fields.len());
+
+    for i in scroll_offset..visible_end {
+        let (name, val, checked) = &ff.fields[i];
         let checkbox = if *checked { "[x]" } else { "[ ]" };
         let is_cursor = i == ff.cursor;
         let style = if is_cursor {
@@ -469,22 +488,42 @@ fn render_field_filter_overlay(frame: &mut Frame, app: &App, area: Rect) {
         } else {
             Style::default()
         };
+        // Truncate value to fit
+        let max_val = (width as usize).saturating_sub(22);
+        let display_val = if val.len() > max_val {
+            format!("{}…", &val[..max_val.saturating_sub(1)])
+        } else {
+            val.clone()
+        };
         lines.push(Line::styled(
-            format!(" {} {:<12} = {}", checkbox, name, val),
+            format!(" {} {:<14} = {}", checkbox, name, display_val),
             style,
+        ));
+    }
+
+    if ff.fields.len() > max_visible {
+        lines.push(Line::styled(
+            format!(" ({}/{})", ff.cursor + 1, ff.fields.len()),
+            Style::default().fg(Color::DarkGray),
         ));
     }
 
     lines.push(Line::from(""));
     lines.push(Line::styled(
-        " Enter: Apply  Esc: Cancel  Space: Toggle  Tab: Action",
+        " Enter: Apply  Esc: Cancel  Space: Toggle",
         Style::default().fg(Color::DarkGray),
     ));
+
+    let title = if ff.exclude {
+        " Exclude Fields (Ctrl+-) "
+    } else {
+        " Include Fields (Ctrl++) "
+    };
 
     let dialog = Paragraph::new(lines)
         .block(
             Block::default()
-                .title(" Quick Filter ")
+                .title(title)
                 .borders(Borders::ALL)
                 .border_style(Style::default().fg(Color::Cyan)),
         )
@@ -540,7 +579,7 @@ fn render_filter_manager_overlay(frame: &mut Frame, app: &App, area: Rect) {
     let dialog = Paragraph::new(lines)
         .block(
             Block::default()
-                .title(" Filter Manager (Ctrl+F) ")
+                .title(" Filter Manager (F) ")
                 .borders(Borders::ALL)
                 .border_style(Style::default().fg(Color::Cyan)),
         )
