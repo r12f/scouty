@@ -18,7 +18,7 @@ mod tests {
             process_name: None,
             message: message.into(),
             raw: message.into(),
-            metadata: HashMap::new(),
+            metadata: None,
             loader_id: "test-loader".into(),
         }
     }
@@ -35,7 +35,7 @@ mod tests {
             process_name: None,
             message: format!("msg-{}", id),
             raw: format!("msg-{}", id),
-            metadata: HashMap::new(),
+            metadata: None,
             loader_id: "test-loader".into(),
         }
     }
@@ -345,7 +345,7 @@ mod tests {
                 process_name: None,
                 message: format!("msg-{}", i),
                 raw: format!("msg-{}", i),
-                metadata: HashMap::new(),
+                metadata: None,
                 loader_id: "bench".into(),
             })
             .collect();
@@ -367,7 +367,7 @@ mod tests {
                 process_name: None,
                 message: format!("new-{}", i),
                 raw: format!("new-{}", i),
-                metadata: HashMap::new(),
+                metadata: None,
                 loader_id: "bench".into(),
             })
             .collect();
@@ -402,7 +402,7 @@ mod tests {
                 process_name: None,
                 message: format!("msg-{}", i),
                 raw: format!("msg-{}", i),
-                metadata: HashMap::new(),
+                metadata: None,
                 loader_id: "bench".into(),
             })
             .collect();
@@ -423,7 +423,7 @@ mod tests {
                 process_name: None,
                 message: format!("interleaved-{}", i),
                 raw: format!("interleaved-{}", i),
-                metadata: HashMap::new(),
+                metadata: None,
                 loader_id: "bench".into(),
             })
             .collect();
@@ -464,7 +464,7 @@ mod tests {
                 process_name: None,
                 message: format!("msg-{}", i),
                 raw: format!("msg-{}", i),
-                metadata: HashMap::new(),
+                metadata: None,
                 loader_id: "bench".into(),
             });
         }
@@ -490,7 +490,7 @@ mod tests {
                 process_name: None,
                 message: format!("msg-{}", i),
                 raw: format!("msg-{}", i),
-                metadata: HashMap::new(),
+                metadata: None,
                 loader_id: "bench".into(),
             })
             .collect();
@@ -524,7 +524,7 @@ mod tests {
                 process_name: None,
                 message: format!("msg-{}", i),
                 raw: format!("msg-{}", i),
-                metadata: HashMap::new(),
+                metadata: None,
                 loader_id: "bench".into(),
             })
             .collect();
@@ -556,7 +556,7 @@ mod tests {
                 process_name: None,
                 message: format!("msg-{}", i),
                 raw: format!("msg-{}", i),
-                metadata: HashMap::new(),
+                metadata: None,
                 loader_id: "bench".into(),
             })
             .collect();
@@ -592,7 +592,7 @@ mod tests {
                 process_name: None,
                 message: format!("msg-{}", i),
                 raw: format!("msg-{}", i),
-                metadata: HashMap::new(),
+                metadata: None,
                 loader_id: "bench".into(),
             })
             .collect();

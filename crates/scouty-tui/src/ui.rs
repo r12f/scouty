@@ -154,7 +154,7 @@ fn render_detail_panel(frame: &mut Frame, app: &App, area: Rect) {
             ]),
             Line::from(vec![
                 Span::styled("Source:    ", Style::default().fg(Color::Cyan)),
-                Span::raw(&record.source),
+                Span::raw(record.source.as_ref()),
             ]),
         ];
 
@@ -183,10 +183,10 @@ fn render_detail_panel(frame: &mut Frame, app: &App, area: Rect) {
             ]));
         }
 
-        if !record.metadata.is_empty() {
+        if record.metadata.as_ref().is_some_and(|m| !m.is_empty()) {
             lines.push(Line::from(""));
             lines.push(Line::styled("Metadata:", Style::default().fg(Color::Cyan)));
-            for (k, v) in &record.metadata {
+            for (k, v) in record.metadata.as_ref().unwrap() {
                 lines.push(Line::from(format!("  {} = {}", k, v)));
             }
         }

@@ -385,15 +385,15 @@ random garbage
                 id: i,
                 timestamp: Utc::now(),
                 level: Some(LogLevel::Info),
-                source: "bench".to_string(),
+                source: "bench".into(),
                 pid: None,
                 tid: None,
                 component_name: None,
                 process_name: None,
                 message: format!("message {}", i),
                 raw: format!("message {}", i),
-                metadata: HashMap::new(),
-                loader_id: "bench".to_string(),
+                metadata: None,
+                loader_id: "bench".into(),
             });
         }
 

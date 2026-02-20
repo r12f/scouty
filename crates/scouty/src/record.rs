@@ -3,6 +3,7 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::sync::Arc;
 
 /// Log severity level.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
@@ -29,15 +30,51 @@ impl std::fmt::Display for LogLevel {
 }
 
 impl LogLevel {
-    /// Parse a log level from a string (case-insensitive).
+    /// Parse a log level from a string (case-insensitive, zero-allocation).
     pub fn from_str_loose(s: &str) -> Option<LogLevel> {
-        match s.to_uppercase().as_str() {
-            "TRACE" | "TRC" => Some(LogLevel::Trace),
-            "DEBUG" | "DBG" => Some(LogLevel::Debug),
-            "INFO" | "INF" => Some(LogLevel::Info),
-            "WARN" | "WARNING" | "WRN" => Some(LogLevel::Warn),
-            "ERROR" | "ERR" => Some(LogLevel::Error),
-            "FATAL" | "CRITICAL" | "CRIT" | "FTL" => Some(LogLevel::Fatal),
+        // Fast path: match common patterns without allocating
+        let bytes = s.as_bytes();
+        if bytes.is_empty() {
+            return None;
+        }
+        match bytes[0] | 0x20 {
+            // lowercase first byte
+            b't' => match bytes.len() {
+                5 if s.eq_ignore_ascii_case("TRACE") => Some(LogLevel::Trace),
+                3 if s.eq_ignore_ascii_case("TRC") => Some(LogLevel::Trace),
+                _ => None,
+            },
+            b'd' => match bytes.len() {
+                5 if s.eq_ignore_ascii_case("DEBUG") => Some(LogLevel::Debug),
+                3 if s.eq_ignore_ascii_case("DBG") => Some(LogLevel::Debug),
+                _ => None,
+            },
+            b'i' => match bytes.len() {
+                4 if s.eq_ignore_ascii_case("INFO") => Some(LogLevel::Info),
+                3 if s.eq_ignore_ascii_case("INF") => Some(LogLevel::Info),
+                _ => None,
+            },
+            b'w' => match bytes.len() {
+                4 if s.eq_ignore_ascii_case("WARN") => Some(LogLevel::Warn),
+                7 if s.eq_ignore_ascii_case("WARNING") => Some(LogLevel::Warn),
+                3 if s.eq_ignore_ascii_case("WRN") => Some(LogLevel::Warn),
+                _ => None,
+            },
+            b'e' => match bytes.len() {
+                5 if s.eq_ignore_ascii_case("ERROR") => Some(LogLevel::Error),
+                3 if s.eq_ignore_ascii_case("ERR") => Some(LogLevel::Error),
+                _ => None,
+            },
+            b'f' => match bytes.len() {
+                5 if s.eq_ignore_ascii_case("FATAL") => Some(LogLevel::Fatal),
+                3 if s.eq_ignore_ascii_case("FTL") => Some(LogLevel::Fatal),
+                _ => None,
+            },
+            b'c' => match bytes.len() {
+                8 if s.eq_ignore_ascii_case("CRITICAL") => Some(LogLevel::Fatal),
+                4 if s.eq_ignore_ascii_case("CRIT") => Some(LogLevel::Fatal),
+                _ => None,
+            },
             _ => None,
         }
     }
@@ -53,7 +90,7 @@ pub struct LogRecord {
     /// Log severity level.
     pub level: Option<LogLevel>,
     /// Log source identifier (e.g. filename, syslog host).
-    pub source: String,
+    pub source: Arc<str>,
     /// Process ID.
     pub pid: Option<u32>,
     /// Thread ID.
@@ -66,10 +103,10 @@ pub struct LogRecord {
     pub message: String,
     /// Raw original log text (may be multi-line).
     pub raw: String,
-    /// Extensible key-value metadata.
-    pub metadata: HashMap<String, String>,
+    /// Extensible key-value metadata (None when no extra fields).
+    pub metadata: Option<HashMap<String, String>>,
     /// Which loader produced this record.
-    pub loader_id: String,
+    pub loader_id: Arc<str>,
 }
 
 #[cfg(test)]
