@@ -79,6 +79,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                             KeyCode::Char('+') | KeyCode::Char('=') => {
                                 app.open_field_filter(false);
                             }
+                            // Ctrl+c = copy raw
+                            KeyCode::Char('c') => {
+                                if let Some(text) = app.copy_raw() {
+                                    app::osc52_copy(&text);
+                                }
+                            }
+                            // Ctrl+Shift+C = copy format dialog
+                            KeyCode::Char('C') => {
+                                app.input_mode = InputMode::CopyFormat;
+                            }
                             _ => {}
                         }
                     } else {
@@ -301,6 +311,27 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     KeyCode::Char(' ') | KeyCode::Enter => {
                         let cur = app.column_config.cursor;
                         app.column_config.toggle(cur);
+                    }
+                    KeyCode::Esc => {
+                        app.input_mode = InputMode::Normal;
+                    }
+                    _ => {}
+                },
+                InputMode::CopyFormat => match key.code {
+                    KeyCode::Char('r') | KeyCode::Char('1') => {
+                        if let Some(text) = app.copy_as_format(app::CopyFormat::Raw) {
+                            app::osc52_copy(&text);
+                        }
+                    }
+                    KeyCode::Char('j') | KeyCode::Char('2') => {
+                        if let Some(text) = app.copy_as_format(app::CopyFormat::Json) {
+                            app::osc52_copy(&text);
+                        }
+                    }
+                    KeyCode::Char('y') | KeyCode::Char('3') => {
+                        if let Some(text) = app.copy_as_format(app::CopyFormat::Yaml) {
+                            app::osc52_copy(&text);
+                        }
                     }
                     KeyCode::Esc => {
                         app.input_mode = InputMode::Normal;
