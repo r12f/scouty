@@ -83,24 +83,39 @@ impl LogStoreView {
     /// Incrementally apply the filter to only new records appended since last apply.
     ///
     /// Only processes records at indices >= `last_applied_count`. For live log
-    /// streaming scenarios (tail -f, OTLP).
+    /// streaming scenarios (tail -f, OTLP). Stats are also updated incrementally.
     pub fn apply_incremental(&mut self, store: &LogStore) {
         let current_len = store.len();
         if current_len <= self.last_applied_count {
             return;
         }
 
-        // Filter only the new records (from last_applied_count onwards)
-        let new_indices = store
-            .iter()
-            .enumerate()
-            .skip(self.last_applied_count)
-            .filter(|(_, record)| self.filter_engine.matches(record))
-            .map(|(i, _)| i);
+        // Process only new records: update stats and filter incrementally
+        let new_records = store.iter().skip(self.last_applied_count);
+        let mut idx = self.last_applied_count;
+        for record in new_records {
+            // Update total level counts
+            *self
+                .stats
+                .level_counts_total
+                .entry(record.level)
+                .or_insert(0) += 1;
 
-        self.filtered_indices.extend(new_indices);
+            // Check filter and update filtered indices + filtered level counts
+            if self.filter_engine.matches(record) {
+                self.filtered_indices.push(idx);
+                *self
+                    .stats
+                    .level_counts_filtered
+                    .entry(record.level)
+                    .or_insert(0) += 1;
+            }
+            idx += 1;
+        }
+
         self.last_applied_count = current_len;
-        self.rebuild_stats(store);
+        self.stats.total_records = current_len;
+        self.stats.filtered_records = self.filtered_indices.len();
         self.status = ViewStatus::Ready;
     }
 
