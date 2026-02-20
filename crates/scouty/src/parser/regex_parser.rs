@@ -29,6 +29,14 @@ pub struct RegexParser {
     current_year: i32,
     /// Pre-computed list of extra named groups (not in KNOWN_FIELDS).
     extra_groups: Vec<String>,
+    /// Pre-computed group indices for fast access.
+    idx_timestamp: Option<usize>,
+    idx_level: Option<usize>,
+    idx_message: Option<usize>,
+    idx_pid: Option<usize>,
+    idx_tid: Option<usize>,
+    idx_component: Option<usize>,
+    idx_process: Option<usize>,
 }
 
 impl RegexParser {
@@ -56,8 +64,24 @@ impl RegexParser {
             .as_deref()
             .is_some_and(|fmt| fmt == "%b %e %H:%M:%S" || fmt == "%b %d %H:%M:%S");
 
+        // Pre-compute group indices for fast access
+        let find_idx = |name: &str| -> Option<usize> {
+            regex
+                .capture_names()
+                .enumerate()
+                .find(|(_, n)| *n == Some(name))
+                .map(|(i, _)| i)
+        };
+
         Ok(Self {
             name: name.into(),
+            idx_timestamp: find_idx("timestamp"),
+            idx_level: find_idx("level"),
+            idx_message: find_idx("message"),
+            idx_pid: find_idx("pid"),
+            idx_tid: find_idx("tid"),
+            idx_component: find_idx("component"),
+            idx_process: find_idx("process"),
             pattern: regex,
             timestamp_format,
             fast_syslog_ts,
@@ -102,30 +126,42 @@ impl RegexParser {
     ) -> Option<LogRecord> {
         let caps = self.pattern.captures(raw)?;
 
-        let timestamp = caps
-            .name("timestamp")
+        let timestamp = self
+            .idx_timestamp
+            .and_then(|i| caps.get(i))
             .and_then(|m| self.parse_timestamp(m.as_str()))
             .unwrap_or_else(Utc::now);
 
-        let level = caps
-            .name("level")
+        let level = self
+            .idx_level
+            .and_then(|i| caps.get(i))
             .and_then(|m| LogLevel::from_str_loose(m.as_str()));
 
-        let message = caps
-            .name("message")
+        let message = self
+            .idx_message
+            .and_then(|i| caps.get(i))
             .map(|m| m.as_str().to_string())
             .unwrap_or_default();
 
-        let pid = caps
-            .name("pid")
+        let pid = self
+            .idx_pid
+            .and_then(|i| caps.get(i))
             .and_then(|m| m.as_str().parse::<u32>().ok());
 
-        let tid = caps
-            .name("tid")
+        let tid = self
+            .idx_tid
+            .and_then(|i| caps.get(i))
             .and_then(|m| m.as_str().parse::<u32>().ok());
 
-        let component_name = caps.name("component").map(|m| m.as_str().to_string());
-        let process_name = caps.name("process").map(|m| m.as_str().to_string());
+        let component_name = self
+            .idx_component
+            .and_then(|i| caps.get(i))
+            .map(|m| m.as_str().to_string());
+
+        let process_name = self
+            .idx_process
+            .and_then(|i| caps.get(i))
+            .map(|m| m.as_str().to_string());
 
         let metadata = if self.extra_groups.is_empty() {
             None
@@ -169,30 +205,42 @@ impl RegexParser {
     ) -> Option<LogRecord> {
         let caps = self.pattern.captures(&raw)?;
 
-        let timestamp = caps
-            .name("timestamp")
+        let timestamp = self
+            .idx_timestamp
+            .and_then(|i| caps.get(i))
             .and_then(|m| self.parse_timestamp(m.as_str()))
             .unwrap_or_else(Utc::now);
 
-        let level = caps
-            .name("level")
+        let level = self
+            .idx_level
+            .and_then(|i| caps.get(i))
             .and_then(|m| LogLevel::from_str_loose(m.as_str()));
 
-        let message = caps
-            .name("message")
+        let message = self
+            .idx_message
+            .and_then(|i| caps.get(i))
             .map(|m| m.as_str().to_string())
             .unwrap_or_default();
 
-        let pid = caps
-            .name("pid")
+        let pid = self
+            .idx_pid
+            .and_then(|i| caps.get(i))
             .and_then(|m| m.as_str().parse::<u32>().ok());
 
-        let tid = caps
-            .name("tid")
+        let tid = self
+            .idx_tid
+            .and_then(|i| caps.get(i))
             .and_then(|m| m.as_str().parse::<u32>().ok());
 
-        let component_name = caps.name("component").map(|m| m.as_str().to_string());
-        let process_name = caps.name("process").map(|m| m.as_str().to_string());
+        let component_name = self
+            .idx_component
+            .and_then(|i| caps.get(i))
+            .map(|m| m.as_str().to_string());
+
+        let process_name = self
+            .idx_process
+            .and_then(|i| caps.get(i))
+            .map(|m| m.as_str().to_string());
 
         let metadata = if self.extra_groups.is_empty() {
             None
