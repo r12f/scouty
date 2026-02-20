@@ -69,11 +69,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                             KeyCode::Char(']') => {
                                 app.toggle_follow();
                             }
-                            KeyCode::Char('-') => {
-                                app.open_field_filter(true); // Ctrl+- = exclude
+                            // Ctrl+- = exclude field filter
+                            // Some terminals send Char('-'), others Char('\x1f') (ASCII 31)
+                            KeyCode::Char('-') | KeyCode::Char('\x1f') => {
+                                app.open_field_filter(true);
                             }
-                            KeyCode::Char('+') => {
-                                app.open_field_filter(false); // Ctrl++ = include
+                            // Ctrl++ = include field filter
+                            // '+' requires Shift on most keyboards, so also accept Ctrl+=
+                            KeyCode::Char('+') | KeyCode::Char('=') => {
+                                app.open_field_filter(false);
                             }
                             _ => {}
                         }
