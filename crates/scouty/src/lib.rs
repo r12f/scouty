@@ -6,6 +6,7 @@ pub mod record;
 pub mod session;
 pub mod store;
 pub mod traits;
+pub mod view;
 
 #[cfg(test)]
 #[path = "integration_tests.rs"]

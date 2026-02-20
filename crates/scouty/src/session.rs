@@ -5,6 +5,7 @@ use crate::parser::group::ParserGroup;
 use crate::record::LogRecord;
 use crate::store::LogStore;
 use crate::traits::{LogLoader, LogProcessor, Result};
+use crate::view::LogStoreView;
 use rayon::prelude::*;
 
 /// Represents a registered loader paired with its parser group.
@@ -19,7 +20,10 @@ pub struct LogSession {
     loader_slots: Vec<LoaderSlot>,
     store: LogStore,
     processors: Vec<Box<dyn LogProcessor>>,
-    filter_engine: FilterEngine,
+    /// Currently active view — serves TUI, always has valid results.
+    active_view: LogStoreView,
+    /// Pending view — created when filter changes, not yet applied.
+    pending_view: Option<LogStoreView>,
     /// Records that failed parsing by all parsers in their group.
     pub failing_parsing_logs: Vec<FailedLog>,
     /// Auto-incrementing record ID counter.
@@ -41,7 +45,8 @@ impl LogSession {
             loader_slots: Vec::new(),
             store: LogStore::new(),
             processors: Vec::new(),
-            filter_engine: FilterEngine::new(),
+            active_view: LogStoreView::new(FilterEngine::new()),
+            pending_view: None,
             failing_parsing_logs: Vec::new(),
             next_id: 0,
         }
@@ -60,14 +65,52 @@ impl LogSession {
         self.processors.push(processor);
     }
 
-    /// Access the filter engine for adding/removing filters.
+    /// Access the filter engine of the active view for adding/removing filters.
+    ///
+    /// Note: after modifying filters, call `apply_pending()` or use `update_filter()`
+    /// for the dual-buffer workflow.
     pub fn filter_engine_mut(&mut self) -> &mut FilterEngine {
-        &mut self.filter_engine
+        self.active_view.filter_engine_mut()
     }
 
     /// Access the store.
     pub fn store(&self) -> &LogStore {
         &self.store
+    }
+
+    /// Get the currently active view.
+    pub fn active_view(&self) -> &LogStoreView {
+        &self.active_view
+    }
+
+    /// Whether a pending view exists (filter update in progress).
+    pub fn has_pending_view(&self) -> bool {
+        self.pending_view.is_some()
+    }
+
+    /// Start a filter update using the dual-buffer mechanism.
+    ///
+    /// Creates a new pending view with the given filter engine.
+    /// If a pending view already exists, it is discarded and replaced.
+    pub fn update_filter(&mut self, filter_engine: FilterEngine) {
+        self.pending_view = Some(LogStoreView::new(filter_engine));
+    }
+
+    /// Apply the pending view's filter against the store, then replace active view.
+    ///
+    /// If no pending view exists, this is a no-op.
+    pub fn apply_pending(&mut self) {
+        if let Some(mut pending) = self.pending_view.take() {
+            pending.apply(&self.store);
+            self.active_view = pending;
+        }
+    }
+
+    /// Re-apply the active view's filter against the store.
+    ///
+    /// Use after modifying filters via `filter_engine_mut()`.
+    pub fn refresh_active_view(&mut self) {
+        self.active_view.apply(&self.store);
     }
 
     /// Execute the full pipeline: Load → Parse → Store → Process → Filter.
@@ -106,20 +149,17 @@ impl LogSession {
             }
         }
 
-        // 3. Filter → Filtered View
-        let filtered = self.filter_engine.apply_iter(self.store.iter());
-        Ok(filtered)
+        // 3. Apply active view filter
+        self.active_view.apply(&self.store);
+        Ok(self.active_view.indices().to_vec())
     }
 
-    /// Get the filtered view based on current filters (without re-running load/parse).
+    /// Get the filtered view based on current active view's cache.
     pub fn filtered_view(&self) -> Vec<usize> {
-        self.filter_engine.apply_iter(self.store.iter())
+        self.active_view.indices().to_vec()
     }
 
     /// Execute the pipeline with parallel loading and parsing across loader slots.
-    ///
-    /// Each loader slot is processed in its own rayon task. Results are merged
-    /// into the store after all slots complete.
     pub fn run_parallel(&mut self) -> Result<Vec<usize>> {
         // 1. Load + Parse in parallel
         let results: Vec<Result<(Vec<LogRecord>, Vec<FailedLog>)>> = self
@@ -134,7 +174,6 @@ impl LogSession {
                 let mut failures = Vec::new();
 
                 for (i, line) in lines.iter().enumerate() {
-                    // Use a placeholder ID; will be reassigned after merge
                     match slot.parser_group.parse(line, source, &info.id, i as u64) {
                         Some(record) => records.push(record),
                         None => failures.push(FailedLog {
@@ -168,9 +207,9 @@ impl LogSession {
             }
         }
 
-        // 4. Filter → Filtered View
-        let filtered = self.filter_engine.apply_iter(self.store.iter());
-        Ok(filtered)
+        // 4. Apply active view filter
+        self.active_view.apply(&self.store);
+        Ok(self.active_view.indices().to_vec())
     }
 }
 

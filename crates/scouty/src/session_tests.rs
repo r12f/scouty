@@ -230,4 +230,135 @@ mod tests {
         assert_eq!(seq.store().len(), par.store().len());
         assert_eq!(seq_filtered.len(), par_filtered.len());
     }
+
+    fn make_mock_loader(id: &str, lines: Vec<String>) -> MockLoader {
+        MockLoader {
+            info: LoaderInfo {
+                id: id.into(),
+                loader_type: LoaderType::TextFile,
+                multiline_enabled: false,
+                sample_lines: vec![],
+            },
+            lines,
+        }
+    }
+
+    /// Helper: AlwaysSucceed parser that puts raw as message
+    #[derive(Debug)]
+    struct AllParser;
+    impl LogParser for AllParser {
+        fn parse(&self, raw: &str, _source: &str, _loader_id: &str, id: u64) -> Option<LogRecord> {
+            Some(make_record(id, raw))
+        }
+        fn name(&self) -> &str {
+            "all"
+        }
+    }
+
+    #[test]
+    fn test_dual_view_active_not_affected_by_pending() {
+        use crate::filter::engine::{FilterAction, FilterEngine};
+
+        let mut session = LogSession::new();
+        let mut group = ParserGroup::new("test");
+        group.add_parser(Box::new(AllParser));
+
+        session.add_loader(
+            Box::new(make_mock_loader(
+                "l1",
+                vec!["msg1".into(), "msg2".into(), "msg3".into()],
+            )),
+            group,
+        );
+        session.run().unwrap();
+
+        // Active view has all 3 records
+        assert_eq!(session.active_view().len(), 3);
+
+        // Create pending view with a filter
+        let mut new_engine = FilterEngine::new();
+        new_engine
+            .add_expr_filter(FilterAction::Include, r#"message contains "msg1""#)
+            .unwrap();
+        session.update_filter(new_engine);
+
+        // Active view still has 3 records (not affected by pending)
+        assert_eq!(session.active_view().len(), 3);
+        assert!(session.has_pending_view());
+
+        // Apply pending → active now has 1 record
+        session.apply_pending();
+        assert_eq!(session.active_view().len(), 1);
+        assert!(!session.has_pending_view());
+    }
+
+    #[test]
+    fn test_dual_view_pending_replaced_on_new_filter() {
+        use crate::filter::engine::{FilterAction, FilterEngine};
+
+        let mut session = LogSession::new();
+        let mut group = ParserGroup::new("test");
+        group.add_parser(Box::new(AllParser));
+
+        session.add_loader(
+            Box::new(make_mock_loader("l1", vec!["msg1".into(), "msg2".into()])),
+            group,
+        );
+        session.run().unwrap();
+
+        // Create first pending
+        let mut engine1 = FilterEngine::new();
+        engine1
+            .add_expr_filter(FilterAction::Include, r#"message contains "msg1""#)
+            .unwrap();
+        session.update_filter(engine1);
+
+        // Create second pending — should discard first
+        let mut engine2 = FilterEngine::new();
+        engine2
+            .add_expr_filter(FilterAction::Include, r#"message contains "msg2""#)
+            .unwrap();
+        session.update_filter(engine2);
+
+        // Apply — should apply engine2 (msg2 only)
+        session.apply_pending();
+        assert_eq!(session.active_view().len(), 1);
+        let record = session
+            .active_view()
+            .get_record(0, session.store())
+            .unwrap();
+        assert_eq!(record.message, "msg2");
+    }
+
+    #[test]
+    fn test_refresh_active_view() {
+        use crate::filter::engine::FilterAction;
+
+        let mut session = LogSession::new();
+        let mut group = ParserGroup::new("test");
+        group.add_parser(Box::new(AllParser));
+
+        session.add_loader(
+            Box::new(make_mock_loader(
+                "l1",
+                vec!["msg1".into(), "msg2".into(), "msg3".into()],
+            )),
+            group,
+        );
+        session.run().unwrap();
+        assert_eq!(session.filtered_view().len(), 3);
+
+        // Modify active filter directly
+        session
+            .filter_engine_mut()
+            .add_expr_filter(FilterAction::Include, r#"message contains "msg1""#)
+            .unwrap();
+
+        // filtered_view() still returns cached (3 records)
+        assert_eq!(session.filtered_view().len(), 3);
+
+        // After refresh, it's updated
+        session.refresh_active_view();
+        assert_eq!(session.filtered_view().len(), 1);
+    }
 }
