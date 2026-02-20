@@ -24,6 +24,8 @@ jobs:
   bump-version:
     name: Bump Version
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     outputs:
       version: ${{ steps.bump.outputs.version }}
       tag: ${{ steps.bump.outputs.tag }}
