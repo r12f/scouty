@@ -116,11 +116,11 @@ fn render_log_table(frame: &mut Frame, app: &App, area: Rect) {
 
             let mut row = Row::new(cells).style(row_style);
             if is_selected && is_match {
-                row = row.style(row_style.bg(Color::Rgb(80, 80, 0)));
+                row = row.style(row_style.bg(Color::Rgb(120, 120, 0)));
             } else if is_selected {
                 row = row.style(row_style.bg(Color::Rgb(40, 40, 60)));
             } else if is_match {
-                row = row.style(row_style.bg(Color::Rgb(60, 60, 0)));
+                row = row.style(row_style.bg(Color::Rgb(80, 80, 0)));
             }
             row
         })
