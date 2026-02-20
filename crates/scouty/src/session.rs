@@ -117,8 +117,8 @@ impl LogSession {
     /// (receiver dropped, thread result discarded).
     pub fn update_filter_async(&mut self, filter_engine: FilterEngine) {
         self.pending_view = None; // discard sync pending
-                                  // Share store records with the background thread via Arc (no deep clone)
-        let records: Arc<Vec<LogRecord>> = Arc::new(self.store.iter().cloned().collect());
+                                  // Share store records with background thread via Arc (zero-copy, no deep clone)
+        let records: Arc<[Arc<LogRecord>]> = self.store.iter_arc().cloned().collect();
         let total_count = records.len();
 
         let (tx, rx) = mpsc::channel();
@@ -126,7 +126,7 @@ impl LogSession {
 
         std::thread::spawn(move || {
             let mut view = LogStoreView::new(filter_engine);
-            view.apply_from_records(records.iter(), total_count);
+            view.apply_from_records(records.iter().map(|r| r.as_ref()), total_count);
             // Send might fail if receiver was dropped (cancelled) — that's OK
             let _ = tx.send(view);
         });

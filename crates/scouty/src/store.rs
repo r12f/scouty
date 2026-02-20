@@ -10,6 +10,7 @@
 
 use crate::record::LogRecord;
 use chrono::{DateTime, Utc};
+use std::sync::Arc;
 
 /// Default segment capacity (number of records per segment).
 const DEFAULT_SEGMENT_CAPACITY: usize = 64 * 1024; // 64K
@@ -32,7 +33,7 @@ fn optimal_segment_capacity(total_records: usize) -> usize {
 /// A single segment of log records, sorted by timestamp.
 #[derive(Debug)]
 struct Segment {
-    records: Vec<LogRecord>,
+    records: Vec<Arc<LogRecord>>,
     frozen: bool,
 }
 
@@ -44,7 +45,7 @@ impl Segment {
         }
     }
 
-    fn from_sorted(records: Vec<LogRecord>) -> Self {
+    fn from_sorted(records: Vec<Arc<LogRecord>>) -> Self {
         Self {
             records,
             frozen: true,
@@ -68,7 +69,7 @@ impl Segment {
     }
 
     /// Insert a record maintaining sort order within this segment.
-    fn insert(&mut self, record: LogRecord) {
+    fn insert(&mut self, record: Arc<LogRecord>) {
         let pos = self
             .records
             .partition_point(|r| r.timestamp <= record.timestamp);
@@ -76,7 +77,7 @@ impl Segment {
     }
 
     /// Append a record at the end (fast path for monotonic timestamps).
-    fn push(&mut self, record: LogRecord) {
+    fn push(&mut self, record: Arc<LogRecord>) {
         self.records.push(record);
     }
 
@@ -88,7 +89,7 @@ impl Segment {
 /// Zero-copy iterator over a range of records spanning multiple segments.
 pub struct SegmentRangeIter<'a> {
     /// References to segment slices we need to iterate over.
-    slices: Vec<&'a [LogRecord]>,
+    slices: Vec<&'a [Arc<LogRecord>]>,
     /// Current slice index.
     slice_idx: usize,
     /// Current position within the current slice.
@@ -96,7 +97,7 @@ pub struct SegmentRangeIter<'a> {
 }
 
 impl<'a> SegmentRangeIter<'a> {
-    fn new(slices: Vec<&'a [LogRecord]>) -> Self {
+    fn new(slices: Vec<&'a [Arc<LogRecord>]>) -> Self {
         Self {
             slices,
             slice_idx: 0,
@@ -112,7 +113,7 @@ impl<'a> Iterator for SegmentRangeIter<'a> {
         while self.slice_idx < self.slices.len() {
             let slice = self.slices[self.slice_idx];
             if self.pos < slice.len() {
-                let item = &slice[self.pos];
+                let item = &*slice[self.pos];
                 self.pos += 1;
                 return Some(item);
             }
@@ -169,7 +170,7 @@ pub struct LogStore {
     /// Active segment receiving live inserts.
     active: Segment,
     /// Out-of-order buffer: records that arrived before the latest frozen timestamp.
-    ooo_buffer: Vec<LogRecord>,
+    ooo_buffer: Vec<Arc<LogRecord>>,
     /// Segment capacity threshold.
     segment_capacity: usize,
     /// Cached total record count (frozen + active, excluding OOO).
@@ -217,6 +218,7 @@ impl LogStore {
     /// Fast path: if timestamp >= last record's timestamp, append to active segment (O(1)).
     /// OOO path: record goes to OOO buffer if it belongs before frozen segments.
     pub fn insert(&mut self, record: LogRecord) {
+        let record = Arc::new(record);
         // Fast path: monotonic timestamp — append to active segment
         if self.active.records.is_empty()
             || record.timestamp >= self.active.records.last().unwrap().timestamp
@@ -264,6 +266,7 @@ impl LogStore {
         }
 
         batch.sort_by_key(|r| r.timestamp);
+        let batch: Vec<Arc<LogRecord>> = batch.into_iter().map(Arc::new).collect();
 
         if self.main_len == 0 && self.active.is_empty() {
             self.insert_batch_empty(batch);
@@ -275,7 +278,7 @@ impl LogStore {
     }
 
     /// Fast path for inserting into an empty store.
-    fn insert_batch_empty(&mut self, batch: Vec<LogRecord>) {
+    fn insert_batch_empty(&mut self, batch: Vec<Arc<LogRecord>>) {
         for chunk in batch.chunks(self.segment_capacity) {
             let seg = Segment::from_sorted(chunk.to_vec());
             self.frozen.push(seg);
@@ -291,7 +294,7 @@ impl LogStore {
     }
 
     /// Merge-based batch insert for non-empty stores.
-    fn insert_batch_merge(&mut self, batch: Vec<LogRecord>) {
+    fn insert_batch_merge(&mut self, batch: Vec<Arc<LogRecord>>) {
         let batch_min = batch.first().unwrap().timestamp;
         let batch_max = batch.last().unwrap().timestamp;
 
@@ -378,7 +381,7 @@ impl LogStore {
     }
 
     /// Merge two sorted Vec<LogRecord> into one sorted Vec.
-    fn merge_sorted(a: Vec<LogRecord>, b: Vec<LogRecord>) -> Vec<LogRecord> {
+    fn merge_sorted(a: Vec<Arc<LogRecord>>, b: Vec<Arc<LogRecord>>) -> Vec<Arc<LogRecord>> {
         if a.is_empty() {
             return b;
         }
@@ -414,7 +417,7 @@ impl LogStore {
     }
 
     /// Append sorted records as frozen segments (+ possibly active).
-    fn append_records_as_segments(&mut self, records: Vec<LogRecord>) {
+    fn append_records_as_segments(&mut self, records: Vec<Arc<LogRecord>>) {
         for chunk in records.chunks(self.segment_capacity) {
             self.frozen.push(Segment::from_sorted(chunk.to_vec()));
         }
@@ -437,21 +440,38 @@ impl LogStore {
             .iter()
             .flat_map(|s| s.records.iter())
             .chain(self.active.records.iter())
-            .cloned()
+            .map(|r| (**r).clone())
             .collect();
 
         if self.ooo_buffer.is_empty() {
             return main;
         }
 
-        let mut sorted_ooo = self.ooo_buffer.clone();
+        let mut sorted_ooo: Vec<LogRecord> =
+            self.ooo_buffer.iter().map(|r| (**r).clone()).collect();
         sorted_ooo.sort_by_key(|r| r.timestamp);
-        Self::merge_sorted(main, sorted_ooo)
+        Self::merge_sorted(
+            main.into_iter().map(Arc::new).collect(),
+            sorted_ooo.into_iter().map(Arc::new).collect(),
+        )
+        .into_iter()
+        .map(|r| Arc::try_unwrap(r).unwrap_or_else(|a| (*a).clone()))
+        .collect()
     }
 
     /// Iterate over all main records in timestamp order without allocation.
     /// Does NOT include OOO buffer records. Call `compact_ooo()` first if needed.
     pub fn iter(&self) -> impl Iterator<Item = &LogRecord> {
+        self.frozen
+            .iter()
+            .flat_map(|s| s.records.iter())
+            .chain(self.active.records.iter())
+            .map(|r| r.as_ref())
+    }
+
+    /// Iterate over all main records as Arc references (zero-copy sharing).
+    /// Use this for async operations to avoid cloning.
+    pub fn iter_arc(&self) -> impl Iterator<Item = &Arc<LogRecord>> {
         self.frozen
             .iter()
             .flat_map(|s| s.records.iter())
@@ -476,7 +496,9 @@ impl LogStore {
             return self.get_main(index);
         }
         // Index into OOO buffer (unsorted, but accessible)
-        self.ooo_buffer.get(index - self.main_len)
+        self.ooo_buffer
+            .get(index - self.main_len)
+            .map(|r| r.as_ref())
     }
 
     /// Get a record from main segments (frozen + active) by global index.
@@ -492,7 +514,7 @@ impl LogStore {
             offset += seg.len();
         }
         let local_idx = index - offset;
-        self.active.records.get(local_idx)
+        self.active.records.get(local_idx).map(|r| r.as_ref())
     }
 
     /// Number of stored records (main + OOO buffer).
@@ -579,7 +601,7 @@ impl LogStore {
         ooo.sort_by_key(|r| r.timestamp);
 
         // Group OOO records by which frozen segment they belong to
-        let mut seg_groups: Vec<(usize, Vec<LogRecord>)> = Vec::new();
+        let mut seg_groups: Vec<(usize, Vec<Arc<LogRecord>>)> = Vec::new();
 
         for record in ooo {
             let seg_idx = self.find_segment_for_timestamp(&record.timestamp);
