@@ -197,6 +197,7 @@ random garbage
             .filter_engine_mut()
             .add_expr_filter(FilterAction::Include, "level = ERROR")
             .unwrap();
+        session.refresh_active_view();
         let view = session.filtered_view();
         assert_eq!(view.len(), 1);
     }
@@ -357,6 +358,7 @@ random garbage
             .add_expr_filter(FilterAction::Include, "level = ERROR")
             .unwrap();
 
+        session.refresh_active_view();
         let start = std::time::Instant::now();
         let view = session.filtered_view();
         let elapsed = start.elapsed();
