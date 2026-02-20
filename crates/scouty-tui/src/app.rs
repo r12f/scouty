@@ -1208,7 +1208,12 @@ mod field_filter_v2_tests {
 
     #[test]
     fn test_help_mode_toggle() {
-        let mut app = make_app(3);
+        let records = vec![
+            make_record_full(0, "a", LogLevel::Info),
+            make_record_full(1, "b", LogLevel::Info),
+            make_record_full(2, "c", LogLevel::Info),
+        ];
+        let mut app = make_app_full(records);
         assert_eq!(app.input_mode, InputMode::Normal);
         app.input_mode = InputMode::Help;
         assert_eq!(app.input_mode, InputMode::Help);
