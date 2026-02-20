@@ -719,6 +719,7 @@ impl App {
             self.status_message = Some("Copied raw log to clipboard".to_string());
             Some(text)
         } else {
+            self.status_message = Some("No record selected".to_string());
             None
         }
     }
@@ -726,24 +727,31 @@ impl App {
     /// Copy the selected record in the given format to clipboard via OSC 52.
     pub fn copy_as_format(&mut self, format: CopyFormat) -> Option<String> {
         if let Some(record) = self.selected_record() {
-            let text = match format {
-                CopyFormat::Raw => record.raw.clone(),
-                CopyFormat::Json => {
-                    serde_json::to_string_pretty(record).unwrap_or_else(|_| record.raw.clone())
-                }
-                CopyFormat::Yaml => {
-                    serde_yaml::to_string(record).unwrap_or_else(|_| record.raw.clone())
-                }
-            };
             let label = match format {
                 CopyFormat::Raw => "raw",
                 CopyFormat::Json => "JSON",
                 CopyFormat::Yaml => "YAML",
             };
-            self.status_message = Some(format!("Copied as {} to clipboard", label));
+            let (text, ok) = match format {
+                CopyFormat::Raw => (record.raw.clone(), true),
+                CopyFormat::Json => match serde_json::to_string_pretty(record) {
+                    Ok(json) => (json, true),
+                    Err(_) => (record.raw.clone(), false),
+                },
+                CopyFormat::Yaml => match serde_yaml::to_string(record) {
+                    Ok(yaml) => (yaml, true),
+                    Err(_) => (record.raw.clone(), false),
+                },
+            };
+            self.status_message = Some(if ok {
+                format!("Copied as {} to clipboard", label)
+            } else {
+                format!("{} serialization failed; copied raw log instead", label)
+            });
             self.input_mode = InputMode::Normal;
             Some(text)
         } else {
+            self.status_message = Some("No record selected".to_string());
             None
         }
     }
@@ -761,9 +769,11 @@ pub enum CopyFormat {
 /// Works in most modern terminals including over SSH.
 pub fn osc52_copy(text: &str) {
     use base64::Engine;
+    use std::io::Write;
     let encoded = base64::engine::general_purpose::STANDARD.encode(text);
     // OSC 52 ; c ; <base64> ST
     print!("\x1b]52;c;{}\x07", encoded);
+    let _ = std::io::stdout().flush();
 }
 
 #[cfg(test)]
