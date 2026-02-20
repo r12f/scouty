@@ -8,8 +8,9 @@
 mod view_tests;
 
 use crate::filter::engine::FilterEngine;
-use crate::record::LogRecord;
+use crate::record::{LogLevel, LogRecord};
 use crate::store::LogStore;
+use std::collections::HashMap;
 
 /// Status of a LogStoreView's filter results.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -20,6 +21,29 @@ pub enum ViewStatus {
     Filtering,
 }
 
+/// Statistics about the view's filtered results.
+#[derive(Debug, Clone, Default)]
+pub struct ViewStats {
+    /// Total records in the store at last apply.
+    pub total_records: usize,
+    /// Records passing the filter.
+    pub filtered_records: usize,
+    /// Per-level counts in the store (pre-filter).
+    pub level_counts_total: HashMap<Option<LogLevel>, usize>,
+    /// Per-level counts in the filtered view (post-filter).
+    pub level_counts_filtered: HashMap<Option<LogLevel>, usize>,
+}
+
+impl ViewStats {
+    /// Filter rate: fraction of records excluded (0.0 = no filtering, 1.0 = all filtered out).
+    pub fn filter_rate(&self) -> f64 {
+        if self.total_records == 0 {
+            return 0.0;
+        }
+        1.0 - (self.filtered_records as f64 / self.total_records as f64)
+    }
+}
+
 /// Encapsulates a FilterEngine and its cached filter results (indices into LogStore).
 ///
 /// Does not own the LogStore — borrows it during `apply()`.
@@ -28,6 +52,10 @@ pub struct LogStoreView {
     filter_engine: FilterEngine,
     filtered_indices: Vec<usize>,
     status: ViewStatus,
+    /// Number of store records processed so far (for incremental apply).
+    last_applied_count: usize,
+    /// Cached statistics.
+    stats: ViewStats,
 }
 
 impl LogStoreView {
@@ -38,13 +66,41 @@ impl LogStoreView {
             filter_engine,
             filtered_indices: Vec::new(),
             status: ViewStatus::Filtering,
+            last_applied_count: 0,
+            stats: ViewStats::default(),
         }
     }
 
-    /// Apply the filter engine against the store, updating cached indices.
+    /// Apply the filter engine against the full store, updating cached indices and stats.
     pub fn apply(&mut self, store: &LogStore) {
         self.status = ViewStatus::Filtering;
         self.filtered_indices = self.filter_engine.apply_iter(store.iter());
+        self.last_applied_count = store.len();
+        self.rebuild_stats(store);
+        self.status = ViewStatus::Ready;
+    }
+
+    /// Incrementally apply the filter to only new records appended since last apply.
+    ///
+    /// Only processes records at indices >= `last_applied_count`. For live log
+    /// streaming scenarios (tail -f, OTLP).
+    pub fn apply_incremental(&mut self, store: &LogStore) {
+        let current_len = store.len();
+        if current_len <= self.last_applied_count {
+            return;
+        }
+
+        // Filter only the new records (from last_applied_count onwards)
+        let new_indices = store
+            .iter()
+            .enumerate()
+            .skip(self.last_applied_count)
+            .filter(|(_, record)| self.filter_engine.matches(record))
+            .map(|(i, _)| i);
+
+        self.filtered_indices.extend(new_indices);
+        self.last_applied_count = current_len;
+        self.rebuild_stats(store);
         self.status = ViewStatus::Ready;
     }
 
@@ -82,5 +138,38 @@ impl LogStoreView {
     /// Current status of the view.
     pub fn status(&self) -> ViewStatus {
         self.status
+    }
+
+    /// Get the current view statistics.
+    pub fn stats(&self) -> &ViewStats {
+        &self.stats
+    }
+
+    /// Number of store records already processed by this view.
+    pub fn last_applied_count(&self) -> usize {
+        self.last_applied_count
+    }
+
+    /// Rebuild statistics from current state.
+    fn rebuild_stats(&mut self, store: &LogStore) {
+        let mut level_counts_total: HashMap<Option<LogLevel>, usize> = HashMap::new();
+        let mut level_counts_filtered: HashMap<Option<LogLevel>, usize> = HashMap::new();
+
+        for record in store.iter() {
+            *level_counts_total.entry(record.level).or_insert(0) += 1;
+        }
+
+        for &idx in &self.filtered_indices {
+            if let Some(record) = store.get(idx) {
+                *level_counts_filtered.entry(record.level).or_insert(0) += 1;
+            }
+        }
+
+        self.stats = ViewStats {
+            total_records: store.len(),
+            filtered_records: self.filtered_indices.len(),
+            level_counts_total,
+            level_counts_filtered,
+        };
     }
 }

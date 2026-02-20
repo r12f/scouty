@@ -58,6 +58,30 @@ impl FilterEngine {
         self.filters.clear();
     }
 
+    /// Check if a single record passes all filters.
+    ///
+    /// Same logic as `apply_iter` but for one record.
+    pub fn matches(&self, record: &LogRecord) -> bool {
+        // Step 1: check excludes
+        for entry in &self.filters {
+            if entry.action == FilterAction::Exclude && entry.filter.matches(record) {
+                return false;
+            }
+        }
+        // Step 2: check includes
+        let has_includes = self
+            .filters
+            .iter()
+            .any(|e| e.action == FilterAction::Include);
+        if has_includes {
+            self.filters
+                .iter()
+                .any(|e| e.action == FilterAction::Include && e.filter.matches(record))
+        } else {
+            true
+        }
+    }
+
     /// Apply all filters to the records.
     /// Returns indices of records that pass the filter pipeline.
     ///
