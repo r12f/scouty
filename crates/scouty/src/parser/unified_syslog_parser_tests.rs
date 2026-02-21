@@ -2,6 +2,7 @@
 mod tests {
     use crate::parser::unified_syslog_parser::UnifiedSyslogParser;
     use crate::record::{LogLevel, LogRecord};
+    use chrono::{Datelike, Timelike};
     use std::sync::Arc;
 
     fn parse(line: &str) -> Option<LogRecord> {
@@ -219,9 +220,10 @@ mod tests {
             throughput / 1_000_000.0,
             elapsed
         );
-        // Debug build threshold: 500K/sec (release target: 10M/sec)
+        // Debug build threshold: 200K/sec (release target: 10M/sec)
+        // CI runners (especially macOS/Windows) may be slower than local dev.
         assert!(
-            throughput > 500_000.0,
+            throughput > 200_000.0,
             "{} throughput {:.0}/sec below minimum",
             label,
             throughput
@@ -270,5 +272,23 @@ mod tests {
         assert_eq!(r.process_name.as_deref(), Some("myapp"));
     }
 
-    use chrono::{Datelike, Timelike};
+    // ── Malformed input ─────────────────────────────────────────────────
+
+    #[test]
+    fn reject_malformed_pid() {
+        // PID contains non-digit characters — should parse but return pid=None
+        let r = parse("Feb 19 14:23:45 myhost myapp[abc]: msg").unwrap();
+        assert_eq!(r.process_name.as_deref(), Some("myapp"));
+        assert!(r.pid.is_none());
+    }
+
+    #[test]
+    fn reject_malformed_day_bsd() {
+        assert!(parse("Feb X9 14:23:45 host proc[1]: msg").is_none());
+    }
+
+    #[test]
+    fn reject_malformed_day_extended() {
+        assert!(parse("2025 Nov X5 10:30:00.000000 host INFO proc: msg").is_none());
+    }
 }

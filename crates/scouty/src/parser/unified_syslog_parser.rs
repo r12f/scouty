@@ -95,9 +95,13 @@ impl UnifiedSyslogParser {
 
         // Day: bytes[4..6], " D" or "DD"
         let day: u32 = if b[4] == b' ' {
-            (b[5] - b'0') as u32
+            let d = b[5].wrapping_sub(b'0');
+            if d > 9 {
+                return None;
+            }
+            d as u32
         } else {
-            ((b[4] - b'0') * 10 + (b[5] - b'0')) as u32
+            dig2(b, 4)?
         };
 
         // Time: HH:MM:SS at bytes[7..15]
@@ -174,7 +178,11 @@ impl UnifiedSyslogParser {
 
         // Day at [9..11]: " D" or "DD"
         let day: u32 = if b[9] == b' ' {
-            (b[10] - b'0') as u32
+            let d = b[10].wrapping_sub(b'0');
+            if d > 9 {
+                return None;
+            }
+            d as u32
         } else {
             dig2(b, 9)?
         };
@@ -541,7 +549,11 @@ fn parse_process_part(section: &[u8]) -> (Option<String>, String, Option<u32>) {
             let pid_end = memchr_byte(proc_bytes, b']').unwrap_or(proc_bytes.len());
             let mut pid: u32 = 0;
             for &byte in &proc_bytes[pos + 1..pid_end] {
-                pid = pid * 10 + (byte - b'0') as u32;
+                let d = byte.wrapping_sub(b'0');
+                if d > 9 {
+                    return (container, name, None);
+                }
+                pid = pid * 10 + d as u32;
             }
             (name, Some(pid))
         }
