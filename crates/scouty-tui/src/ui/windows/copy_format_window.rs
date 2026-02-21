@@ -26,7 +26,7 @@ impl CopyFormatWindow {
 }
 
 impl UiComponent for CopyFormatWindow {
-    fn uses_jk_navigation(&self) -> bool {
+    fn enable_jk_navigation(&self) -> bool {
         false
     }
 

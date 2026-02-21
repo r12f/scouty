@@ -34,7 +34,7 @@ pub trait UiComponent {
 
     /// Whether this component uses j/k as navigation (default: true).
     /// Components that use j/k as shortcut keys should return false.
-    fn uses_jk_navigation(&self) -> bool {
+    fn enable_jk_navigation(&self) -> bool {
         true
     }
 
@@ -85,7 +85,7 @@ pub trait UiComponent {
 ///
 /// Call this instead of matching keys inside each component.
 pub fn dispatch_key(component: &mut dyn UiComponent, key: KeyEvent) -> ComponentResult {
-    let jk_nav = component.uses_jk_navigation();
+    let jk_nav = component.enable_jk_navigation();
     match key.code {
         // Navigation — arrow keys always, j/k only if component opts in
         KeyCode::Up => component.on_up(),
