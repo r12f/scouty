@@ -36,6 +36,8 @@ impl ParserFactory {
                 // Try to auto-detect from sample lines
                 if Self::looks_like_swss(&info.sample_lines) {
                     Self::add_swss_parsers(&mut group);
+                } else if Self::looks_like_iso_syslog(&info.sample_lines) {
+                    Self::add_iso_syslog_parsers(&mut group);
                 } else if Self::looks_like_extended_syslog(&info.sample_lines) {
                     Self::add_extended_syslog_parsers(&mut group);
                     Self::add_syslog_parsers(&mut group);
@@ -81,6 +83,17 @@ impl ParserFactory {
         Self::majority_match(sample_lines, |l| re.is_match(l))
     }
 
+    fn looks_like_iso_syslog(sample_lines: &[String]) -> bool {
+        static RE: OnceLock<regex::Regex> = OnceLock::new();
+        let re = RE.get_or_init(|| {
+            regex::Regex::new(
+                r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})\s+\S+\s+\S+",
+            )
+            .unwrap()
+        });
+        Self::majority_match(sample_lines, |l| re.is_match(l))
+    }
+
     /// Returns true if the majority of non-empty sample lines (up to 5) match the predicate.
     fn majority_match(sample_lines: &[String], pred: impl Fn(&str) -> bool) -> bool {
         let lines: Vec<&str> = sample_lines
@@ -113,6 +126,17 @@ impl ParserFactory {
             "syslog-bsd",
             r"^(?P<timestamp>\w{3}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2})\s+(?P<hostname>\S+)\s+(?P<process>\S+?)(?:\[(?P<pid>\d+)\])?:\s+(?P<message>.*)",
             Some("%b %d %H:%M:%S".to_string()),
+        ) {
+            group.add_parser(Box::new(p));
+        }
+    }
+
+    fn add_iso_syslog_parsers(group: &mut ParserGroup) {
+        // ISO 8601 / RFC 3339 syslog: "2026-02-15T00:00:08.954827-08:00 hostname process[pid]: message"
+        if let Ok(p) = RegexParser::new(
+            "syslog-iso",
+            r"^(?P<timestamp>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2}))\s+(?P<hostname>\S+)\s+(?P<process>\S+?)(?:\[(?P<pid>\d+)\])?:\s+(?P<message>.*)",
+            None,
         ) {
             group.add_parser(Box::new(p));
         }

@@ -213,4 +213,43 @@ mod tests {
         assert_eq!(record.hostname.as_deref(), Some("BSL-0101"));
         assert!(record.context.is_none());
     }
+
+    #[test]
+    fn test_iso_syslog_auto_detection() {
+        let info = text_loader_info(vec![
+            "2026-02-15T00:00:08.954827-08:00 r12f-ms01 systemd[1]: rsyslog.service: Sent signal SIGHUP".to_string(),
+            "2026-02-15T00:00:08.955061-08:00 r12f-ms01 rsyslogd: rsyslogd was HUPed".to_string(),
+        ]);
+        let group = ParserFactory::create_parser_group(&info);
+        let record = group
+            .parse(
+                "2026-02-15T00:00:08.954827-08:00 r12f-ms01 systemd[1]: test message",
+                "test",
+                "loader",
+                1,
+            )
+            .unwrap();
+        assert_eq!(record.hostname.as_deref(), Some("r12f-ms01"));
+        assert_eq!(record.process_name.as_deref(), Some("systemd"));
+        assert_eq!(record.pid, Some(1));
+        assert_eq!(record.message, "test message");
+    }
+
+    #[test]
+    fn test_iso_syslog_does_not_match_swss() {
+        let info = text_loader_info(vec![
+            "2025-11-13.22:19:03.248563|recording started".to_string(),
+            "2025-11-13.22:19:35.512358|SWITCH_TABLE:switch|SET|k:v".to_string(),
+        ]);
+        let group = ParserFactory::create_parser_group(&info);
+        let record = group
+            .parse(
+                "2025-11-13.22:19:35.512358|SWITCH_TABLE:switch|SET|k:v",
+                "test",
+                "loader",
+                1,
+            )
+            .unwrap();
+        assert_eq!(record.component_name.as_deref(), Some("SWITCH_TABLE"));
+    }
 }
