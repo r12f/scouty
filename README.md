@@ -8,13 +8,6 @@ Scouty helps developers and SREs browse, parse, filter, and analyze logs from mu
 
 ## ✨ Features
 
-### 🚀 High Performance
-- **10M+ records/sec** parsing with hand-written zero-regex syslog parser
-- **Segmented sorted array** log store with O(N) merge-sort insertion
-- **Zero-copy filtering** via `Arc<LogRecord>` shared between store and background filter threads
-- **Async background filtering** with dual-buffer swap for non-blocking UI
-- **Memory-mapped I/O** for fast file loading
-
 ### 📂 Multi-Source Log Loading
 - **Local files** — Plain text log files
 - **Archives** — gz, zip, 7z compressed logs
@@ -24,14 +17,16 @@ Scouty helps developers and SREs browse, parse, filter, and analyze logs from mu
 Each source gets its own loader, and a single session can combine multiple loaders for unified viewing.
 
 ### 🔤 Smart Parsing with Auto-Detection
-- **Unified Syslog Parser** — Hand-written zero-regex parser supporting 3 syslog formats with automatic detection:
+- **Regex-based parsers** — Fully customizable via YAML configuration
+- **Parser groups** — Multiple parsers per source with automatic fallback
+- **Auto-detection** — Parser factory selects the right parser based on log content
+- **Unified Syslog Parser** — Hand-written zero-regex parser supporting 3 syslog formats:
   - **BSD syslog** — `Nov 24 17:56:03 hostname process[pid]: message`
   - **Extended syslog** — `2025 Nov 24 17:56:03.073872 hostname LEVEL container#process[pid]: message`
   - **ISO 8601 syslog** — `2025-11-24T17:56:03.073872-08:00 hostname process[pid]: message`
 - **SONiC SWSS Parser** — `2025-11-13.22:19:35.512358|TABLE:Key|SET|key:value|...`
-- **Regex-based parsers** — Fully customizable via YAML configuration
-- **Parser groups** — Multiple parsers per source with automatic fallback
 - **Multi-line merging** — Handles stack traces and multi-line logs (configurable per loader)
+- **Parallel parsing** — Rayon-based thread pool for maximum throughput
 
 ### 🔎 Powerful Filtering
 - **Expression-based** — `level = "Error" AND component contains "auth"`
@@ -49,6 +44,13 @@ Each source gets its own loader, and a single session can combine multiple loade
 - **Filter dialogs** — Quick exclude/include, field-based multi-select, filter manager
 - **Copy to clipboard** — Raw, JSON, or YAML format via OSC 52
 - **Component architecture** — Unified `UiComponent` trait with standardized keyboard dispatch
+
+### 🚀 High Performance
+- **10M+ records/sec** parsing with hand-written zero-regex syslog parser
+- **Segmented sorted array** log store with O(N) merge-sort insertion
+- **Zero-copy filtering** via `Arc<LogRecord>` shared between store and background filter threads
+- **Async background filtering** with dual-buffer swap for non-blocking UI
+- **Memory-mapped I/O** for fast file loading
 
 ## 📦 Crates
 
