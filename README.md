@@ -4,9 +4,11 @@
 
 Scouty helps developers and SREs browse, parse, filter, and analyze logs from multiple sources — all within the terminal.
 
+![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)
+
 ## ✨ Features
 
-### Multi-Source Log Loading
+### 📂 Multi-Source Log Loading
 - **Local files** — Plain text log files
 - **Archives** — gz, zip, 7z compressed logs
 - **Live syslog** — Real-time syslog stream
@@ -14,38 +16,47 @@ Scouty helps developers and SREs browse, parse, filter, and analyze logs from mu
 
 Each source gets its own loader, and a single session can combine multiple loaders for unified viewing.
 
-### Flexible Parsing
+### 🔤 Smart Parsing with Auto-Detection
 - **Regex-based parsers** — Fully customizable via YAML configuration
 - **Parser groups** — Multiple parsers per source with automatic fallback
-- **Auto-detection** — Parser factory selects the right parser group based on source type and log content
+- **Auto-detection** — Parser factory selects the right parser based on log content
+- **Unified Syslog Parser** — Hand-written zero-regex parser supporting 3 syslog formats:
+  - **BSD syslog** — `Nov 24 17:56:03 hostname process[pid]: message`
+  - **Extended syslog** — `2025 Nov 24 17:56:03.073872 hostname LEVEL container#process[pid]: message`
+  - **ISO 8601 syslog** — `2025-11-24T17:56:03.073872-08:00 hostname process[pid]: message`
+- **SONiC SWSS Parser** — `2025-11-13.22:19:35.512358|TABLE:Key|SET|key:value|...`
 - **Multi-line merging** — Handles stack traces and multi-line logs (configurable per loader)
-- **Thread-pooled** — Parsing runs in parallel for maximum throughput
+- **Parallel parsing** — Rayon-based thread pool for maximum throughput
 
-### Powerful Filtering
+### 🔎 Powerful Filtering
 - **Expression-based** — `level = "Error" AND component contains "auth"`
 - **Operators** — `=`, `!=`, `>`, `>=`, `<`, `<=`, `contains`, `starts_with`, `ends_with`, `regex`
 - **Logic** — `AND`, `OR`, `NOT` with parentheses for grouping
 - **Include/Exclude** — Exclude-first, then include. No include filters = include all
-- **Any field** — Filter on timestamp, level, pid, component, message, or custom metadata
+- **Any field** — Filter on timestamp, level, pid, tid, component, hostname, container, context, function, message, or custom metadata
 
-### Log Processing Pipeline
+### 🖥️ Interactive TUI
+- **Table view** with configurable columns and auto-width
+- **Level colors** — FATAL red bold / ERROR red / WARN yellow / INFO green / DEBUG gray / TRACE dark gray / NOTICE cyan
+- **Detail panel** — Persistent bottom panel showing all structured fields
+- **Regex search** with match highlighting and navigation
+- **Density graph** — Braille-character time distribution in status bar
+- **Filter dialogs** — Quick exclude/include, field-based multi-select, filter manager
+- **Copy to clipboard** — Raw, JSON, or YAML format via OSC 52
+- **Component architecture** — Unified `UiComponent` trait with standardized keyboard dispatch
 
-```
-Load → Parse → Store → Process → Filter → View
-```
-
-1. **Load** — Multiple loaders read from different sources in parallel
-2. **Parse** — Thread pool parses raw text into structured `LogRecord`s (immutable after parse)
-3. **Store** — Records stored in timestamp-sorted order, supporting live inserts
-4. **Process** — Extensible post-processing stage (plugin-ready)
-5. **Filter** — Filter engine applies exclude/include rules
-6. **View** — Filtered results available for TUI display or programmatic access
+### 🚀 High Performance
+- **10M+ records/sec** parsing with hand-written zero-regex syslog parser
+- **Segmented sorted array** log store with O(N) merge-sort insertion
+- **Zero-copy filtering** via `Arc<LogRecord>` shared between store and background filter threads
+- **Async background filtering** with dual-buffer swap for non-blocking UI
+- **Parallel parsing** — Rayon-based thread pool for maximum throughput
 
 ## 📦 Crates
 
 | Crate | Description |
 |-------|-------------|
-| `scouty` | Core library — log records, loaders, parsers, store, filters, session management |
+| `scouty` | Core library — log records, loaders, parsers, store, filters, views, session management |
 | `scouty-tui` | Terminal UI — interactive log browsing powered by `scouty` |
 
 ## 🚀 Quick Start
@@ -70,6 +81,100 @@ cargo build --release
 ./target/release/scouty-tui /path/to/logs.gz
 ```
 
+### View multiple files
+
+```bash
+./target/release/scouty-tui /var/log/syslog /var/log/auth.log
+```
+
+### Install globally (optional)
+
+```bash
+cargo install --path crates/scouty-tui
+# Then use directly:
+scouty-tui /path/to/your.log
+```
+
+## ⌨️ Keyboard Shortcuts
+
+### Navigation
+
+| Key | Action |
+|-----|--------|
+| `j` / `↓` | Move down one line |
+| `k` / `↑` | Move up one line |
+| `Ctrl+j` / `Ctrl+↓` | Page down |
+| `Ctrl+k` / `Ctrl+↑` | Page up |
+| `g` | Jump to first line |
+| `G` | Jump to last line |
+| `Ctrl+G` | Go to line number |
+| `Enter` | Toggle detail panel |
+| `Ctrl+]` | Toggle follow mode |
+
+### Search & Filter
+
+| Key | Action |
+|-----|--------|
+| `/` | Search (regex supported) |
+| `n` | Next search match |
+| `N` | Previous search match |
+| `f` | Filter expression input |
+| `-` | Quick exclude (text input) |
+| `=` | Quick include (text input) |
+| `Ctrl+-` | Exclude field dialog (multi-select from current row) |
+| `Ctrl+=` | Include field dialog (multi-select from current row) |
+| `F` | Filter manager (view/add/delete filters) |
+
+### Display & Copy
+
+| Key | Action |
+|-----|--------|
+| `c` | Column selector (toggle columns) |
+| `y` | Copy selected row (raw text) |
+| `Y` | Copy with format dialog (Raw/JSON/YAML) |
+
+### General
+
+| Key | Action |
+|-----|--------|
+| `Esc` | Close current dialog/panel |
+| `q` | Quit |
+| `?` | Help |
+
+### Dialog Navigation (universal)
+
+All dialogs and windows share these standard controls:
+
+| Key | Action |
+|-----|--------|
+| `j` / `k` / `↑` / `↓` | Move selection |
+| `PageUp` / `PageDown` | Page through options |
+| `Space` | Toggle selection |
+| `Enter` | Confirm |
+| `Esc` | Cancel |
+
+## 📊 Log Record Fields
+
+Scouty parses logs into structured records with these first-class fields:
+
+| Field | Struct Name | Filter Alias | Description | Example |
+|-------|-------------|--------------|-------------|---------|
+| Timestamp | `timestamp` | `timestamp` | Log timestamp | `2025-11-24T17:56:03.073872` |
+| Level | `level` | `level` | Severity level | `INFO`, `ERROR`, `NOTICE` |
+| Hostname | `hostname` | `hostname` | Source host | `BSL-0101-0101-01LT0` |
+| Process | `process_name` | `process` | Process name | `dockerd`, `root` |
+| PID | `pid` | `pid` | Process ID | `871` |
+| TID | `tid` | `tid` | Thread ID | `12345` |
+| Component | `component_name` | `component` | Component/module | `SWITCH_TABLE`, `squid` |
+| Container | `container` | `container` | Container name | `restapi`, `pmon` |
+| Context | `context` | `context` | Contextual key | `Ethernet248`, `fd00::/80` |
+| Function | `function` | `function` | Operation/function | `SET`, `DEL` |
+| Message | `message` | `message` | Log message body | *(the log text)* |
+| Source | `source` | `source` | Source identifier (file path, syslog source, etc.) | `/var/log/syslog` |
+| Raw | `raw` | `raw` | Original raw log line | *(full unparsed line)* |
+| Loader ID | `loader_id` | — | Identifier of the loader that produced this record | `file:///var/log/syslog` |
+| Metadata | `metadata` | *(by key name)* | Additional key-value pairs | `hostname=myhost` |
+
 ## ⚙️ Parser Configuration
 
 Parsers are configured via YAML files. A single file can define multiple parser groups:
@@ -81,8 +186,6 @@ parser_groups:
     patterns:
       - name: rfc3164
         regex: '^(?P<timestamp>\w{3}\s+\d+\s+\d+:\d+:\d+)\s+(?P<source>\S+)\s+(?P<process_name>\S+?)(\[(?P<pid>\d+)\])?\s*:\s*(?P<message>.*)'
-      - name: rfc5424
-        regex: '^<\d+>\d+\s+(?P<timestamp>\S+)\s+(?P<source>\S+)\s+(?P<process_name>\S+)\s+(?P<pid>\S+)\s+\S+\s+(?P<message>.*)'
 
   - name: generic
     multiline: false
@@ -95,7 +198,7 @@ Each parser group tries its patterns in order — if the first fails, it falls b
 
 ## 🔎 Filter Expressions
 
-```
+```bash
 # Simple field comparison
 level = "Error"
 
@@ -107,6 +210,9 @@ timestamp >= "2024-01-01T00:00:00Z" AND timestamp < "2024-01-02T00:00:00Z"
 
 # String matching
 message regex "timeout.*retry"
+
+# Filter by hostname or container
+hostname = "BSL-0101-0101-01LT0" AND container = "restapi"
 ```
 
 ## 🏗️ Architecture
@@ -129,21 +235,37 @@ message regex "timeout.*retry"
 │                       ▼                              │
 │              ┌────────────────┐                      │
 │              │   Log Store    │ (timestamp-sorted)    │
+│              │  Segmented     │ (~64K-128K/segment)   │
 │              └───────┬────────┘                      │
 │                      ▼                               │
 │              ┌────────────────┐                      │
-│              │  Processors    │ (extensible)          │
+│              │  Processors    │ (extensible pipeline) │
 │              └───────┬────────┘                      │
 │                      ▼                               │
 │              ┌────────────────┐                      │
-│              │ Filter Engine  │                      │
+│              │ Filter Engine  │ (exclude → include)   │
 │              └───────┬────────┘                      │
 │                      ▼                               │
 │              ┌────────────────┐                      │
-│              │ Filtered View  │                      │
+│              │ LogStore View  │ (async dual-buffer    │
+│              │                │  background filtering)│
+│              └───────┬────────┘                      │
+│                      ▼                               │
+│              ┌────────────────┐                      │
+│              │  TUI / Output  │                      │
 │              └────────────────┘                      │
 └─────────────────────────────────────────────────────┘
 ```
+
+### Supported Log Formats (Auto-Detected)
+
+| Format | Example |
+|--------|---------|
+| BSD Syslog | `Nov 24 17:56:03 myhost sshd[1234]: Accepted publickey` |
+| Extended Syslog | `2025 Nov 24 17:56:03.073872 myhost INFO docker#nginx[42]: GET /` |
+| ISO 8601 Syslog | `2025-11-24T17:56:03.073872-08:00 myhost cron[99]: running job` |
+| SONiC SWSS | `2025-11-13.22:19:35.512358\|PORT_TABLE:Ethernet248\|SET\|admin_status:up` |
+| Custom Regex | *(user-defined via YAML)* |
 
 ## 📄 License
 
