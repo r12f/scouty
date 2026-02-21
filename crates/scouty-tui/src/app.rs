@@ -407,7 +407,7 @@ impl App {
     }
 
     /// Open field filter dialog based on selected record.
-    /// `exclude` determines initial mode (Ctrl+- = true, Ctrl++ = false).
+    /// `exclude` determines initial mode (Ctrl+- = true, Ctrl+= = false).
     pub fn open_field_filter(&mut self, exclude: bool) {
         if let Some(record) = self.selected_record().cloned() {
             let mut fields = Vec::new();

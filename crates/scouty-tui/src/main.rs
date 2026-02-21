@@ -105,9 +105,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                             KeyCode::Char('-') | KeyCode::Char('\x1f') => {
                                 app.open_field_filter(true);
                             }
-                            // Ctrl++ = include field filter
-                            // '+' requires Shift on most keyboards, so also accept Ctrl+=
-                            KeyCode::Char('+') | KeyCode::Char('=') => {
+                            // Ctrl+= = include field filter
+                            KeyCode::Char('=') => {
                                 app.open_field_filter(false);
                             }
                             _ => {}
@@ -141,7 +140,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 app.input_mode = InputMode::QuickExclude;
                                 app.quick_filter_input.clear();
                             }
-                            KeyCode::Char('+') => {
+                            KeyCode::Char('=') => {
                                 app.input_mode = InputMode::QuickInclude;
                                 app.quick_filter_input.clear();
                             }
