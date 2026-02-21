@@ -72,9 +72,11 @@ impl ParserFactory {
                     // ISO 8601: "YYYY-MM-DDT..."
                     b.len() >= 20
                         && b[0..4].iter().all(|c| c.is_ascii_digit())
-                        && b[5].is_ascii_digit() && b[6].is_ascii_digit()
+                        && b[5].is_ascii_digit()
+                        && b[6].is_ascii_digit()
                         && b[7] == b'-'
-                        && b[8].is_ascii_digit() && b[9].is_ascii_digit()
+                        && b[8].is_ascii_digit()
+                        && b[9].is_ascii_digit()
                 } else {
                     false
                 }
