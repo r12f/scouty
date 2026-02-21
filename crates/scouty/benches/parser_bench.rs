@@ -1,151 +1,110 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion, Throughput};
+use scouty::parser::regex_parser::RegexParser;
 use scouty::parser::unified_syslog_parser::UnifiedSyslogParser;
+use scouty::traits::LogParser;
 use std::sync::Arc;
 
-const BSD_LINE: &str =
-    "Feb 19 14:23:45 myhost myapp[12345]: This is a log message with some content here";
-const EXTENDED_LINE: &str =
-    "2025 Nov 24 17:56:03.073872 BSL-0101 NOTICE restapi#root: message repeated 47 times with extra content";
-const ISO_LINE: &str =
-    "2026-02-15T00:00:08.954827-08:00 r12f-ms01 systemd[1]: rsyslog.service: Sent signal SIGHUP to main process 1181";
-
-fn generate_bsd_lines(count: usize) -> Vec<String> {
+/// Generate realistic BSD syslog lines.
+fn generate_syslog_lines(count: usize) -> Vec<String> {
     let months = [
         "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
     ];
-    let procs = ["kernel", "sshd", "systemd", "cron", "nginx", "postfix"];
-    let msgs = [
+    let facilities = ["kernel", "sshd", "systemd", "cron", "nginx", "postfix"];
+    let messages = [
         "Connection accepted from 192.168.1.100",
+        "Starting daily cleanup of temporary directories",
         "pam_unix(sshd:session): session opened for user admin",
+        "New USB device found, idVendor=0781, idProduct=5567",
         "Out of memory: Kill process 12345 (java) score 900",
+        "segfault at 0000000000000000 ip 00007f3c2a1b3c40",
         "TCP: request_sock_TCP: Possible SYN flooding on port 80",
+        "audit: type=1400 audit(1234567890.123:456): apparmor=DENIED",
     ];
+
     (0..count)
         .map(|i| {
+            let month = months[i % 12];
+            let day = (i % 28) + 1;
+            let hour = i % 24;
+            let min = i % 60;
+            let sec = i % 60;
+            let facility = facilities[i % facilities.len()];
+            let pid = 1000 + (i % 50000);
+            let msg = messages[i % messages.len()];
             format!(
                 "{} {:2} {:02}:{:02}:{:02} myhost {}[{}]: {}",
-                months[i % 12],
-                (i % 28) + 1,
-                i % 24,
-                i % 60,
-                i % 60,
-                procs[i % procs.len()],
-                1000 + (i % 50000),
-                msgs[i % msgs.len()]
+                month, day, hour, min, sec, facility, pid, msg
             )
         })
         .collect()
 }
 
-fn generate_extended_lines(count: usize) -> Vec<String> {
-    let months = [
-        "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
-    ];
-    let levels = ["INFO", "NOTICE", "WARNING", "ERR"];
-    let procs = [
-        "restapi#root",
-        "pmon#stormond[37]",
-        "dockerd[871]",
-        "memory_checker",
-    ];
-    (0..count)
-        .map(|i| {
-            format!(
-                "2025 {} {:2} {:02}:{:02}:{:02}.{:06} BSL-0101 {} {}: sample message number {}",
-                months[i % 12],
-                (i % 28) + 1,
-                i % 24,
-                i % 60,
-                i % 60,
-                i % 999999,
-                levels[i % levels.len()],
-                procs[i % procs.len()],
-                i
-            )
-        })
-        .collect()
+fn create_regex_syslog_parser() -> RegexParser {
+    RegexParser::new(
+        "syslog",
+        r"^(?P<timestamp>[A-Z][a-z]{2}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2})\s+\S+\s+(?P<process>[^\[]+)\[(?P<pid>\d+)\]:\s+(?P<message>.+)$",
+        Some("%b %e %H:%M:%S".to_string()),
+    )
+    .unwrap()
 }
 
-fn generate_iso_lines(count: usize) -> Vec<String> {
-    let procs = [
-        "systemd[1]",
-        "rsyslogd",
-        "sshd[1234]",
-        "cron[999]",
-        "nginx[80]",
-    ];
-    (0..count)
-        .map(|i| {
-            format!(
-                "2026-{:02}-{:02}T{:02}:{:02}:{:02}.{:06}-08:00 r12f-ms01 {}: log entry number {}",
-                (i % 12) + 1,
-                (i % 28) + 1,
-                i % 24,
-                i % 60,
-                i % 60,
-                i % 999999,
-                procs[i % procs.len()],
-                i
-            )
+fn bench_parse_syslog_single(c: &mut Criterion) {
+    let regex_parser = create_regex_syslog_parser();
+    let unified_parser = UnifiedSyslogParser::new("bench");
+    let line = "Feb 19 14:23:45 myhost myapp[12345]: This is a log message";
+    let source: Arc<str> = Arc::from("test");
+    let loader_id: Arc<str> = Arc::from("loader");
+
+    let mut group = c.benchmark_group("syslog_single");
+
+    group.bench_function("regex", |b| {
+        b.iter(|| {
+            black_box(regex_parser.parse_shared(
+                black_box(line),
+                black_box(&source),
+                black_box(&loader_id),
+                black_box(0),
+            ))
         })
-        .collect()
-}
-
-fn bench_unified_single(c: &mut Criterion) {
-    let parser = UnifiedSyslogParser::new("bench");
-    let source: Arc<str> = Arc::from("bench");
-    let loader_id: Arc<str> = Arc::from("bench");
-
-    let mut group = c.benchmark_group("unified_single");
-
-    group.bench_function("bsd", |b| {
-        b.iter(|| black_box(parser.parse_shared(black_box(BSD_LINE), &source, &loader_id, 0)))
     });
 
-    group.bench_function("extended", |b| {
-        b.iter(|| black_box(parser.parse_shared(black_box(EXTENDED_LINE), &source, &loader_id, 0)))
-    });
-
-    group.bench_function("iso", |b| {
-        b.iter(|| black_box(parser.parse_shared(black_box(ISO_LINE), &source, &loader_id, 0)))
+    group.bench_function("unified", |b| {
+        b.iter(|| {
+            black_box(unified_parser.parse_shared(
+                black_box(line),
+                black_box(&source),
+                black_box(&loader_id),
+                black_box(0),
+            ))
+        })
     });
 
     group.finish();
 }
 
-fn bench_unified_100k(c: &mut Criterion) {
-    let parser = UnifiedSyslogParser::new("bench");
-    let source: Arc<str> = Arc::from("bench");
-    let loader_id: Arc<str> = Arc::from("bench");
+fn bench_parse_syslog_100k(c: &mut Criterion) {
+    let regex_parser = create_regex_syslog_parser();
+    let unified_parser = UnifiedSyslogParser::new("bench");
+    let lines = generate_syslog_lines(100_000);
+    let source: Arc<str> = Arc::from("test");
+    let loader_id: Arc<str> = Arc::from("loader");
 
-    let bsd_lines = generate_bsd_lines(100_000);
-    let ext_lines = generate_extended_lines(100_000);
-    let iso_lines = generate_iso_lines(100_000);
-
-    let mut group = c.benchmark_group("unified_100k");
+    let mut group = c.benchmark_group("syslog_100k");
     group.throughput(Throughput::Elements(100_000));
     group.sample_size(10);
 
-    group.bench_function("bsd", |b| {
+    group.bench_function("regex", |b| {
         b.iter(|| {
-            for (i, line) in bsd_lines.iter().enumerate() {
-                black_box(parser.parse_shared(line, &source, &loader_id, i as u64));
+            for (i, line) in lines.iter().enumerate() {
+                black_box(regex_parser.parse_shared(line, &source, &loader_id, i as u64));
             }
         })
     });
 
-    group.bench_function("extended", |b| {
+    group.bench_function("unified", |b| {
         b.iter(|| {
-            for (i, line) in ext_lines.iter().enumerate() {
-                black_box(parser.parse_shared(line, &source, &loader_id, i as u64));
-            }
-        })
-    });
-
-    group.bench_function("iso", |b| {
-        b.iter(|| {
-            for (i, line) in iso_lines.iter().enumerate() {
-                black_box(parser.parse_shared(line, &source, &loader_id, i as u64));
+            for (i, line) in lines.iter().enumerate() {
+                black_box(unified_parser.parse_shared(line, &source, &loader_id, i as u64));
             }
         })
     });
@@ -153,5 +112,5 @@ fn bench_unified_100k(c: &mut Criterion) {
     group.finish();
 }
 
-criterion_group!(benches, bench_unified_single, bench_unified_100k);
+criterion_group!(benches, bench_parse_syslog_single, bench_parse_syslog_100k,);
 criterion_main!(benches);
