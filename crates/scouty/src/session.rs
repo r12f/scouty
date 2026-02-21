@@ -187,7 +187,10 @@ impl LogSession {
                 self.next_id += 1;
 
                 match slot.parser_group.parse(line, source, &info.id, id) {
-                    Some(record) => {
+                    Some(mut record) => {
+                        if record.raw.is_empty() {
+                            record.raw = line.clone();
+                        }
                         self.store.insert(record);
                     }
                     None => {
@@ -235,7 +238,12 @@ impl LogSession {
 
                 for (i, line) in lines.iter().enumerate() {
                     match slot.parser_group.parse(line, source, &info.id, i as u64) {
-                        Some(record) => records.push(record),
+                        Some(mut record) => {
+                            if record.raw.is_empty() {
+                                record.raw = line.clone();
+                            }
+                            records.push(record);
+                        }
                         None => failures.push(FailedLog {
                             raw: line.clone(),
                             source: source.clone(),

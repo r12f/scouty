@@ -222,10 +222,12 @@ impl App {
 
         let group = ParserFactory::create_parser_group(&info);
 
-        // Parse directly without re-loading
+        // Parse directly without re-loading, passing ownership of line strings
         let mut store = scouty::store::LogStore::new();
-        for (i, line) in lines.iter().enumerate() {
-            if let Some(record) = group.parse(line, &info.id, &info.id, i as u64) {
+        for (i, line) in lines.into_iter().enumerate() {
+            if let Some(mut record) = group.parse(&line, &info.id, &info.id, i as u64) {
+                // Reuse the owned line string instead of the clone made by the parser
+                record.raw = line;
                 store.insert(record);
             }
         }

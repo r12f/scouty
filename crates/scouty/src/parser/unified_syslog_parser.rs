@@ -408,7 +408,7 @@ fn build_record(
     process_name: Option<String>,
     pid: Option<u32>,
     message: String,
-    raw: &str,
+    _raw: &str,
 ) -> LogRecord {
     LogRecord {
         id,
@@ -424,7 +424,7 @@ fn build_record(
         context: None,
         function: None,
         message,
-        raw: raw.to_string(),
+        raw: String::new(), // Caller should set raw to avoid double allocation
         metadata: None,
         loader_id: Arc::clone(loader_id),
     }
