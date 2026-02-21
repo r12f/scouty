@@ -69,61 +69,74 @@ mod tests {
     #[test]
     fn test_arrow_keys_dispatch_to_navigation() {
         let mut r = Recorder::new(true);
-        dispatch_key(&mut r, key(KeyCode::Up));
+        let result = dispatch_key(&mut r, key(KeyCode::Up));
         assert_eq!(r.last_call, "up");
-        dispatch_key(&mut r, key(KeyCode::Down));
+        assert_eq!(result, ComponentResult::Consumed);
+        let result = dispatch_key(&mut r, key(KeyCode::Down));
         assert_eq!(r.last_call, "down");
+        assert_eq!(result, ComponentResult::Consumed);
     }
 
     #[test]
     fn test_jk_dispatch_when_enabled() {
         let mut r = Recorder::new(true);
-        dispatch_key(&mut r, key(KeyCode::Char('j')));
+        let result = dispatch_key(&mut r, key(KeyCode::Char('j')));
         assert_eq!(r.last_call, "down");
-        dispatch_key(&mut r, key(KeyCode::Char('k')));
+        assert_eq!(result, ComponentResult::Consumed);
+        let result = dispatch_key(&mut r, key(KeyCode::Char('k')));
         assert_eq!(r.last_call, "up");
+        assert_eq!(result, ComponentResult::Consumed);
     }
 
     #[test]
     fn test_jk_dispatch_to_char_when_disabled() {
         let mut r = Recorder::new(false);
-        dispatch_key(&mut r, key(KeyCode::Char('j')));
+        let result = dispatch_key(&mut r, key(KeyCode::Char('j')));
         assert_eq!(r.last_call, "char");
-        dispatch_key(&mut r, key(KeyCode::Char('k')));
+        assert_eq!(result, ComponentResult::Consumed);
+        let result = dispatch_key(&mut r, key(KeyCode::Char('k')));
         assert_eq!(r.last_call, "char");
+        assert_eq!(result, ComponentResult::Consumed);
     }
 
     #[test]
     fn test_space_toggle_enter_confirm_esc_cancel() {
         let mut r = Recorder::new(true);
-        dispatch_key(&mut r, key(KeyCode::Char(' ')));
+        let result = dispatch_key(&mut r, key(KeyCode::Char(' ')));
         assert_eq!(r.last_call, "toggle");
-        dispatch_key(&mut r, key(KeyCode::Enter));
+        assert_eq!(result, ComponentResult::Consumed);
+        let result = dispatch_key(&mut r, key(KeyCode::Enter));
         assert_eq!(r.last_call, "confirm");
-        dispatch_key(&mut r, key(KeyCode::Esc));
+        assert_eq!(result, ComponentResult::Consumed);
+        let result = dispatch_key(&mut r, key(KeyCode::Esc));
         assert_eq!(r.last_call, "cancel");
+        assert_eq!(result, ComponentResult::Close);
     }
 
     #[test]
     fn test_page_up_down() {
         let mut r = Recorder::new(true);
-        dispatch_key(&mut r, key(KeyCode::PageUp));
+        let result = dispatch_key(&mut r, key(KeyCode::PageUp));
         assert_eq!(r.last_call, "page_up");
-        dispatch_key(&mut r, key(KeyCode::PageDown));
+        assert_eq!(result, ComponentResult::Consumed);
+        let result = dispatch_key(&mut r, key(KeyCode::PageDown));
         assert_eq!(r.last_call, "page_down");
+        assert_eq!(result, ComponentResult::Consumed);
     }
 
     #[test]
     fn test_unknown_key_falls_to_on_key() {
         let mut r = Recorder::new(true);
-        dispatch_key(&mut r, key(KeyCode::F(1)));
+        let result = dispatch_key(&mut r, key(KeyCode::F(1)));
         assert_eq!(r.last_call, "key");
+        assert_eq!(result, ComponentResult::Ignored);
     }
 
     #[test]
     fn test_regular_char_goes_to_on_char() {
         let mut r = Recorder::new(true);
-        dispatch_key(&mut r, key(KeyCode::Char('x')));
+        let result = dispatch_key(&mut r, key(KeyCode::Char('x')));
         assert_eq!(r.last_call, "char");
+        assert_eq!(result, ComponentResult::Consumed);
     }
 }
