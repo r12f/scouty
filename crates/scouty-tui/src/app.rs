@@ -36,13 +36,15 @@ pub enum Column {
     Pid,
     Tid,
     Component,
+    Function,
+    Context,
     Source,
     Log,
 }
 
 impl Column {
     #[allow(dead_code)]
-    pub const ALL: [Column; 10] = [
+    pub const ALL: [Column; 12] = [
         Column::Time,
         Column::Level,
         Column::Hostname,
@@ -51,6 +53,8 @@ impl Column {
         Column::Pid,
         Column::Tid,
         Column::Component,
+        Column::Function,
+        Column::Context,
         Column::Source,
         Column::Log,
     ];
@@ -65,6 +69,8 @@ impl Column {
             Column::Pid => "Pid",
             Column::Tid => "Tid",
             Column::Component => "Component",
+            Column::Function => "Function",
+            Column::Context => "Context",
             Column::Source => "Source",
             Column::Log => "Log",
         }
@@ -92,6 +98,8 @@ impl Default for ColumnConfig {
                 (Column::Pid, false),
                 (Column::Tid, false),
                 (Column::Component, false),
+                (Column::Function, false),
+                (Column::Context, false),
                 (Column::Source, false),
                 (Column::Log, true),
             ],
