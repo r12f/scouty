@@ -118,6 +118,7 @@ impl ColumnConfig {
             .collect()
     }
 
+    #[allow(dead_code)]
     pub fn toggle(&mut self, index: usize) {
         if index < self.columns.len() {
             // Don't allow hiding Log column

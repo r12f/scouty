@@ -181,18 +181,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     KeyCode::Char(c) => app.time_input.push(c),
                     _ => {}
                 },
-                InputMode::GotoLine => match key.code {
-                    KeyCode::Enter => {
-                        app.goto_line();
+                InputMode::GotoLine => {
+                    use ui::windows::goto_line_window::GotoLineWindow;
+                    let mut window = GotoLineWindow::new();
+                    window.input = app.goto_input.clone();
+                    let result = ui::dispatch_key(&mut window, key);
+                    app.goto_input = window.input;
+                    if result == ui::ComponentResult::Close {
+                        if window.confirmed {
+                            app.goto_line();
+                        }
                         app.input_mode = InputMode::Normal;
                     }
-                    KeyCode::Esc => app.input_mode = InputMode::Normal,
-                    KeyCode::Backspace => {
-                        app.goto_input.pop();
-                    }
-                    KeyCode::Char(c) if c.is_ascii_digit() => app.goto_input.push(c),
-                    _ => {}
-                },
+                }
                 InputMode::QuickExclude => match key.code {
                     KeyCode::Enter => {
                         app.apply_quick_exclude();
@@ -218,103 +219,45 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     _ => {}
                 },
                 InputMode::FieldFilter => {
-                    if let Some(ref mut ff) = app.field_filter {
-                        match key.code {
-                            KeyCode::Up | KeyCode::Char('k') => {
-                                ff.cursor = ff.cursor.saturating_sub(1);
-                            }
-                            KeyCode::Down | KeyCode::Char('j') => {
-                                if ff.cursor + 1 < ff.fields.len() {
-                                    ff.cursor += 1;
+                    use ui::windows::field_filter_window::FieldFilterWindow;
+                    if let Some(mut window) = FieldFilterWindow::from_app(&app) {
+                        let result = ui::dispatch_key(&mut window, key);
+                        match result {
+                            ui::ComponentResult::Close => {
+                                if window.confirmed {
+                                    window.sync_to_app(&mut app);
+                                    app.apply_field_filter();
+                                } else {
+                                    app.field_filter = None;
                                 }
-                            }
-                            KeyCode::PageUp => {
-                                ff.cursor = ff.cursor.saturating_sub(10);
-                            }
-                            KeyCode::PageDown => {
-                                ff.cursor = (ff.cursor + 10).min(ff.fields.len().saturating_sub(1));
-                            }
-                            KeyCode::Char(' ') => {
-                                let cur = ff.cursor;
-                                ff.fields[cur].2 = !ff.fields[cur].2;
-                            }
-                            KeyCode::Tab => {
-                                ff.exclude = !ff.exclude;
-                            }
-                            KeyCode::Char('o') => {
-                                ff.logic_or = !ff.logic_or;
-                            }
-                            KeyCode::Enter => {
-                                app.apply_field_filter();
-                            }
-                            KeyCode::Esc => {
-                                app.field_filter = None;
                                 app.input_mode = InputMode::Normal;
                             }
-                            _ => {}
+                            _ => {
+                                window.sync_to_app(&mut app);
+                            }
                         }
                     } else {
                         app.input_mode = InputMode::Normal;
                     }
                 }
-                InputMode::FilterManager => match key.code {
-                    KeyCode::Up | KeyCode::Char('k') => {
-                        app.filter_manager_cursor = app.filter_manager_cursor.saturating_sub(1);
-                    }
-                    KeyCode::Down | KeyCode::Char('j') => {
-                        if !app.filters.is_empty()
-                            && app.filter_manager_cursor + 1 < app.filters.len()
-                        {
-                            app.filter_manager_cursor += 1;
-                        }
-                    }
-                    KeyCode::PageUp => {
-                        app.filter_manager_cursor = app.filter_manager_cursor.saturating_sub(10);
-                    }
-                    KeyCode::PageDown => {
-                        if !app.filters.is_empty() {
-                            app.filter_manager_cursor = (app.filter_manager_cursor + 10)
-                                .min(app.filters.len().saturating_sub(1));
-                        }
-                    }
-                    KeyCode::Char('d') | KeyCode::Delete => {
-                        if !app.filters.is_empty() {
-                            let idx = app.filter_manager_cursor;
-                            app.remove_filter(idx);
-                            if app.filter_manager_cursor > 0
-                                && app.filter_manager_cursor >= app.filters.len()
-                            {
-                                app.filter_manager_cursor = app.filters.len().saturating_sub(1);
-                            }
-                        }
-                    }
-                    KeyCode::Char('c') => {
-                        app.clear_filters();
-                        app.filter_manager_cursor = 0;
-                    }
-                    KeyCode::Esc | KeyCode::Enter => {
+                InputMode::FilterManager => {
+                    use ui::windows::filter_manager_window::FilterManagerWindow;
+                    let mut window = FilterManagerWindow::from_app(&app);
+                    let result = ui::dispatch_key(&mut window, key);
+                    window.apply_to_app(&mut app);
+                    if result == ui::ComponentResult::Close {
                         app.input_mode = InputMode::Normal;
                     }
-                    _ => {}
-                },
-                InputMode::ColumnSelector => match key.code {
-                    KeyCode::Up | KeyCode::Char('k') => {
-                        app.column_config.cursor = app.column_config.cursor.saturating_sub(1);
-                    }
-                    KeyCode::Down | KeyCode::Char('j') => {
-                        if app.column_config.cursor + 1 < app.column_config.columns.len() {
-                            app.column_config.cursor += 1;
-                        }
-                    }
-                    KeyCode::Char(' ') | KeyCode::Enter => {
-                        let cur = app.column_config.cursor;
-                        app.column_config.toggle(cur);
-                    }
-                    KeyCode::Esc => {
+                }
+                InputMode::ColumnSelector => {
+                    use ui::windows::column_selector_window::ColumnSelectorWindow;
+                    let mut window = ColumnSelectorWindow::from_app(&app);
+                    let result = ui::dispatch_key(&mut window, key);
+                    window.sync_to_app(&mut app);
+                    if result == ui::ComponentResult::Close {
                         app.input_mode = InputMode::Normal;
                     }
-                    _ => {}
-                },
+                }
                 InputMode::CopyFormat => {
                     use ui::windows::copy_format_window::CopyFormatWindow;
                     // Determine format from key before dispatching
@@ -336,8 +279,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 InputMode::Help => {
                     use ui::windows::help_window::HelpWindow;
                     let mut window = HelpWindow;
-                    ui::dispatch_key(&mut window, key);
-                    app.input_mode = InputMode::Normal;
+                    let result = ui::dispatch_key(&mut window, key);
+                    if result == ui::ComponentResult::Close {
+                        app.input_mode = InputMode::Normal;
+                    }
                 }
             }
         }
