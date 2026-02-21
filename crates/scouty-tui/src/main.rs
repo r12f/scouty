@@ -24,27 +24,35 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Enter TUI mode first so the user sees a loading screen immediately
     enable_raw_mode()?;
     stdout().execute(EnterAlternateScreen)?;
-    let mut terminal = Terminal::new(CrosstermBackend::new(stdout()))?;
+    let mut terminal = match Terminal::new(CrosstermBackend::new(stdout())) {
+        Ok(t) => t,
+        Err(e) => {
+            let _ = disable_raw_mode();
+            let _ = stdout().execute(LeaveAlternateScreen);
+            return Err(e.into());
+        }
+    };
 
     // Show loading screen
-    let file_path = args[1].clone();
-    terminal.draw(|frame| {
+    if let Err(e) = terminal.draw(|frame| {
         let area = frame.area();
-        let msg = format!(" Loading {}...", file_path);
+        let msg = format!("Loading {}...", &args[1]);
         let text = ratatui::widgets::Paragraph::new(msg);
-        let y = area.height / 2;
+        let y = area.y + area.height / 2;
         let centered = ratatui::layout::Rect::new(area.x, y, area.width, 1);
         frame.render_widget(text, centered);
-    })?;
+    }) {
+        let _ = disable_raw_mode();
+        let _ = stdout().execute(LeaveAlternateScreen);
+        return Err(e.into());
+    }
 
     // Load file (may take several seconds for large files)
-    let load_result = App::load_file(&args[1]);
-    let mut app = match load_result {
+    let mut app = match App::load_file(&args[1]) {
         Ok(app) => app,
         Err(e) => {
-            // Clean up terminal before showing error
-            disable_raw_mode()?;
-            stdout().execute(LeaveAlternateScreen)?;
+            let _ = disable_raw_mode();
+            let _ = stdout().execute(LeaveAlternateScreen);
             eprintln!("Error: {}", e);
             std::process::exit(1);
         }
