@@ -21,13 +21,34 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         std::process::exit(1);
     }
 
-    eprint!("Loading {}...", &args[1]);
-    let mut app = App::load_file(&args[1])?;
-    eprintln!(" {} records loaded.", app.total_records);
-
+    // Enter TUI mode first so the user sees a loading screen immediately
     enable_raw_mode()?;
     stdout().execute(EnterAlternateScreen)?;
     let mut terminal = Terminal::new(CrosstermBackend::new(stdout()))?;
+
+    // Show loading screen
+    let file_path = args[1].clone();
+    terminal.draw(|frame| {
+        let area = frame.area();
+        let msg = format!(" Loading {}...", file_path);
+        let text = ratatui::widgets::Paragraph::new(msg);
+        let y = area.height / 2;
+        let centered = ratatui::layout::Rect::new(area.x, y, area.width, 1);
+        frame.render_widget(text, centered);
+    })?;
+
+    // Load file (may take several seconds for large files)
+    let load_result = App::load_file(&args[1]);
+    let mut app = match load_result {
+        Ok(app) => app,
+        Err(e) => {
+            // Clean up terminal before showing error
+            disable_raw_mode()?;
+            stdout().execute(LeaveAlternateScreen)?;
+            eprintln!("Error: {}", e);
+            std::process::exit(1);
+        }
+    };
 
     loop {
         terminal.draw(|frame| {
