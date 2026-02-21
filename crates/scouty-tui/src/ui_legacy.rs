@@ -82,7 +82,10 @@ pub fn render(frame: &mut Frame, app: &App) {
     }
 
     if app.input_mode == InputMode::CopyFormat {
-        render_copy_format_overlay(frame, area);
+        use crate::ui::windows::copy_format_window::CopyFormatWindow;
+        use crate::ui::UiComponent;
+        let window = CopyFormatWindow;
+        window.render(frame, area);
     }
 }
 
@@ -659,62 +662,6 @@ fn render_column_selector_overlay(frame: &mut Frame, app: &App, area: Rect) {
         .block(
             Block::default()
                 .title(" Columns (c) ")
-                .borders(Borders::ALL)
-                .border_style(Style::default().fg(Color::Cyan)),
-        )
-        .style(Style::default().bg(Color::Black));
-    frame.render_widget(dialog, overlay);
-}
-
-fn render_copy_format_overlay(frame: &mut Frame, area: Rect) {
-    let width = 35u16.min(area.width.saturating_sub(4));
-    let height = 9u16.min(area.height.saturating_sub(4));
-    let x = (area.width.saturating_sub(width)) / 2;
-    let y = (area.height.saturating_sub(height)) / 2;
-    let overlay = Rect::new(x, y, width, height);
-
-    frame.render_widget(Clear, overlay);
-
-    let lines = vec![
-        Line::from(""),
-        Line::from(vec![
-            Span::styled(
-                " [r] ",
-                Style::default()
-                    .fg(Color::Yellow)
-                    .add_modifier(Modifier::BOLD),
-            ),
-            Span::raw("Raw text (default)"),
-        ]),
-        Line::from(vec![
-            Span::styled(
-                " [j] ",
-                Style::default()
-                    .fg(Color::Yellow)
-                    .add_modifier(Modifier::BOLD),
-            ),
-            Span::raw("JSON"),
-        ]),
-        Line::from(vec![
-            Span::styled(
-                " [y] ",
-                Style::default()
-                    .fg(Color::Yellow)
-                    .add_modifier(Modifier::BOLD),
-            ),
-            Span::raw("YAML"),
-        ]),
-        Line::from(""),
-        Line::styled(
-            " Enter: Raw  Esc: Cancel",
-            Style::default().fg(Color::DarkGray),
-        ),
-    ];
-
-    let dialog = Paragraph::new(lines)
-        .block(
-            Block::default()
-                .title(" Copy As (Y) ")
                 .borders(Borders::ALL)
                 .border_style(Style::default().fg(Color::Cyan)),
         )

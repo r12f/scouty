@@ -315,27 +315,24 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     }
                     _ => {}
                 },
-                InputMode::CopyFormat => match key.code {
-                    KeyCode::Enter | KeyCode::Char('r') => {
-                        if let Some(text) = app.copy_as_format(app::CopyFormat::Raw) {
-                            app::osc52_copy(&text);
+                InputMode::CopyFormat => {
+                    use ui::windows::copy_format_window::CopyFormatWindow;
+                    // Determine format from key before dispatching
+                    let format = match key.code {
+                        KeyCode::Enter | KeyCode::Char('r') => Some(app::CopyFormat::Raw),
+                        KeyCode::Char('j') => Some(app::CopyFormat::Json),
+                        KeyCode::Char('y') => Some(app::CopyFormat::Yaml),
+                        _ => None,
+                    };
+                    let mut window = CopyFormatWindow;
+                    let result = ui::dispatch_key(&mut window, key);
+                    if result == ui::ComponentResult::Close {
+                        if let Some(fmt) = format {
+                            CopyFormatWindow::select_format(&mut app, fmt);
                         }
-                    }
-                    KeyCode::Char('j') => {
-                        if let Some(text) = app.copy_as_format(app::CopyFormat::Json) {
-                            app::osc52_copy(&text);
-                        }
-                    }
-                    KeyCode::Char('y') => {
-                        if let Some(text) = app.copy_as_format(app::CopyFormat::Yaml) {
-                            app::osc52_copy(&text);
-                        }
-                    }
-                    KeyCode::Esc => {
                         app.input_mode = InputMode::Normal;
                     }
-                    _ => {}
-                },
+                }
                 InputMode::Help => {
                     app.input_mode = InputMode::Normal;
                 }
