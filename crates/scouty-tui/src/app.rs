@@ -32,6 +32,8 @@ pub enum Column {
     Level,
     Hostname,
     Container,
+    Context,
+    Function,
     ProcessName,
     Pid,
     Tid,
@@ -42,11 +44,13 @@ pub enum Column {
 
 impl Column {
     #[allow(dead_code)]
-    pub const ALL: [Column; 10] = [
+    pub const ALL: [Column; 12] = [
         Column::Time,
         Column::Level,
         Column::Hostname,
         Column::Container,
+        Column::Context,
+        Column::Function,
         Column::ProcessName,
         Column::Pid,
         Column::Tid,
@@ -61,6 +65,8 @@ impl Column {
             Column::Level => "Level",
             Column::Hostname => "Hostname",
             Column::Container => "Container",
+            Column::Context => "Context",
+            Column::Function => "Function",
             Column::ProcessName => "ProcessName",
             Column::Pid => "Pid",
             Column::Tid => "Tid",
@@ -88,6 +94,8 @@ impl Default for ColumnConfig {
                 (Column::Level, false),
                 (Column::Hostname, false),
                 (Column::Container, false),
+                (Column::Context, false),
+                (Column::Function, false),
                 (Column::ProcessName, false),
                 (Column::Pid, false),
                 (Column::Tid, false),

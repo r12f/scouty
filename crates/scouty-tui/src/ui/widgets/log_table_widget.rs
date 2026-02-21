@@ -40,6 +40,8 @@ impl LogTableWidget {
                 Column::Level => Constraint::Length(cw[1]),
                 Column::Hostname => Constraint::Length(20),
                 Column::Container => Constraint::Length(15),
+                Column::Context => Constraint::Length(25),
+                Column::Function => Constraint::Length(10),
                 Column::ProcessName => Constraint::Length(cw[2]),
                 Column::Pid => Constraint::Length(cw[3]),
                 Column::Tid => Constraint::Length(cw[4]),
@@ -80,6 +82,12 @@ impl LogTableWidget {
                         }
                         Column::Container => {
                             Cell::from(record.container.as_deref().unwrap_or("").to_string())
+                        }
+                        Column::Context => {
+                            Cell::from(record.context.as_deref().unwrap_or("").to_string())
+                        }
+                        Column::Function => {
+                            Cell::from(record.function.as_deref().unwrap_or("").to_string())
                         }
                         Column::ProcessName => {
                             Cell::from(record.process_name.as_deref().unwrap_or("").to_string())
