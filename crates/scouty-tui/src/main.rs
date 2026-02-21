@@ -21,7 +21,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         std::process::exit(1);
     }
 
+    eprint!("Loading {}...", &args[1]);
     let mut app = App::load_file(&args[1])?;
+    eprintln!(" {} records loaded.", app.total_records);
 
     enable_raw_mode()?;
     stdout().execute(EnterAlternateScreen)?;
