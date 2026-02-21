@@ -7,6 +7,7 @@ repository.workspace = true
 description = "Log parsing, filtering, and analysis library"
 
 [dependencies]
+memchr = "2"
 chrono = { version = "0.4", features = ["serde"] }
 flate2 = "1"
 regex = "1"
