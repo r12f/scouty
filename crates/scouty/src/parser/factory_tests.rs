@@ -90,4 +90,68 @@ mod tests {
         let group = ParserFactory::create_parser_group(&info);
         assert!(group.parsers.len() >= 2);
     }
+
+    #[test]
+    fn test_extended_syslog_detection() {
+        let info = text_loader_info(vec![
+            "2025 Nov 24 17:56:03.073872 BSL-0101 INFO memory_checker: Total memory usage"
+                .to_string(),
+        ]);
+        let group = ParserFactory::create_parser_group(&info);
+
+        let record = group
+            .parse(
+                "2025 Nov 24 17:56:03.073872 BSL-0101 INFO memory_checker: Total memory usage",
+                "test",
+                "loader",
+                4,
+            )
+            .unwrap();
+        assert_eq!(record.hostname.as_deref(), Some("BSL-0101"));
+        assert_eq!(record.process_name.as_deref(), Some("memory_checker"));
+        assert_eq!(record.message, "Total memory usage");
+    }
+
+    #[test]
+    fn test_extended_syslog_with_container() {
+        let info = text_loader_info(vec![
+            "2025 Nov 24 17:55:51.558366 BSL-0101 NOTICE restapi#root: message repeated 47 times"
+                .to_string(),
+        ]);
+        let group = ParserFactory::create_parser_group(&info);
+
+        let record = group
+            .parse(
+                "2025 Nov 24 17:55:51.558366 BSL-0101 NOTICE restapi#root: message repeated 47 times",
+                "test",
+                "loader",
+                5,
+            )
+            .unwrap();
+        assert_eq!(record.hostname.as_deref(), Some("BSL-0101"));
+        assert_eq!(record.container.as_deref(), Some("restapi"));
+        assert_eq!(record.process_name.as_deref(), Some("root"));
+        assert_eq!(record.message, "message repeated 47 times");
+    }
+
+    #[test]
+    fn test_extended_syslog_does_not_match_bsd() {
+        // BSD syslog should not trigger extended detection
+        let info = text_loader_info(vec![
+            "Jan 15 10:30:00 myhost sshd[1234]: Accepted publickey".to_string(),
+        ]);
+        let group = ParserFactory::create_parser_group(&info);
+
+        // Should still parse as BSD syslog
+        let record = group
+            .parse(
+                "Jan 15 10:30:00 myhost sshd[1234]: Accepted publickey",
+                "test",
+                "loader",
+                6,
+            )
+            .unwrap();
+        assert_eq!(record.hostname.as_deref(), Some("myhost"));
+        assert_eq!(record.process_name.as_deref(), Some("sshd"));
+    }
 }

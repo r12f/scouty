@@ -4,8 +4,10 @@
 #[path = "factory_tests.rs"]
 mod factory_tests;
 
+use crate::parser::extended_syslog_parser::ExtendedSyslogParser;
 use crate::parser::group::ParserGroup;
 use crate::parser::regex_parser::RegexParser;
+use crate::parser::syslog_parser::SyslogParser;
 use crate::traits::{LoaderInfo, LoaderType};
 
 /// Built-in parser definitions that the factory can produce.
@@ -29,7 +31,10 @@ impl ParserFactory {
             }
             LoaderType::TextFile | LoaderType::Archive => {
                 // Try to auto-detect from sample lines
-                if Self::looks_like_syslog(&info.sample_lines) {
+                if Self::looks_like_extended_syslog(&info.sample_lines) {
+                    Self::add_extended_syslog_parsers(&mut group);
+                    Self::add_syslog_parsers(&mut group);
+                } else if Self::looks_like_syslog(&info.sample_lines) {
                     Self::add_syslog_parsers(&mut group);
                 }
                 // Add common log format parsers
@@ -43,6 +48,13 @@ impl ParserFactory {
         group
     }
 
+    fn looks_like_extended_syslog(sample_lines: &[String]) -> bool {
+        // Extended syslog: "2025 Nov 24 17:56:03.073872 HOSTNAME LEVEL process: message"
+        let re = regex::Regex::new(r"^\d{4} (?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) ")
+            .unwrap();
+        sample_lines.iter().take(5).any(|l| re.is_match(l))
+    }
+
     fn looks_like_syslog(sample_lines: &[String]) -> bool {
         // Simple heuristic: check if lines start with month abbreviation (e.g. "Jan 15")
         let syslog_re = regex::Regex::new(
@@ -52,7 +64,14 @@ impl ParserFactory {
         sample_lines.iter().take(5).any(|l| syslog_re.is_match(l))
     }
 
+    fn add_extended_syslog_parsers(group: &mut ParserGroup) {
+        group.add_parser(Box::new(ExtendedSyslogParser::new("extended-syslog")));
+    }
+
     fn add_syslog_parsers(group: &mut ParserGroup) {
+        // Zero-regex syslog parser (fast path)
+        group.add_parser(Box::new(SyslogParser::new("syslog-zero-regex")));
+
         // BSD syslog format: "Jan 15 10:30:00 hostname process[pid]: message"
         if let Ok(p) = RegexParser::new(
             "syslog-bsd",
