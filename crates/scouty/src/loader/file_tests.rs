@@ -123,7 +123,13 @@ mod tests {
         let mut loader = FileLoader::new(&file_path, false);
         loader.load().unwrap();
         let year = loader.info().file_mod_year;
-        assert!(year.is_some(), "file_mod_year should be populated after load");
-        assert!(year.unwrap() >= 2020, "file_mod_year should be a reasonable year");
+        assert!(
+            year.is_some(),
+            "file_mod_year should be populated after load"
+        );
+        assert!(
+            year.unwrap() >= 2020,
+            "file_mod_year should be a reasonable year"
+        );
     }
 }
