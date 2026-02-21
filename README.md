@@ -50,7 +50,7 @@ Each source gets its own loader, and a single session can combine multiple loade
 - **Segmented sorted array** log store with O(N) merge-sort insertion
 - **Zero-copy filtering** via `Arc<LogRecord>` shared between store and background filter threads
 - **Async background filtering** with dual-buffer swap for non-blocking UI
-- **Memory-mapped I/O** for fast file loading
+- **Parallel parsing** — Rayon-based thread pool for maximum throughput
 
 ## 📦 Crates
 
@@ -72,19 +72,27 @@ cargo build --release
 ### View a log file
 
 ```bash
-scouty-tui /path/to/your.log
+./target/release/scouty-tui /path/to/your.log
 ```
 
 ### View compressed logs
 
 ```bash
-scouty-tui /path/to/logs.gz
+./target/release/scouty-tui /path/to/logs.gz
 ```
 
 ### View multiple files
 
 ```bash
-scouty-tui /var/log/syslog /var/log/auth.log
+./target/release/scouty-tui /var/log/syslog /var/log/auth.log
+```
+
+### Install globally (optional)
+
+```bash
+cargo install --path crates/scouty-tui
+# Then use directly:
+scouty-tui /path/to/your.log
 ```
 
 ## ⌨️ Keyboard Shortcuts
@@ -149,22 +157,23 @@ All dialogs and windows share these standard controls:
 
 Scouty parses logs into structured records with these first-class fields:
 
-| Field | Description | Example |
-|-------|-------------|---------|
-| `timestamp` | Log timestamp | `2025-11-24T17:56:03.073872` |
-| `level` | Severity level | `INFO`, `ERROR`, `NOTICE` |
-| `hostname` | Source host | `BSL-0101-0101-01LT0` |
-| `process_name` | Process name | `dockerd`, `root` |
-| `pid` | Process ID | `871` |
-| `tid` | Thread ID | `12345` |
-| `component` | Component/module | `SWITCH_TABLE`, `squid` |
-| `container` | Container name | `restapi`, `pmon` |
-| `context` | Contextual key | `Ethernet248`, `fd00::/80` |
-| `function` | Operation/function | `SET`, `DEL` |
-| `message` | Log message body | *(the log text)* |
-| `source` | Source file path | `/var/log/syslog` |
-
-Additional fields are stored as metadata key-value pairs and are accessible in filters and the detail panel.
+| Field | Struct Name | Filter Alias | Description | Example |
+|-------|-------------|--------------|-------------|---------|
+| Timestamp | `timestamp` | `timestamp` | Log timestamp | `2025-11-24T17:56:03.073872` |
+| Level | `level` | `level` | Severity level | `INFO`, `ERROR`, `NOTICE` |
+| Hostname | `hostname` | `hostname` | Source host | `BSL-0101-0101-01LT0` |
+| Process | `process_name` | `process` | Process name | `dockerd`, `root` |
+| PID | `pid` | `pid` | Process ID | `871` |
+| TID | `tid` | `tid` | Thread ID | `12345` |
+| Component | `component_name` | `component` | Component/module | `SWITCH_TABLE`, `squid` |
+| Container | `container` | `container` | Container name | `restapi`, `pmon` |
+| Context | `context` | `context` | Contextual key | `Ethernet248`, `fd00::/80` |
+| Function | `function` | `function` | Operation/function | `SET`, `DEL` |
+| Message | `message` | `message` | Log message body | *(the log text)* |
+| Source | `source` | `source` | Source identifier (file path, syslog source, etc.) | `/var/log/syslog` |
+| Raw | `raw` | `raw` | Original raw log line | *(full unparsed line)* |
+| Loader ID | `loader_id` | — | Identifier of the loader that produced this record | `file:///var/log/syslog` |
+| Metadata | `metadata` | *(by key name)* | Additional key-value pairs | `hostname=myhost` |
 
 ## ⚙️ Parser Configuration
 
@@ -227,6 +236,14 @@ hostname = "BSL-0101-0101-01LT0" AND container = "restapi"
 │              ┌────────────────┐                      │
 │              │   Log Store    │ (timestamp-sorted)    │
 │              │  Segmented     │ (~64K-128K/segment)   │
+│              └───────┬────────┘                      │
+│                      ▼                               │
+│              ┌────────────────┐                      │
+│              │  Processors    │ (extensible pipeline) │
+│              └───────┬────────┘                      │
+│                      ▼                               │
+│              ┌────────────────┐                      │
+│              │ Filter Engine  │ (exclude → include)   │
 │              └───────┬────────┘                      │
 │                      ▼                               │
 │              ┌────────────────┐                      │
