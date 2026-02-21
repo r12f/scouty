@@ -110,9 +110,9 @@ scouty-tui /var/log/syslog /var/log/auth.log
 | `N` | Previous search match |
 | `f` | Filter expression input |
 | `-` | Quick exclude (text input) |
-| `+` | Quick include (text input) |
+| `=` | Quick include (text input) |
 | `Ctrl+-` | Exclude field dialog (multi-select from current row) |
-| `Ctrl++` | Include field dialog (multi-select from current row) |
+| `Ctrl+=` | Include field dialog (multi-select from current row) |
 | `F` | Filter manager (view/add/delete filters) |
 
 ### Display & Copy
