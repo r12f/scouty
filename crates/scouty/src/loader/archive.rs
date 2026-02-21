@@ -150,6 +150,15 @@ impl LogLoader for ArchiveLoader {
     }
 
     fn load(&mut self) -> Result<Vec<String>> {
+        // Extract file modification year for BSD syslog timestamp inference
+        if let Ok(metadata) = std::fs::metadata(&self.path) {
+            if let Ok(modified) = metadata.modified() {
+                let dt: chrono::DateTime<chrono::Utc> = modified.into();
+                use chrono::Datelike;
+                self.info.file_mod_year = Some(dt.year());
+            }
+        }
+
         let lines = match self.format {
             ArchiveFormat::Gzip => self.load_gzip()?,
             ArchiveFormat::Zip => self.load_zip()?,

@@ -38,6 +38,14 @@ impl LogLoader for FileLoader {
     }
 
     fn load(&mut self) -> Result<Vec<String>> {
+        // Extract file modification year early for BSD syslog timestamp inference
+        if let Ok(metadata) = std::fs::metadata(&self.path) {
+            if let Ok(modified) = metadata.modified() {
+                let dt: chrono::DateTime<chrono::Utc> = modified.into();
+                self.info.file_mod_year = Some(dt.year());
+            }
+        }
+
         let is_gzip = self
             .path
             .extension()
@@ -81,14 +89,6 @@ impl LogLoader for FileLoader {
 
         // Store sample lines for parser auto-detection
         self.info.sample_lines = lines.iter().take(10).cloned().collect();
-
-        // Extract file modification year for BSD syslog timestamp inference
-        if let Ok(metadata) = std::fs::metadata(&self.path) {
-            if let Ok(modified) = metadata.modified() {
-                let dt: chrono::DateTime<chrono::Utc> = modified.into();
-                self.info.file_mod_year = Some(dt.year());
-            }
-        }
 
         Ok(lines)
     }
