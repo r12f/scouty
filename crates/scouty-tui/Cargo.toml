@@ -7,7 +7,7 @@ repository.workspace = true
 description = "Terminal UI for scouty log viewer"
 
 [dependencies]
-scouty = { path = "../scouty" }
+scouty = { path = "../scouty", version = "0.1.2" }
 chrono = "0.4"
 ratatui = "0.29"
 crossterm = "0.28"
