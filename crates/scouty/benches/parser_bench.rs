@@ -1,7 +1,6 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion, Throughput};
 use scouty::parser::regex_parser::RegexParser;
 use scouty::parser::unified_syslog_parser::UnifiedSyslogParser;
-use scouty::traits::LogParser;
 use std::sync::Arc;
 
 /// Generate realistic BSD syslog lines.

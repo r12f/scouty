@@ -65,10 +65,16 @@ impl ParserFactory {
             } else if b[0].is_ascii_digit() && b.len() >= 11 {
                 if b[4] == b' ' {
                     // Extended: "YYYY Mon ..."
-                    b.len() >= 20 && b[5].is_ascii_uppercase()
+                    b.len() >= 20
+                        && b[0..4].iter().all(|c| c.is_ascii_digit())
+                        && is_bsd_month(&b[5..8])
                 } else if b[4] == b'-' && b[10] == b'T' {
                     // ISO 8601: "YYYY-MM-DDT..."
-                    true
+                    b.len() >= 20
+                        && b[0..4].iter().all(|c| c.is_ascii_digit())
+                        && b[5].is_ascii_digit() && b[6].is_ascii_digit()
+                        && b[7] == b'-'
+                        && b[8].is_ascii_digit() && b[9].is_ascii_digit()
                 } else {
                     false
                 }
