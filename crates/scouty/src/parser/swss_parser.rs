@@ -18,11 +18,11 @@ use chrono::{DateTime, NaiveDate, NaiveDateTime, NaiveTime, Utc};
 use std::sync::Arc;
 
 /// Parser for SONiC SWSS log format.
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct SwssParser;
 
 impl SwssParser {
-    pub fn new(_source: &str, _loader_id: &str) -> Self {
+    pub fn new() -> Self {
         Self
     }
 
@@ -266,14 +266,18 @@ fn parse_u32(bytes: &[u8]) -> Option<u32> {
 /// Parse fractional seconds string to microseconds.
 fn parse_fractional_micros(s: &str) -> u32 {
     let mut micros: u32 = 0;
-    for (i, b) in s.bytes().enumerate() {
-        if i >= 6 || !b.is_ascii_digit() {
+    let mut digits = 0;
+    for b in s.bytes() {
+        if digits >= 6 || !b.is_ascii_digit() {
             break;
         }
         micros = micros * 10 + (b - b'0') as u32;
+        digits += 1;
+    }
+    if digits == 0 {
+        return 0;
     }
     // Pad to 6 digits
-    let digits = s.len().min(6);
     for _ in digits..6 {
         micros *= 10;
     }
