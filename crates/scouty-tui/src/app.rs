@@ -411,6 +411,12 @@ impl App {
             if let Some(ref name) = record.container {
                 fields.push(("container".to_string(), name.clone(), false));
             }
+            if let Some(ref ctx) = record.context {
+                fields.push(("context".to_string(), ctx.clone(), false));
+            }
+            if let Some(ref func) = record.function {
+                fields.push(("function".to_string(), func.clone(), false));
+            }
             if let Some(ref name) = record.process_name {
                 fields.push(("process_name".to_string(), name.clone(), false));
             }
@@ -810,6 +816,8 @@ mod tests {
             message: message.to_string(),
             hostname: None,
             container: None,
+            context: None,
+            function: None,
             raw: message.to_string(),
             metadata: None,
             loader_id: "test".into(),
@@ -1167,6 +1175,8 @@ mod field_filter_v2_tests {
             process_name: Some("myapp".into()),
             hostname: None,
             container: None,
+            context: None,
+            function: None,
             message: msg.to_string(),
             raw: msg.to_string(),
             metadata: None,
@@ -1323,6 +1333,8 @@ mod column_follow_tests {
             process_name: Some("proc".into()),
             hostname: None,
             container: None,
+            context: None,
+            function: None,
             message: message.to_string(),
             raw: message.to_string(),
             metadata: None,
@@ -1494,6 +1506,8 @@ mod copy_tests {
             process_name: Some("app".into()),
             hostname: None,
             container: None,
+            context: None,
+            function: None,
             message: msg.to_string(),
             raw: msg.to_string(),
             metadata: None,

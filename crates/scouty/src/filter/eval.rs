@@ -33,6 +33,8 @@ fn get_field(record: &LogRecord, field: &str) -> Option<String> {
         "process_name" | "process" => record.process_name.clone(),
         "hostname" => record.hostname.clone(),
         "container" => record.container.clone(),
+        "context" => record.context.clone(),
+        "function" => record.function.clone(),
         "message" => Some(record.message.clone()),
         "raw" => Some(record.raw.clone()),
         "loader_id" => Some(record.loader_id.to_string()),

@@ -20,6 +20,8 @@ mod tests {
             process_name: None,
             hostname: None,
             container: None,
+            context: None,
+            function: None,
             message: message.into(),
             raw: message.into(),
             metadata: Some(metadata),
@@ -154,5 +156,25 @@ mod tests {
         let expr = parse(r#"source = "test-source""#).unwrap();
         let r = make_record(LogLevel::Info, "ok", None);
         assert!(eval(&expr, &r));
+    }
+
+    #[test]
+    fn eval_context() {
+        let mut r = make_record(LogLevel::Info, "ok", None);
+        r.context = Some("Ethernet248".to_string());
+        let expr = parse(r#"context = "Ethernet248""#).unwrap();
+        assert!(eval(&expr, &r));
+        let expr2 = parse(r#"context contains "Ethernet""#).unwrap();
+        assert!(eval(&expr2, &r));
+    }
+
+    #[test]
+    fn eval_function() {
+        let mut r = make_record(LogLevel::Info, "ok", None);
+        r.function = Some("SET".to_string());
+        let expr = parse(r#"function = "SET""#).unwrap();
+        assert!(eval(&expr, &r));
+        let expr2 = parse(r#"function = "DEL""#).unwrap();
+        assert!(!eval(&expr2, &r));
     }
 }

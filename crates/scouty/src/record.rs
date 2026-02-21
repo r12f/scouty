@@ -109,6 +109,10 @@ pub struct LogRecord {
     pub hostname: Option<String>,
     /// Container name.
     pub container: Option<String>,
+    /// Context identifier (e.g. table key in SWSS logs).
+    pub context: Option<String>,
+    /// Function or operation name (e.g. SET/DEL in SWSS logs).
+    pub function: Option<String>,
     /// Log message body.
     pub message: String,
     /// Raw original log text (may be multi-line).

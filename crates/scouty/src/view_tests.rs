@@ -24,6 +24,8 @@ mod tests {
             process_name: None,
             hostname: None,
             container: None,
+            context: None,
+            function: None,
             message: message.to_string(),
             raw: message.to_string(),
             metadata: None,
