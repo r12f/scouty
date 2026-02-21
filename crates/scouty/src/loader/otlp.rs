@@ -96,6 +96,7 @@ impl OtlpLoader {
                 loader_type: LoaderType::Otlp,
                 multiline_enabled: false,
                 sample_lines: Vec::new(),
+                file_mod_year: None,
             },
             config,
             listener: None,

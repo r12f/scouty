@@ -111,4 +111,25 @@ mod tests {
         assert!(info.multiline_enabled);
         assert!(info.sample_lines.is_empty());
     }
+
+    #[test]
+    fn test_file_mod_year_populated() {
+        let dir = tempfile::tempdir().unwrap();
+        let file_path = dir.path().join("dated.log");
+        let mut f = std::fs::File::create(&file_path).unwrap();
+        writeln!(f, "test line").unwrap();
+        drop(f);
+
+        let mut loader = FileLoader::new(&file_path, false);
+        loader.load().unwrap();
+        let year = loader.info().file_mod_year;
+        assert!(
+            year.is_some(),
+            "file_mod_year should be populated after load"
+        );
+        assert!(
+            year.unwrap() >= 2020,
+            "file_mod_year should be a reasonable year"
+        );
+    }
 }

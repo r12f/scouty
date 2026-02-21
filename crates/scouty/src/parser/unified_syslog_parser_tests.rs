@@ -291,4 +291,26 @@ mod tests {
     fn reject_malformed_day_extended() {
         assert!(parse("2025 Nov X5 10:30:00.000000 host INFO proc: msg").is_none());
     }
+
+    #[test]
+    fn bsd_year_from_constructor() {
+        let parser = UnifiedSyslogParser::new_with_year("test", 2020);
+        let src = Arc::from("test");
+        let loader = Arc::from("test-loader");
+        let r = parser
+            .parse_shared("Feb 19 14:23:45 myhost myapp[12345]: msg", &src, &loader, 1)
+            .unwrap();
+        assert_eq!(r.timestamp.year(), 2020);
+    }
+
+    #[test]
+    fn bsd_default_year_is_current() {
+        let parser = UnifiedSyslogParser::new("test");
+        let src = Arc::from("test");
+        let loader = Arc::from("test-loader");
+        let r = parser
+            .parse_shared("Feb 19 14:23:45 myhost myapp[12345]: msg", &src, &loader, 1)
+            .unwrap();
+        assert_eq!(r.timestamp.year(), chrono::Utc::now().year());
+    }
 }
