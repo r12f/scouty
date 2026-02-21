@@ -154,4 +154,63 @@ mod tests {
         assert_eq!(record.hostname.as_deref(), Some("myhost"));
         assert_eq!(record.process_name.as_deref(), Some("sshd"));
     }
+
+    #[test]
+    fn test_swss_auto_detection() {
+        let info = text_loader_info(vec![
+            "2025-11-13.22:19:03.248563|recording started".to_string(),
+            "2025-11-13.22:19:35.512358|SWITCH_TABLE:switch|SET|k:v".to_string(),
+            "2025-11-13.22:19:38.096435|FLEX_COUNTER_TABLE|PG_DROP|SET|v:1".to_string(),
+        ]);
+        let group = ParserFactory::create_parser_group(&info);
+        let record = group
+            .parse(
+                "2025-11-13.22:19:35.512358|SWITCH_TABLE:switch|SET|ecmp_hash_offset:0",
+                "test",
+                "loader",
+                1,
+            )
+            .unwrap();
+        assert_eq!(record.component_name.as_deref(), Some("SWITCH_TABLE"));
+        assert_eq!(record.context.as_deref(), Some("switch"));
+        assert_eq!(record.function.as_deref(), Some("SET"));
+    }
+
+    #[test]
+    fn test_swss_does_not_match_syslog() {
+        // Syslog lines should not trigger SWSS detection
+        let info = text_loader_info(vec![
+            "Jan 15 10:30:00 myhost sshd[1234]: Accepted publickey".to_string(),
+        ]);
+        let group = ParserFactory::create_parser_group(&info);
+        let record = group
+            .parse(
+                "Jan 15 10:30:00 myhost sshd[1234]: Accepted publickey",
+                "test",
+                "loader",
+                1,
+            )
+            .unwrap();
+        // Should parse as syslog, not SWSS
+        assert_eq!(record.hostname.as_deref(), Some("myhost"));
+        assert!(record.context.is_none());
+    }
+
+    #[test]
+    fn test_swss_does_not_match_extended_syslog() {
+        let info = text_loader_info(vec![
+            "2025 Jan 15 10:30:00.123456 BSL-0101 NOTICE restapi#root: test message".to_string(),
+        ]);
+        let group = ParserFactory::create_parser_group(&info);
+        let record = group
+            .parse(
+                "2025 Jan 15 10:30:00.123456 BSL-0101 NOTICE restapi#root: test message",
+                "test",
+                "loader",
+                1,
+            )
+            .unwrap();
+        assert_eq!(record.hostname.as_deref(), Some("BSL-0101"));
+        assert!(record.context.is_none());
+    }
 }

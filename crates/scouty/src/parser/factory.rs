@@ -9,6 +9,7 @@ use std::sync::OnceLock;
 use crate::parser::extended_syslog_parser::ExtendedSyslogParser;
 use crate::parser::group::ParserGroup;
 use crate::parser::regex_parser::RegexParser;
+use crate::parser::swss_parser::SwssParser;
 use crate::parser::syslog_parser::SyslogParser;
 use crate::traits::{LoaderInfo, LoaderType};
 
@@ -33,7 +34,9 @@ impl ParserFactory {
             }
             LoaderType::TextFile | LoaderType::Archive => {
                 // Try to auto-detect from sample lines
-                if Self::looks_like_extended_syslog(&info.sample_lines) {
+                if Self::looks_like_swss(&info.sample_lines) {
+                    Self::add_swss_parsers(&mut group);
+                } else if Self::looks_like_extended_syslog(&info.sample_lines) {
                     Self::add_extended_syslog_parsers(&mut group);
                     Self::add_syslog_parsers(&mut group);
                 } else if Self::looks_like_syslog(&info.sample_lines) {
@@ -70,6 +73,14 @@ impl ParserFactory {
         Self::majority_match(sample_lines, |l| re.is_match(l))
     }
 
+    fn looks_like_swss(sample_lines: &[String]) -> bool {
+        static RE: OnceLock<regex::Regex> = OnceLock::new();
+        let re = RE.get_or_init(|| {
+            regex::Regex::new(r"^\d{4}-\d{2}-\d{2}\.\d{2}:\d{2}:\d{2}\.\d+\|").unwrap()
+        });
+        Self::majority_match(sample_lines, |l| re.is_match(l))
+    }
+
     /// Returns true if the majority of non-empty sample lines (up to 5) match the predicate.
     fn majority_match(sample_lines: &[String], pred: impl Fn(&str) -> bool) -> bool {
         let lines: Vec<&str> = sample_lines
@@ -83,6 +94,10 @@ impl ParserFactory {
         }
         let matched = lines.iter().filter(|l| pred(l)).count();
         matched * 2 > lines.len() // majority: more than half
+    }
+
+    fn add_swss_parsers(group: &mut ParserGroup) {
+        group.add_parser(Box::new(SwssParser::new()));
     }
 
     fn add_extended_syslog_parsers(group: &mut ParserGroup) {
