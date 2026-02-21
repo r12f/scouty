@@ -5,8 +5,8 @@ use scouty::filter::expr::{self, Expr};
 use scouty::loader::file::FileLoader;
 use scouty::parser::factory::ParserFactory;
 use scouty::record::LogRecord;
-use scouty::session::LogSession;
 use scouty::traits::LogLoader;
+use std::sync::Arc;
 
 /// Input mode for the TUI.
 #[derive(Debug, Clone, PartialEq)]
@@ -165,7 +165,7 @@ pub struct FieldFilterState {
 /// Main application state.
 pub struct App {
     /// All log records loaded from the file.
-    pub records: Vec<LogRecord>,
+    pub records: Vec<Arc<LogRecord>>,
     /// Total records before filtering.
     pub total_records: usize,
     /// Filtered indices into records.
@@ -215,17 +215,22 @@ pub struct App {
 impl App {
     /// Load log records from a file.
     pub fn load_file(path: &str) -> Result<Self, Box<dyn std::error::Error>> {
+        // Load file once, reuse lines for detection and parsing
         let mut loader = FileLoader::new(path, false);
-        let _lines = loader.load()?;
-        let info = loader.info();
+        let lines = loader.load()?;
+        let info = loader.info().clone();
 
-        let group = ParserFactory::create_parser_group(info);
+        let group = ParserFactory::create_parser_group(&info);
 
-        let mut session = LogSession::new();
-        session.add_loader(Box::new(FileLoader::new(path, false)), group);
-        let _filtered = session.run()?;
+        // Parse directly without re-loading
+        let mut store = scouty::store::LogStore::new();
+        for (i, line) in lines.iter().enumerate() {
+            if let Some(record) = group.parse(line, &info.id, &info.id, i as u64) {
+                store.insert(record);
+            }
+        }
 
-        let records: Vec<LogRecord> = session.store().iter().cloned().collect();
+        let records: Vec<Arc<LogRecord>> = store.iter_arc().cloned().collect();
         let total_records = records.len();
         let filtered_indices: Vec<usize> = (0..records.len()).collect();
 
@@ -259,7 +264,7 @@ impl App {
     }
 
     /// Compute auto-fit column widths by sampling records.
-    fn compute_col_widths(records: &[LogRecord], indices: &[usize]) -> [u16; 6] {
+    fn compute_col_widths(records: &[Arc<LogRecord>], indices: &[usize]) -> [u16; 6] {
         let mut widths: [u16; 6] = [4, 5, 11, 3, 3, 9];
         let max_widths: [u16; 6] = [23, 5, 20, 8, 8, 20];
 
@@ -727,14 +732,14 @@ impl App {
         let end = (self.scroll_offset + self.visible_rows).min(self.total());
         self.filtered_indices[self.scroll_offset..end]
             .iter()
-            .map(|&i| &self.records[i])
+            .map(|&i| self.records[i].as_ref())
             .collect()
     }
 
     pub fn selected_record(&self) -> Option<&LogRecord> {
         self.filtered_indices
             .get(self.selected)
-            .map(|&i| &self.records[i])
+            .map(|&i| self.records[i].as_ref())
     }
 
     pub fn is_search_match(&self, filtered_idx: usize) -> bool {
@@ -833,8 +838,14 @@ mod tests {
     }
 
     fn make_app(n: usize) -> App {
-        let records: Vec<LogRecord> = (0..n)
-            .map(|i| make_record(i as u64, Some(LogLevel::Info), &format!("msg {}", i)))
+        let records: Vec<Arc<LogRecord>> = (0..n)
+            .map(|i| {
+                Arc::new(make_record(
+                    i as u64,
+                    Some(LogLevel::Info),
+                    &format!("msg {}", i),
+                ))
+            })
             .collect();
         let filtered_indices = (0..n).collect();
         App {
@@ -865,10 +876,10 @@ mod tests {
     }
 
     fn make_app_with_levels(messages: &[(&str, Option<LogLevel>)]) -> App {
-        let records: Vec<LogRecord> = messages
+        let records: Vec<Arc<LogRecord>> = messages
             .iter()
             .enumerate()
-            .map(|(i, (msg, level))| make_record(i as u64, *level, msg))
+            .map(|(i, (msg, level))| Arc::new(make_record(i as u64, *level, msg)))
             .collect();
         let n = records.len();
         let filtered_indices = (0..n).collect();
@@ -959,8 +970,8 @@ mod tests {
     #[test]
     fn test_search() {
         let mut app = make_app(20);
-        app.records[5].message = "error happened".to_string();
-        app.records[15].message = "another error".to_string();
+        Arc::get_mut(&mut app.records[5]).unwrap().message = "error happened".to_string();
+        Arc::get_mut(&mut app.records[15]).unwrap().message = "another error".to_string();
         app.search_input = "error".to_string();
         app.execute_search();
         assert_eq!(app.search_matches.len(), 2);
@@ -988,8 +999,9 @@ mod tests {
     #[test]
     fn test_search_regex() {
         let mut app = make_app(20);
-        app.records[3].message = "ERROR: connection timeout".to_string();
-        app.records[7].message = "error: disk full".to_string();
+        Arc::get_mut(&mut app.records[3]).unwrap().message =
+            "ERROR: connection timeout".to_string();
+        Arc::get_mut(&mut app.records[7]).unwrap().message = "error: disk full".to_string();
 
         app.search_input = r"error.*(?:timeout|full)".to_string();
         app.execute_search();
@@ -1148,8 +1160,8 @@ mod tests {
     #[test]
     fn test_field_filter_opens() {
         let mut app = make_app_with_levels(&[("error msg", Some(LogLevel::Error))]);
-        app.records[0].process_name = Some("myapp".to_string());
-        app.records[0].pid = Some(1234);
+        Arc::get_mut(&mut app.records[0]).unwrap().process_name = Some("myapp".to_string());
+        Arc::get_mut(&mut app.records[0]).unwrap().pid = Some(1234);
 
         app.open_field_filter(true);
         assert_eq!(app.input_mode, InputMode::FieldFilter);
@@ -1194,6 +1206,7 @@ mod field_filter_v2_tests {
 
     fn make_app_full(records: Vec<LogRecord>) -> App {
         let n = records.len();
+        let records: Vec<Arc<LogRecord>> = records.into_iter().map(Arc::new).collect();
         let filtered_indices = (0..n).collect();
         App {
             records,
@@ -1351,8 +1364,8 @@ mod column_follow_tests {
     }
 
     fn make_app_cf(n: usize) -> App {
-        let records: Vec<LogRecord> = (0..n)
-            .map(|i| make_record(i as u64, &format!("msg {}", i)))
+        let records: Vec<Arc<LogRecord>> = (0..n)
+            .map(|i| Arc::new(make_record(i as u64, &format!("msg {}", i))))
             .collect();
         let filtered_indices = (0..n).collect();
         App {
@@ -1525,6 +1538,7 @@ mod copy_tests {
 
     fn make_app_copy(records: Vec<LogRecord>) -> App {
         let n = records.len();
+        let records: Vec<Arc<LogRecord>> = records.into_iter().map(Arc::new).collect();
         App {
             records,
             total_records: n,
