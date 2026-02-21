@@ -7,7 +7,9 @@ use std::sync::Arc;
 use std::time::Instant;
 
 fn main() {
-    let path = std::env::args().nth(1).unwrap_or_else(|| "/data/syslog".to_string());
+    let path = std::env::args()
+        .nth(1)
+        .unwrap_or_else(|| "/data/syslog".to_string());
 
     // Full pipeline as App::load_file now does it (single load)
     let t0 = Instant::now();
@@ -34,8 +36,9 @@ fn main() {
     }
     let t_parse_store = t_parse_start.elapsed();
 
-    // Stage 4: Arc clone out (new: just Arc::clone, not deep clone)
+    // Stage 4: Flush OOO buffer and Arc clone out
     let t_clone_start = Instant::now();
+    store.compact_ooo();
     let records: Vec<Arc<LogRecord>> = store.iter_arc().cloned().collect();
     let t_clone = t_clone_start.elapsed();
 
@@ -43,10 +46,30 @@ fn main() {
     let n = records.len();
 
     eprintln!("=== E2E Performance ===");
-    eprintln!("File I/O:        {:>8.1}ms ({:>5.1}%)", t_io.as_secs_f64() * 1000.0, t_io.as_secs_f64() / total.as_secs_f64() * 100.0);
-    eprintln!("Parser create:   {:>8.1}ms ({:>5.1}%)", t_pc.as_secs_f64() * 1000.0, t_pc.as_secs_f64() / total.as_secs_f64() * 100.0);
-    eprintln!("Parse+Store:     {:>8.1}ms ({:>5.1}%)", t_parse_store.as_secs_f64() * 1000.0, t_parse_store.as_secs_f64() / total.as_secs_f64() * 100.0);
-    eprintln!("Arc clone out:   {:>8.1}ms ({:>5.1}%)", t_clone.as_secs_f64() * 1000.0, t_clone.as_secs_f64() / total.as_secs_f64() * 100.0);
+    eprintln!(
+        "File I/O:        {:>8.1}ms ({:>5.1}%)",
+        t_io.as_secs_f64() * 1000.0,
+        t_io.as_secs_f64() / total.as_secs_f64() * 100.0
+    );
+    eprintln!(
+        "Parser create:   {:>8.1}ms ({:>5.1}%)",
+        t_pc.as_secs_f64() * 1000.0,
+        t_pc.as_secs_f64() / total.as_secs_f64() * 100.0
+    );
+    eprintln!(
+        "Parse+Store:     {:>8.1}ms ({:>5.1}%)",
+        t_parse_store.as_secs_f64() * 1000.0,
+        t_parse_store.as_secs_f64() / total.as_secs_f64() * 100.0
+    );
+    eprintln!(
+        "Arc clone out:   {:>8.1}ms ({:>5.1}%)",
+        t_clone.as_secs_f64() * 1000.0,
+        t_clone.as_secs_f64() / total.as_secs_f64() * 100.0
+    );
     eprintln!("Total:           {:>8.1}ms", total.as_secs_f64() * 1000.0);
-    eprintln!("\nRecords: {} | Throughput: {:.1}M rec/sec", n, n as f64 / total.as_secs_f64() / 1_000_000.0);
+    eprintln!(
+        "\nRecords: {} | Throughput: {:.1}M rec/sec",
+        n,
+        n as f64 / total.as_secs_f64() / 1_000_000.0
+    );
 }

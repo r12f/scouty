@@ -230,6 +230,8 @@ impl App {
             }
         }
 
+        // Ensure out-of-order records are merged before iterating
+        store.compact_ooo();
         let records: Vec<Arc<LogRecord>> = store.iter_arc().cloned().collect();
         let total_records = records.len();
         let filtered_indices: Vec<usize> = (0..records.len()).collect();
