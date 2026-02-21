@@ -5,6 +5,7 @@
 mod file_tests;
 
 use crate::traits::{LoaderInfo, LoaderType, LogLoader, Result};
+use chrono::Datelike;
 use std::path::PathBuf;
 
 /// Loads log lines from a local text file.
@@ -24,6 +25,7 @@ impl FileLoader {
                 loader_type: LoaderType::TextFile,
                 multiline_enabled: multiline,
                 sample_lines: Vec::new(),
+                file_mod_year: None,
             },
             path,
         }
@@ -79,6 +81,14 @@ impl LogLoader for FileLoader {
 
         // Store sample lines for parser auto-detection
         self.info.sample_lines = lines.iter().take(10).cloned().collect();
+
+        // Extract file modification year for BSD syslog timestamp inference
+        if let Ok(metadata) = std::fs::metadata(&self.path) {
+            if let Ok(modified) = metadata.modified() {
+                let dt: chrono::DateTime<chrono::Utc> = modified.into();
+                self.info.file_mod_year = Some(dt.year());
+            }
+        }
 
         Ok(lines)
     }

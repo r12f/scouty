@@ -104,6 +104,7 @@ mod tests {
                 loader_type: LoaderType::TextFile,
                 multiline_enabled: false,
                 sample_lines: vec![],
+                file_mod_year: None,
             },
         };
 

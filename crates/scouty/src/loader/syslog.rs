@@ -52,6 +52,7 @@ impl SyslogLoader {
                 loader_type: LoaderType::Syslog,
                 multiline_enabled: false,
                 sample_lines: Vec::new(),
+                file_mod_year: None,
             },
             config,
             socket: None,

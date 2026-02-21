@@ -35,7 +35,6 @@ impl UnifiedSyslogParser {
         }
     }
 
-    #[cfg(test)]
     pub fn new_with_year(name: impl Into<String>, year: i32) -> Self {
         Self {
             name: name.into(),

@@ -10,6 +10,7 @@ mod tests {
             loader_type: LoaderType::TextFile,
             multiline_enabled: false,
             sample_lines,
+            file_mod_year: None,
         }
     }
 
@@ -86,6 +87,7 @@ mod tests {
             loader_type: LoaderType::Syslog,
             multiline_enabled: false,
             sample_lines: vec![],
+            file_mod_year: None,
         };
         let group = ParserFactory::create_parser_group(&info);
         assert!(group.parsers.len() >= 2);

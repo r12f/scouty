@@ -112,6 +112,7 @@ mod tests {
                 loader_type: LoaderType::TextFile,
                 multiline_enabled: false,
                 sample_lines: vec![],
+                file_mod_year: None,
             },
             lines: vec!["line1".into(), "line2".into(), "bad-line".into()],
         };
@@ -161,6 +162,7 @@ mod tests {
                     loader_type: LoaderType::TextFile,
                     multiline_enabled: false,
                     sample_lines: vec![],
+                    file_mod_year: None,
                 },
                 lines: vec![
                     format!("line-{}-a", i),
@@ -215,6 +217,7 @@ mod tests {
                         loader_type: LoaderType::TextFile,
                         multiline_enabled: false,
                         sample_lines: vec![],
+                        file_mod_year: None,
                     },
                     lines: (0..10).map(|j| format!("line-{}", j)).collect(),
                 };
@@ -242,6 +245,7 @@ mod tests {
                 loader_type: LoaderType::TextFile,
                 multiline_enabled: false,
                 sample_lines: vec![],
+                file_mod_year: None,
             },
             lines,
         }

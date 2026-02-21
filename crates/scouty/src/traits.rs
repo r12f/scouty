@@ -44,6 +44,8 @@ pub struct LoaderInfo {
     pub multiline_enabled: bool,
     /// Optional hint: first few lines of the log for parser auto-detection.
     pub sample_lines: Vec<String>,
+    /// Year from file modification time (for BSD syslog year inference).
+    pub file_mod_year: Option<i32>,
 }
 
 /// A source of raw log lines.
