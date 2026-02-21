@@ -11,6 +11,7 @@ pub enum LogLevel {
     Trace,
     Debug,
     Info,
+    Notice,
     Warn,
     Error,
     Fatal,
@@ -22,6 +23,7 @@ impl std::fmt::Display for LogLevel {
             LogLevel::Trace => write!(f, "TRACE"),
             LogLevel::Debug => write!(f, "DEBUG"),
             LogLevel::Info => write!(f, "INFO"),
+            LogLevel::Notice => write!(f, "NOTICE"),
             LogLevel::Warn => write!(f, "WARN"),
             LogLevel::Error => write!(f, "ERROR"),
             LogLevel::Fatal => write!(f, "FATAL"),
@@ -52,6 +54,10 @@ impl LogLevel {
             b'i' => match bytes.len() {
                 4 if s.eq_ignore_ascii_case("INFO") => Some(LogLevel::Info),
                 3 if s.eq_ignore_ascii_case("INF") => Some(LogLevel::Info),
+                _ => None,
+            },
+            b'n' => match bytes.len() {
+                6 if s.eq_ignore_ascii_case("NOTICE") => Some(LogLevel::Notice),
                 _ => None,
             },
             b'w' => match bytes.len() {
