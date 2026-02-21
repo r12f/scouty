@@ -83,7 +83,30 @@ impl LogLoader for FileLoader {
                 )
             })?
         } else {
-            std::fs::read_to_string(&self.path)?
+            // Memory-map the file for zero-copy reading
+            let file = std::fs::File::open(&self.path)?;
+            let mmap = unsafe { memmap2::Mmap::map(&file)? };
+
+            // Validate UTF-8 and split into lines
+            let text = std::str::from_utf8(&mmap).map_err(|e| {
+                std::io::Error::new(
+                    std::io::ErrorKind::InvalidData,
+                    format!(
+                        "File '{}' contains invalid UTF-8: {}",
+                        self.path.display(),
+                        e
+                    ),
+                )
+            })?;
+            let mut lines: Vec<String> = Vec::with_capacity(text.len() / 100); // estimate
+            for line in text.lines() {
+                lines.push(line.to_string());
+            }
+
+            // Store sample lines for parser auto-detection
+            self.info.sample_lines = lines.iter().take(10).cloned().collect();
+
+            return Ok(lines);
         };
         let lines: Vec<String> = content.lines().map(|l| l.to_string()).collect();
 
