@@ -69,6 +69,18 @@ impl DetailPanelWidget {
                     Span::raw(ctr),
                 ]));
             }
+            if let Some(ref ctx) = record.context {
+                lines.push(Line::from(vec![
+                    Span::styled("Context:   ", Style::default().fg(Color::Cyan)),
+                    Span::raw(ctx),
+                ]));
+            }
+            if let Some(ref func) = record.function {
+                lines.push(Line::from(vec![
+                    Span::styled("Function:  ", Style::default().fg(Color::Cyan)),
+                    Span::raw(func),
+                ]));
+            }
             if let Some(ref comp) = record.component_name {
                 lines.push(Line::from(vec![
                     Span::styled("Component: ", Style::default().fg(Color::Cyan)),

@@ -394,6 +394,8 @@ random garbage
                 process_name: None,
                 hostname: None,
                 container: None,
+                context: None,
+                function: None,
                 message: format!("message {}", i),
                 raw: format!("message {}", i),
                 metadata: None,

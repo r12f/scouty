@@ -165,6 +165,8 @@ impl ExtendedSyslogParser {
             process_name: Some(process_name),
             hostname: Some(hostname),
             container,
+            context: None,
+            function: None,
             message,
             raw: raw.to_string(),
             metadata: None,

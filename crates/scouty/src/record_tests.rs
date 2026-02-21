@@ -18,6 +18,8 @@ mod tests {
             process_name: None,
             hostname: None,
             container: None,
+            context: None,
+            function: None,
             message: message.into(),
             raw: message.into(),
             metadata: None,
