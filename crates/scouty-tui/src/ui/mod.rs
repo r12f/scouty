@@ -109,3 +109,7 @@ pub fn dispatch_key(component: &mut dyn UiComponent, key: KeyEvent) -> Component
         _ => component.on_key(key),
     }
 }
+
+#[cfg(test)]
+#[path = "mod_tests.rs"]
+mod mod_tests;
