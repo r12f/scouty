@@ -334,6 +334,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     }
                 }
                 InputMode::Help => {
+                    use ui::windows::help_window::HelpWindow;
+                    let mut window = HelpWindow;
+                    ui::dispatch_key(&mut window, key);
                     app.input_mode = InputMode::Normal;
                 }
             }
