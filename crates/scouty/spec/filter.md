@@ -51,7 +51,7 @@ Each filter has an action that takes effect when matched:
 
 ### Time Range Filters
 
-Quick time-based filtering via `_` / `+` (or `Ctrl+-` / `Ctrl+=`) dialogs:
+Quick time-based filtering via `_` / `+` dialogs:
 - "Before this log" → `timestamp < "YYYY-MM-DDTHH:MM:SS.ffffff"`
 - "After this log" → `timestamp > "YYYY-MM-DDTHH:MM:SS.ffffff"`
 - Current row is **included** (boundary inclusive)

@@ -94,7 +94,7 @@ Components notify App via return values or callbacks. App updates shared state (
 | `n`/`N` | Next/prev search match |
 | `f` | Filter expression input |
 | `-`/`=` | Quick exclude/include text |
-| `Ctrl+-`/`Ctrl+=` | Field exclude/include dialog (also `_`/`+`) |
+| `_`/`+` | Field exclude/include dialog |
 | `F` | Filter manager |
 | `c` | Column selector |
 | `y`/`Y` | Copy raw / format selection |
