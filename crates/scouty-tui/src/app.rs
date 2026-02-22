@@ -27,8 +27,9 @@ pub enum InputMode {
     ColumnSelector,
     CopyFormat,
     Help,
+    Command,
     Statistics,
-    SaveFile,
+
     Highlight,
     HighlightManager,
 }
@@ -264,12 +265,13 @@ pub struct App {
     pub column_config: ColumnConfig,
     /// Follow mode: auto-scroll to bottom.
     pub follow_mode: bool,
+    pub should_quit: bool,
     /// Copy format dialog cursor (0=Raw, 1=JSON, 2=YAML).
     pub copy_format_cursor: usize,
     /// Scroll offset for help window.
     pub help_scroll: u16,
     /// Save file input buffer.
-    pub save_file_input: String,
+    pub command_input: String,
     /// Filter version counter (incremented on filter/data change, for density cache invalidation).
     pub filter_version: u64,
     /// Cached density chart data.
@@ -382,9 +384,10 @@ impl App {
             col_widths,
             column_config: ColumnConfig::default(),
             follow_mode: false,
+            should_quit: false,
             copy_format_cursor: 0,
             help_scroll: 0,
-            save_file_input: String::new(),
+            command_input: String::new(),
             filter_version: 0,
             density_cache: None,
             highlight_rules: Vec::new(),
@@ -1208,20 +1211,40 @@ impl App {
         now.format("filtered_%Y%m%d_%H%M%S.log").to_string()
     }
 
-    /// Save filtered records to a file.
-    pub fn save_filtered_to_file(&mut self) {
-        let filename = self.save_file_input.trim().to_string();
-        if filename.is_empty() {
-            self.set_status("Save cancelled: empty filename".to_string());
+    /// Execute a command entered in command mode.
+    pub fn execute_command(&mut self) {
+        let input = self.command_input.trim().to_string();
+        if input.is_empty() {
             return;
         }
 
+        if input == "w" {
+            // :w with no filename → default
+            let filename = Self::default_save_filename();
+            self.save_to_file(&filename);
+        } else if let Some(filename) = input.strip_prefix("w ") {
+            let filename = filename.trim().to_string();
+            if filename.is_empty() {
+                self.save_to_file(&Self::default_save_filename());
+            } else {
+                self.save_to_file(&filename);
+            }
+        } else if input == "q" {
+            // :q — handled by caller checking should_quit
+            self.should_quit = true;
+        } else {
+            self.set_status(format!("Unknown command: :{}", input));
+        }
+    }
+
+    /// Save filtered records to a file.
+    fn save_to_file(&mut self, filename: &str) {
         let mut lines = Vec::with_capacity(self.filtered_indices.len());
         for &idx in &self.filtered_indices {
             lines.push(self.records[idx].raw.as_str());
         }
 
-        match std::fs::write(&filename, lines.join("\n") + "\n") {
+        match std::fs::write(filename, lines.join("\n") + "\n") {
             Ok(()) => {
                 let count = self.filtered_indices.len();
                 self.set_status(format!("Saved {} records to {}", count, filename));
@@ -1364,9 +1387,10 @@ mod tests {
             col_widths: [19, 5, 11, 3, 3, 9],
             column_config: ColumnConfig::default(),
             follow_mode: false,
+            should_quit: false,
             copy_format_cursor: 0,
             help_scroll: 0,
-            save_file_input: String::new(),
+            command_input: String::new(),
             filter_version: 0,
             density_cache: None,
             highlight_rules: Vec::new(),
@@ -1412,9 +1436,10 @@ mod tests {
             col_widths: [19, 5, 11, 3, 3, 9],
             column_config: ColumnConfig::default(),
             follow_mode: false,
+            should_quit: false,
             copy_format_cursor: 0,
             help_scroll: 0,
-            save_file_input: String::new(),
+            command_input: String::new(),
             filter_version: 0,
             density_cache: None,
             highlight_rules: Vec::new(),
@@ -1457,9 +1482,10 @@ mod tests {
             col_widths: [19, 5, 11, 3, 3, 9],
             column_config: ColumnConfig::default(),
             follow_mode: false,
+            should_quit: false,
             copy_format_cursor: 0,
             help_scroll: 0,
-            save_file_input: String::new(),
+            command_input: String::new(),
             filter_version: 0,
             density_cache: None,
             highlight_rules: Vec::new(),
@@ -1898,9 +1924,10 @@ mod field_filter_v2_tests {
             col_widths: [19, 5, 11, 3, 3, 9],
             column_config: ColumnConfig::default(),
             follow_mode: false,
+            should_quit: false,
             copy_format_cursor: 0,
             help_scroll: 0,
-            save_file_input: String::new(),
+            command_input: String::new(),
             filter_version: 0,
             density_cache: None,
             highlight_rules: Vec::new(),
@@ -2068,9 +2095,10 @@ mod column_follow_tests {
             col_widths: [19, 5, 11, 3, 3, 9],
             column_config: ColumnConfig::default(),
             follow_mode: false,
+            should_quit: false,
             copy_format_cursor: 0,
             help_scroll: 0,
-            save_file_input: String::new(),
+            command_input: String::new(),
             filter_version: 0,
             density_cache: None,
             highlight_rules: Vec::new(),
@@ -2249,9 +2277,10 @@ mod copy_tests {
             col_widths: [19, 5, 11, 3, 3, 9],
             column_config: ColumnConfig::default(),
             follow_mode: false,
+            should_quit: false,
             copy_format_cursor: 0,
             help_scroll: 0,
-            save_file_input: String::new(),
+            command_input: String::new(),
             filter_version: 0,
             density_cache: None,
             highlight_rules: Vec::new(),
@@ -2404,9 +2433,10 @@ mod time_jump_tests {
             col_widths: [0; 6],
             column_config: ColumnConfig::default(),
             follow_mode: false,
+            should_quit: false,
             copy_format_cursor: 0,
             help_scroll: 0,
-            save_file_input: String::new(),
+            command_input: String::new(),
             filter_version: 0,
             density_cache: None,
             highlight_input: String::new(),
@@ -2457,5 +2487,126 @@ mod time_jump_tests {
 
         app.jump_relative(false);
         assert_eq!(app.selected, 1);
+    }
+}
+
+#[cfg(test)]
+mod command_tests {
+    use super::*;
+
+    fn make_cmd_record(id: u64, msg: &str) -> LogRecord {
+        LogRecord {
+            id,
+            timestamp: chrono::Utc::now(),
+            level: Some(scouty::record::LogLevel::Info),
+            source: "test".into(),
+            pid: None,
+            tid: None,
+            component_name: None,
+            process_name: None,
+            message: msg.to_string(),
+            hostname: None,
+            container: None,
+            context: None,
+            function: None,
+            raw: msg.to_string(),
+            metadata: None,
+            loader_id: "test".into(),
+        }
+    }
+
+    fn make_command_app() -> App {
+        let records: Vec<Arc<LogRecord>> = (0..2)
+            .map(|i| Arc::new(make_cmd_record(i, &format!("line{}", i))))
+            .collect();
+        let filtered_indices = vec![0, 1];
+        App {
+            records,
+            total_records: 2,
+            filtered_indices,
+            scroll_offset: 0,
+            selected: 0,
+            visible_rows: 10,
+            detail_open: false,
+            input_mode: InputMode::Normal,
+            filter_input: String::new(),
+            filter_error: None,
+            filters: Vec::new(),
+            quick_filter_input: String::new(),
+            field_filter: None,
+            filter_manager_cursor: 0,
+            search_input: String::new(),
+            search_matches: vec![],
+            search_match_idx: None,
+            time_input: String::new(),
+            goto_input: String::new(),
+            status_message: None,
+            status_message_at: None,
+            col_widths: [19, 5, 11, 3, 3, 9],
+            column_config: ColumnConfig::default(),
+            follow_mode: false,
+            should_quit: false,
+            copy_format_cursor: 0,
+            help_scroll: 0,
+            command_input: String::new(),
+            filter_version: 0,
+            density_cache: None,
+            highlight_rules: Vec::new(),
+            highlight_input: String::new(),
+            highlight_manager_cursor: 0,
+            cached_stats: None,
+        }
+    }
+
+    #[test]
+    fn test_command_w_default_filename() {
+        let mut app = make_command_app();
+        app.command_input = "w".to_string();
+        app.execute_command();
+        // Should set a status message about saving
+        assert!(app.status_message.is_some());
+        let msg = app.status_message.as_ref().unwrap();
+        assert!(msg.contains("Saved 2 records") || msg.contains("Save failed"));
+        assert!(!app.should_quit);
+    }
+
+    #[test]
+    fn test_command_w_with_filename() {
+        let mut app = make_command_app();
+        let tmp_path = std::env::temp_dir().join("scouty_test_cmd_export.log");
+        let tmp = tmp_path.to_str().unwrap();
+        app.command_input = format!("w {}", tmp);
+        app.execute_command();
+        let msg = app.status_message.as_ref().unwrap();
+        assert!(msg.contains("Saved 2 records"));
+        assert!(msg.contains(tmp));
+        // Cleanup
+        let _ = std::fs::remove_file(tmp);
+    }
+
+    #[test]
+    fn test_command_q_sets_should_quit() {
+        let mut app = make_command_app();
+        app.command_input = "q".to_string();
+        app.execute_command();
+        assert!(app.should_quit);
+    }
+
+    #[test]
+    fn test_command_unknown() {
+        let mut app = make_command_app();
+        app.command_input = "foobar".to_string();
+        app.execute_command();
+        let msg = app.status_message.as_ref().unwrap();
+        assert!(msg.contains("Unknown command"));
+    }
+
+    #[test]
+    fn test_command_empty() {
+        let mut app = make_command_app();
+        app.command_input = "".to_string();
+        app.execute_command();
+        // No status change for empty command
+        assert!(!app.should_quit);
     }
 }
