@@ -14,14 +14,40 @@ use ratatui::prelude::*;
 use std::io::stdout;
 use std::time::Duration;
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let args: Vec<String> = std::env::args().collect();
-    if args.len() < 2 {
+/// Resolve default log file paths when no arguments are provided.
+///
+/// On Linux, tries `/var/log/syslog` (Debian/Ubuntu) then `/var/log/messages` (RHEL/CentOS).
+/// On other platforms (macOS, Windows), prints usage and exits.
+fn resolve_default_files() -> Result<Vec<String>, Box<dyn std::error::Error>> {
+    if cfg!(target_os = "linux") {
+        let candidates = ["/var/log/syslog", "/var/log/messages"];
+        for path in &candidates {
+            if std::path::Path::new(path).exists() {
+                eprintln!("No file specified, defaulting to {}", path);
+                return Ok(vec![path.to_string()]);
+            }
+        }
+        eprintln!(
+            "Error: No log file specified and no default syslog found.\n\
+             Tried: /var/log/syslog, /var/log/messages\n\n\
+             Usage: scouty-tui <logfile> [logfile2 ...]"
+        );
+        std::process::exit(1);
+    } else {
         eprintln!("Usage: scouty-tui <logfile> [logfile2 ...]");
         std::process::exit(1);
     }
+}
 
-    let files: Vec<&str> = args[1..].iter().map(|s| s.as_str()).collect();
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let args: Vec<String> = std::env::args().collect();
+    let files: Vec<String> = if args.len() >= 2 {
+        args[1..].to_vec()
+    } else {
+        resolve_default_files()?
+    };
+
+    let files: Vec<&str> = files.iter().map(|s| s.as_str()).collect();
 
     // Enter TUI mode first so the user sees a loading screen immediately
     enable_raw_mode()?;
