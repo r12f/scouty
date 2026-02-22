@@ -137,9 +137,6 @@ fn render_footer(frame: &mut Frame, app: &App, area: Rect) {
         InputMode::Search => {
             render_input_line2(frame, line2_area, "[SEARCH]", &app.search_input, None);
         }
-        InputMode::TimeJump => {
-            render_input_line2(frame, line2_area, "[GOTO]", &app.time_input, None);
-        }
         InputMode::GotoLine => {
             render_input_line2(frame, line2_area, "[GOTO]", &app.goto_input, None);
         }
