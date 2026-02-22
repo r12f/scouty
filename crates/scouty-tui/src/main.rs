@@ -258,6 +258,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                     app.highlight_manager_cursor = 0;
                                 }
                                 KeyCode::Char('S') => {
+                                    use ui::windows::stats_window::StatsData;
+                                    app.cached_stats = Some(StatsData::compute(&app));
                                     app.input_mode = InputMode::Statistics;
                                 }
                                 _ => {}
@@ -420,9 +422,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     }
                     InputMode::Statistics => {
                         use ui::windows::stats_window::StatsWindow;
-                        let mut window = StatsWindow::new(&app);
-                        let result = ui::dispatch_key(&mut window, key);
-                        if result == ui::ComponentResult::Close {
+                        // Stats are pre-computed on mode entry; reuse cached data.
+                        if let Some(ref stats) = app.cached_stats {
+                            let mut window = StatsWindow { stats };
+                            let result = ui::dispatch_key(&mut window, key);
+                            if result == ui::ComponentResult::Close {
+                                app.cached_stats = None;
+                                app.input_mode = InputMode::Normal;
+                            }
+                        } else {
                             app.input_mode = InputMode::Normal;
                         }
                     }

@@ -87,19 +87,23 @@ impl StatsData {
 }
 
 /// Statistics overlay window.
-pub struct StatsWindow {
-    pub stats: StatsData,
+pub struct StatsWindow<'a> {
+    pub stats: &'a StatsData,
 }
 
-impl StatsWindow {
-    pub fn new(app: &App) -> Self {
+impl<'a> StatsWindow<'a> {
+    pub fn new(app: &'a App) -> Self {
+        // NOTE: Prefer using cached_stats from App to avoid recomputation.
         Self {
-            stats: StatsData::compute(app),
+            stats: app.cached_stats.as_ref().unwrap_or_else(|| {
+                // Fallback: this shouldn't normally happen.
+                panic!("StatsWindow::new called without cached_stats")
+            }),
         }
     }
 }
 
-impl UiComponent for StatsWindow {
+impl<'a> UiComponent for StatsWindow<'a> {
     fn render(&self, frame: &mut Frame, area: Rect) {
         let width = 64u16.min(area.width.saturating_sub(4));
         // Calculate needed height dynamically
@@ -179,8 +183,9 @@ impl UiComponent for StatsWindow {
             lines.push(Line::from("  (no component data)"));
         } else {
             for (i, (name, count)) in self.stats.top_components.iter().enumerate() {
-                let display_name = if name.len() > 30 {
-                    format!("{}…", &name[..29])
+                let display_name = if name.chars().count() > 30 {
+                    let truncated: String = name.chars().take(29).collect();
+                    format!("{}…", truncated)
                 } else {
                     name.clone()
                 };

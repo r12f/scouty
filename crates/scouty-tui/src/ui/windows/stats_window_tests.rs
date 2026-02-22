@@ -69,6 +69,7 @@ mod tests {
             save_file_input: String::new(),
             filter_version: 0,
             density_cache: None,
+            cached_stats: None,
         }
     }
 
@@ -147,6 +148,7 @@ mod tests {
             save_file_input: String::new(),
             filter_version: 0,
             density_cache: None,
+            cached_stats: None,
         };
         let stats = StatsData::compute(&app);
         assert_eq!(stats.total_records, 0);
@@ -158,7 +160,8 @@ mod tests {
 
     #[test]
     fn test_stats_window_closes_on_esc() {
-        let app = make_test_app();
+        let mut app = make_test_app();
+        app.cached_stats = Some(StatsData::compute(&app));
         let mut window = StatsWindow::new(&app);
         let key = KeyEvent::new(KeyCode::Esc, KeyModifiers::NONE);
         let result = dispatch_key(&mut window, key);
@@ -167,7 +170,8 @@ mod tests {
 
     #[test]
     fn test_stats_window_closes_on_any_char() {
-        let app = make_test_app();
+        let mut app = make_test_app();
+        app.cached_stats = Some(StatsData::compute(&app));
         let mut window = StatsWindow::new(&app);
         let key = KeyEvent::new(KeyCode::Char('q'), KeyModifiers::NONE);
         let result = dispatch_key(&mut window, key);

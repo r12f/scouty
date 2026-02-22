@@ -52,8 +52,10 @@ pub fn render(frame: &mut Frame, app: &App) {
     if app.input_mode == InputMode::Statistics {
         use crate::ui::windows::stats_window::StatsWindow;
         use crate::ui::UiComponent;
-        let window = StatsWindow::new(app);
-        window.render(frame, area);
+        if let Some(ref stats) = app.cached_stats {
+            let window = StatsWindow { stats };
+            window.render(frame, area);
+        }
     }
 
     // Field filter overlay
