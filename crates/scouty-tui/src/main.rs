@@ -75,7 +75,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         file_args
     };
 
-    // If piped, read all stdin lines before entering TUI (stdin will be consumed)
+    // If piped, read all stdin lines before entering TUI (stdin will be consumed).
+    //
+    // NOTE: This reads the entire stdin into memory before launching the UI.
+    // Streaming sources (e.g. `journalctl -f | scouty-tui`) will block here
+    // until the upstream command exits or the pipe is closed (e.g. Ctrl+C on
+    // the producer).  Streaming / incremental ingestion is planned as a future
+    // enhancement — see: https://github.com/r12f/scouty/issues/180
     let stdin_lines: Option<Vec<String>> = if piped {
         use std::io::BufRead;
         let stdin = std::io::stdin();

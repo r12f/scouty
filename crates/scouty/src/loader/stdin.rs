@@ -38,6 +38,12 @@ impl LogLoader for StdinLoader {
         &self.info
     }
 
+    /// Read all lines from stdin until EOF and return them.
+    ///
+    /// **Known limitation:** This blocks until the producer closes the pipe,
+    /// so streaming sources (`journalctl -f`, `tail -f`, …) will never
+    /// return.  A streaming / incremental loader API is planned as a future
+    /// enhancement.
     fn load(&mut self) -> Result<Vec<String>> {
         let stdin = std::io::stdin();
         let reader = stdin.lock();
