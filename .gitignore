@@ -1,2 +1,3 @@
 target/
 filtered_*.log
+crates/scouty-tui/filtered_*.log
