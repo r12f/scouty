@@ -1,5 +1,7 @@
 //! Application state for the TUI.
 
+use ratatui::style::Color;
+use regex::Regex;
 use scouty::filter::eval;
 use scouty::filter::expr::{self, Expr};
 use scouty::loader::file::FileLoader;
@@ -26,6 +28,8 @@ pub enum InputMode {
     CopyFormat,
     Help,
     SaveFile,
+    Highlight,
+    HighlightManager,
 }
 
 /// Column identifiers for the log table.
@@ -188,6 +192,27 @@ pub struct FieldFilterState {
     pub logic_or: bool,
 }
 
+/// Colors used for highlight rules, in rotation order.
+pub const HIGHLIGHT_COLORS: [Color; 6] = [
+    Color::Red,
+    Color::Green,
+    Color::Blue,
+    Color::Yellow,
+    Color::Magenta,
+    Color::Cyan,
+];
+
+/// A single highlight rule: regex pattern + assigned color.
+#[derive(Debug, Clone)]
+pub struct HighlightRule {
+    /// The regex pattern string.
+    pub pattern: String,
+    /// Compiled regex.
+    pub regex: Regex,
+    /// Assigned foreground color.
+    pub color: Color,
+}
+
 /// Main application state.
 pub struct App {
     /// All log records loaded from the file.
@@ -246,6 +271,12 @@ pub struct App {
     pub filter_version: u64,
     /// Cached density chart data.
     pub density_cache: Option<DensityCache>,
+    /// Highlight rules.
+    pub highlight_rules: Vec<HighlightRule>,
+    /// Highlight input buffer.
+    pub highlight_input: String,
+    /// Highlight manager cursor.
+    pub highlight_manager_cursor: usize,
 }
 
 /// Cached density chart — avoids O(N) recomputation on every frame.
@@ -324,6 +355,9 @@ impl App {
             save_file_input: String::new(),
             filter_version: 0,
             density_cache: None,
+            highlight_rules: Vec::new(),
+            highlight_input: String::new(),
+            highlight_manager_cursor: 0,
         })
     }
 
@@ -1164,9 +1198,37 @@ impl App {
             }
         }
     }
-}
 
-/// Copy format options.
+    /// Add a highlight rule with the given regex pattern.
+    /// Returns Ok(()) on success or Err with the regex error message.
+    pub fn add_highlight_rule(&mut self, pattern: &str) -> Result<(), String> {
+        if pattern.is_empty() {
+            return Err("Empty pattern".to_string());
+        }
+        match Regex::new(pattern) {
+            Ok(regex) => {
+                let color_idx = self.highlight_rules.len() % HIGHLIGHT_COLORS.len();
+                let color = HIGHLIGHT_COLORS[color_idx];
+                self.highlight_rules.push(HighlightRule {
+                    pattern: pattern.to_string(),
+                    regex,
+                    color,
+                });
+                self.set_status(format!("Highlight added: {}", pattern));
+                Ok(())
+            }
+            Err(e) => Err(format!("Invalid regex: {}", e)),
+        }
+    }
+
+    /// Remove highlight rule at index.
+    pub fn remove_highlight_rule(&mut self, idx: usize) {
+        if idx < self.highlight_rules.len() {
+            let removed = self.highlight_rules.remove(idx);
+            self.set_status(format!("Removed highlight: {}", removed.pattern));
+        }
+    }
+}
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum CopyFormat {
     Raw,
@@ -1273,6 +1335,9 @@ mod tests {
             save_file_input: String::new(),
             filter_version: 0,
             density_cache: None,
+            highlight_rules: Vec::new(),
+            highlight_input: String::new(),
+            highlight_manager_cursor: 0,
         }
     }
 
@@ -1316,6 +1381,9 @@ mod tests {
             save_file_input: String::new(),
             filter_version: 0,
             density_cache: None,
+            highlight_rules: Vec::new(),
+            highlight_input: String::new(),
+            highlight_manager_cursor: 0,
         }
     }
 
@@ -1356,6 +1424,9 @@ mod tests {
             save_file_input: String::new(),
             filter_version: 0,
             density_cache: None,
+            highlight_rules: Vec::new(),
+            highlight_input: String::new(),
+            highlight_manager_cursor: 0,
         }
     }
 
@@ -1792,6 +1863,9 @@ mod field_filter_v2_tests {
             save_file_input: String::new(),
             filter_version: 0,
             density_cache: None,
+            highlight_rules: Vec::new(),
+            highlight_input: String::new(),
+            highlight_manager_cursor: 0,
         }
     }
 
@@ -1957,6 +2031,9 @@ mod column_follow_tests {
             save_file_input: String::new(),
             filter_version: 0,
             density_cache: None,
+            highlight_rules: Vec::new(),
+            highlight_input: String::new(),
+            highlight_manager_cursor: 0,
         }
     }
 
@@ -2133,6 +2210,9 @@ mod copy_tests {
             save_file_input: String::new(),
             filter_version: 0,
             density_cache: None,
+            highlight_rules: Vec::new(),
+            highlight_input: String::new(),
+            highlight_manager_cursor: 0,
         }
     }
 
@@ -2283,6 +2363,9 @@ mod time_jump_tests {
             save_file_input: String::new(),
             filter_version: 0,
             density_cache: None,
+            highlight_input: String::new(),
+            highlight_manager_cursor: 0,
+            highlight_rules: Vec::new(),
         }
     }
 

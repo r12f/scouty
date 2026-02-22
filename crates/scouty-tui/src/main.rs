@@ -249,6 +249,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 KeyCode::Char('?') => {
                                     app.input_mode = InputMode::Help;
                                 }
+                                KeyCode::Char('h') => {
+                                    app.input_mode = InputMode::Highlight;
+                                    app.highlight_input.clear();
+                                }
+                                KeyCode::Char('H') => {
+                                    app.input_mode = InputMode::HighlightManager;
+                                    app.highlight_manager_cursor = 0;
+                                }
                                 _ => {}
                             }
                         }
@@ -423,6 +431,34 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         }
                         _ => {}
                     },
+                    InputMode::Highlight => match key.code {
+                        KeyCode::Enter => {
+                            let pattern = app.highlight_input.clone();
+                            if let Err(e) = app.add_highlight_rule(&pattern) {
+                                app.set_status(e);
+                            }
+                            app.input_mode = InputMode::Normal;
+                        }
+                        KeyCode::Esc => {
+                            app.input_mode = InputMode::Normal;
+                        }
+                        KeyCode::Backspace => {
+                            app.highlight_input.pop();
+                        }
+                        KeyCode::Char(c) => {
+                            app.highlight_input.push(c);
+                        }
+                        _ => {}
+                    },
+                    InputMode::HighlightManager => {
+                        use ui::windows::highlight_manager_window::HighlightManagerWindow;
+                        let mut window = HighlightManagerWindow::from_app(&app);
+                        let result = ui::dispatch_key(&mut window, key);
+                        window.apply_to_app(&mut app);
+                        if result == ui::ComponentResult::Close {
+                            app.input_mode = InputMode::Normal;
+                        }
+                    }
                 }
             } // if let Event::Key
 
