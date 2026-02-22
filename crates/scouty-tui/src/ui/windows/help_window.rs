@@ -51,6 +51,7 @@ impl UiComponent for HelpWindow {
             Line::from("  G / End          Jump to last row"),
             Line::from("  Ctrl+G           Go to line number"),
             Line::from("  t                Jump to timestamp"),
+            Line::from("  ] / [            Time jump forward / back"),
             Line::from("  Ctrl+]           Toggle follow mode"),
             Line::from(""),
             section("Search & Filter"),
