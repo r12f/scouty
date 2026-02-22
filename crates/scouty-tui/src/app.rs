@@ -23,6 +23,7 @@ pub enum InputMode {
     ColumnSelector,
     CopyFormat,
     Help,
+    SaveFile,
 }
 
 /// Column identifiers for the log table.
@@ -237,6 +238,8 @@ pub struct App {
     pub follow_mode: bool,
     /// Copy format dialog cursor (0=Raw, 1=JSON, 2=YAML).
     pub copy_format_cursor: usize,
+    /// Save file input buffer.
+    pub save_file_input: String,
     /// Filter version counter (incremented on filter/data change, for density cache invalidation).
     pub filter_version: u64,
     /// Cached density chart data.
@@ -316,6 +319,7 @@ impl App {
             column_config: ColumnConfig::default(),
             follow_mode: false,
             copy_format_cursor: 0,
+            save_file_input: String::new(),
             filter_version: 0,
             density_cache: None,
         })
@@ -1017,6 +1021,35 @@ impl App {
             None
         }
     }
+    /// Generate default save filename based on current time.
+    pub fn default_save_filename() -> String {
+        let now = chrono::Local::now();
+        now.format("filtered_%Y%m%d_%H%M%S.log").to_string()
+    }
+
+    /// Save filtered records to a file.
+    pub fn save_filtered_to_file(&mut self) {
+        let filename = self.save_file_input.trim().to_string();
+        if filename.is_empty() {
+            self.set_status("Save cancelled: empty filename".to_string());
+            return;
+        }
+
+        let mut lines = Vec::with_capacity(self.filtered_indices.len());
+        for &idx in &self.filtered_indices {
+            lines.push(self.records[idx].raw.as_str());
+        }
+
+        match std::fs::write(&filename, lines.join("\n") + "\n") {
+            Ok(()) => {
+                let count = self.filtered_indices.len();
+                self.set_status(format!("Saved {} records to {}", count, filename));
+            }
+            Err(e) => {
+                self.set_status(format!("Save failed: {}", e));
+            }
+        }
+    }
 }
 
 /// Copy format options.
@@ -1123,6 +1156,7 @@ mod tests {
             column_config: ColumnConfig::default(),
             follow_mode: false,
             copy_format_cursor: 0,
+            save_file_input: String::new(),
             filter_version: 0,
             density_cache: None,
         }
@@ -1165,6 +1199,7 @@ mod tests {
             column_config: ColumnConfig::default(),
             follow_mode: false,
             copy_format_cursor: 0,
+            save_file_input: String::new(),
             filter_version: 0,
             density_cache: None,
         }
@@ -1204,6 +1239,7 @@ mod tests {
             column_config: ColumnConfig::default(),
             follow_mode: false,
             copy_format_cursor: 0,
+            save_file_input: String::new(),
             filter_version: 0,
             density_cache: None,
         }
@@ -1639,6 +1675,7 @@ mod field_filter_v2_tests {
             column_config: ColumnConfig::default(),
             follow_mode: false,
             copy_format_cursor: 0,
+            save_file_input: String::new(),
             filter_version: 0,
             density_cache: None,
         }
@@ -1803,6 +1840,7 @@ mod column_follow_tests {
             column_config: ColumnConfig::default(),
             follow_mode: false,
             copy_format_cursor: 0,
+            save_file_input: String::new(),
             filter_version: 0,
             density_cache: None,
         }
@@ -1978,6 +2016,7 @@ mod copy_tests {
             column_config: ColumnConfig::default(),
             follow_mode: false,
             copy_format_cursor: 0,
+            save_file_input: String::new(),
             filter_version: 0,
             density_cache: None,
         }
