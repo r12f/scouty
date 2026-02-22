@@ -1243,6 +1243,7 @@ dependencies = [
  "scouty",
  "serde_json",
  "serde_yaml",
+ "unicode-width 0.2.0",
 ]
 
 [[package]]

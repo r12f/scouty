@@ -59,7 +59,11 @@ impl StatusBarWidget {
         }
 
         // Pad to push position info to the right edge
-        let used_width: usize = spans.iter().map(|s| s.content.len()).sum();
+        // Use unicode_width for correct column count (braille chars are 3 bytes but 1 column)
+        let used_width: usize = spans
+            .iter()
+            .map(|s| unicode_width::UnicodeWidthStr::width(s.content.as_ref()))
+            .sum();
         let total_width = area.width as usize;
         let right_len = right_text.len();
         if used_width + right_len < total_width {
@@ -169,6 +173,11 @@ impl StatusBarWidget {
                 }
                 remaining -= entry.len();
                 spans.push(Span::styled(entry, Style::default().fg(Color::DarkGray)));
+            }
+
+            // Fill remaining width to prevent artifacts
+            if remaining > 0 {
+                spans.push(Span::raw(" ".repeat(remaining)));
             }
         }
 
