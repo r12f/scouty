@@ -149,11 +149,33 @@ pub struct FilterEntry {
     pub exclude: bool,
 }
 
-/// Field filter dialog state.
-#[derive(Debug, Clone)]
+/// Kind of field filter entry.
+#[derive(Clone, Debug, PartialEq)]
+pub enum FieldEntryKind {
+    /// Regular field: generates `field = "value"`.
+    Field,
+    /// Time before: generates `timestamp < "rfc3339"` (exclude) or `<= "rfc3339"` (include).
+    TimeBefore { rfc3339: String },
+    /// Time after: generates `timestamp > "rfc3339"` (exclude) or `>= "rfc3339"` (include).
+    TimeAfter { rfc3339: String },
+}
+
+/// A single entry in the field filter dialog.
+#[derive(Clone, Debug)]
+pub struct FieldEntry {
+    /// Display name shown in dialog.
+    pub name: String,
+    /// Display value shown in dialog.
+    pub value: String,
+    /// Whether this entry is selected.
+    pub checked: bool,
+    /// Kind of entry (determines filter generation).
+    pub kind: FieldEntryKind,
+}
+
 pub struct FieldFilterState {
-    /// Available fields from the selected record: (field_name, value, checked).
-    pub fields: Vec<(String, String, bool)>,
+    /// Available fields from the selected record.
+    pub fields: Vec<FieldEntry>,
     /// Current cursor in the field list.
     pub cursor: usize,
     /// Whether we're in Exclude (true) or Include (false) mode.
@@ -412,58 +434,79 @@ impl App {
     /// `exclude` determines initial mode (Ctrl+- = true, Ctrl+= = false).
     pub fn open_field_filter(&mut self, exclude: bool) {
         if let Some(record) = self.selected_record().cloned() {
-            let mut fields = Vec::new();
+            let mut fields: Vec<FieldEntry> = Vec::new();
 
             // Time range options at the top
-            let ts_str = record.timestamp.to_rfc3339();
+            let ts_rfc3339 = record.timestamp.to_rfc3339();
             let ts_display = record.timestamp.format("%Y-%m-%d %H:%M:%S%.3f").to_string();
-            fields.push((
-                "⏱ Before this log".to_string(),
-                format!("timestamp:{}", ts_str),
-                false,
-            ));
-            fields.push((
-                "⏱ After this log".to_string(),
-                format!("timestamp:{}", ts_str),
-                false,
-            ));
+            fields.push(FieldEntry {
+                name: format!("Before {}", ts_display),
+                value: String::new(),
+                checked: false,
+                kind: FieldEntryKind::TimeBefore {
+                    rfc3339: ts_rfc3339.clone(),
+                },
+            });
+            fields.push(FieldEntry {
+                name: format!("After {}", ts_display),
+                value: String::new(),
+                checked: false,
+                kind: FieldEntryKind::TimeAfter {
+                    rfc3339: ts_rfc3339.clone(),
+                },
+            });
 
-            // ALL fields from LogRecord
-            fields.push(("timestamp".to_string(), ts_display, false));
+            // Helper to push a regular field entry
+            let mut push_field = |name: &str, val: String| {
+                fields.push(FieldEntry {
+                    name: name.to_string(),
+                    value: val,
+                    checked: false,
+                    kind: FieldEntryKind::Field,
+                });
+            };
+
+            // ALL fields from LogRecord — use RFC3339 for timestamp
+            push_field("timestamp", ts_rfc3339);
             if let Some(level) = record.level {
-                fields.push(("level".to_string(), format!("{}", level), false));
+                push_field("level", format!("{}", level));
             }
-            fields.push(("source".to_string(), record.source.to_string(), false));
+            push_field("source", record.source.to_string());
             if let Some(ref name) = record.hostname {
-                fields.push(("hostname".to_string(), name.clone(), false));
+                push_field("hostname", name.clone());
             }
             if let Some(ref name) = record.container {
-                fields.push(("container".to_string(), name.clone(), false));
+                push_field("container", name.clone());
             }
             if let Some(ref ctx) = record.context {
-                fields.push(("context".to_string(), ctx.clone(), false));
+                push_field("context", ctx.clone());
             }
             if let Some(ref func) = record.function {
-                fields.push(("function".to_string(), func.clone(), false));
+                push_field("function", func.clone());
             }
             if let Some(ref name) = record.process_name {
-                fields.push(("process_name".to_string(), name.clone(), false));
+                push_field("process_name", name.clone());
             }
             if let Some(pid) = record.pid {
-                fields.push(("pid".to_string(), pid.to_string(), false));
+                push_field("pid", pid.to_string());
             }
             if let Some(tid) = record.tid {
-                fields.push(("tid".to_string(), tid.to_string(), false));
+                push_field("tid", tid.to_string());
             }
             if let Some(ref comp) = record.component_name {
-                fields.push(("component".to_string(), comp.clone(), false));
+                push_field("component", comp.clone());
             }
-            fields.push(("message".to_string(), record.message.clone(), false));
+            push_field("message", record.message.clone());
 
             // Include metadata fields
             if let Some(ref meta) = record.metadata {
                 for (k, v) in meta {
-                    fields.push((k.clone(), v.clone(), false));
+                    fields.push(FieldEntry {
+                        name: k.clone(),
+                        value: v.clone(),
+                        checked: false,
+                        kind: FieldEntryKind::Field,
+                    });
                 }
             }
 
@@ -482,64 +525,102 @@ impl App {
     /// Apply the field filter dialog selections.
     pub fn apply_field_filter(&mut self) {
         if let Some(ref state) = self.field_filter {
-            let mut parts: Vec<String> = Vec::new();
+            let mut time_parts: Vec<String> = Vec::new();
+            let mut field_parts: Vec<String> = Vec::new();
 
-            for (name, val, checked) in &state.fields {
-                if !checked {
+            for entry in &state.fields {
+                if !entry.checked {
                     continue;
                 }
 
-                if name.starts_with("⏱ Before") {
-                    // Extract timestamp from "timestamp:RFC3339"
-                    let ts = val.strip_prefix("timestamp:").unwrap_or(val);
-                    if state.exclude {
-                        // Exclude before = timestamp < ts (strict, current kept)
-                        parts.push(format!("timestamp < \"{}\"", ts));
-                    } else {
-                        // Include before = timestamp <= ts (inclusive)
-                        parts.push(format!("timestamp <= \"{}\"", ts));
+                match &entry.kind {
+                    FieldEntryKind::TimeBefore { rfc3339 } => {
+                        if state.exclude {
+                            time_parts.push(format!("timestamp < \"{}\"", rfc3339));
+                        } else {
+                            time_parts.push(format!("timestamp <= \"{}\"", rfc3339));
+                        }
                     }
-                } else if name.starts_with("⏱ After") {
-                    let ts = val.strip_prefix("timestamp:").unwrap_or(val);
-                    if state.exclude {
-                        // Exclude after = timestamp > ts (strict, current kept)
-                        parts.push(format!("timestamp > \"{}\"", ts));
-                    } else {
-                        // Include after = timestamp >= ts (inclusive)
-                        parts.push(format!("timestamp >= \"{}\"", ts));
+                    FieldEntryKind::TimeAfter { rfc3339 } => {
+                        if state.exclude {
+                            time_parts.push(format!("timestamp > \"{}\"", rfc3339));
+                        } else {
+                            time_parts.push(format!("timestamp >= \"{}\"", rfc3339));
+                        }
                     }
-                } else {
-                    parts.push(format!("{} = \"{}\"", name, val.replace('"', "\\\"")));
+                    FieldEntryKind::Field => {
+                        field_parts.push(format!(
+                            "{} = \"{}\"",
+                            entry.name,
+                            entry.value.replace('"', "\\\"")
+                        ));
+                    }
                 }
             }
 
-            if parts.is_empty() {
+            // Time filters are always emitted as separate FilterEntry items (AND with stack)
+            // Field filters use the user-selected joiner (OR/AND)
+            let has_time = !time_parts.is_empty();
+            let has_fields = !field_parts.is_empty();
+
+            if !has_time && !has_fields {
                 self.status_message = Some("No fields selected".to_string());
                 return;
             }
 
-            let joiner = if state.logic_or { " OR " } else { " AND " };
-            let expr_str = parts.join(joiner);
-            let label = if state.exclude {
-                format!("exclude: {}", expr_str)
-            } else {
-                format!("include: {}", expr_str)
-            };
+            let mut ok = true;
 
-            match expr::parse(&expr_str) {
-                Ok(parsed_expr) => {
-                    self.filters.push(FilterEntry {
-                        label,
-                        expr: parsed_expr,
-                        exclude: state.exclude,
-                    });
-                    self.field_filter = None;
-                    self.input_mode = InputMode::Normal;
-                    self.reapply_filters();
+            // Emit each time filter as a separate entry
+            for part in &time_parts {
+                match expr::parse(part) {
+                    Ok(parsed_expr) => {
+                        let label = if state.exclude {
+                            format!("exclude: {}", part)
+                        } else {
+                            format!("include: {}", part)
+                        };
+                        self.filters.push(FilterEntry {
+                            label,
+                            expr: parsed_expr,
+                            exclude: state.exclude,
+                        });
+                    }
+                    Err(e) => {
+                        self.status_message = Some(format!("Filter error: {}", e));
+                        ok = false;
+                    }
                 }
-                Err(e) => {
-                    self.status_message = Some(format!("Filter error: {}", e));
+            }
+
+            // Emit field filters as a combined expression
+            if has_fields {
+                let joiner = if state.logic_or { " OR " } else { " AND " };
+                let expr_str = field_parts.join(joiner);
+                let label = if state.exclude {
+                    format!("exclude: {}", expr_str)
+                } else {
+                    format!("include: {}", expr_str)
+                };
+
+                match expr::parse(&expr_str) {
+                    Ok(parsed_expr) => {
+                        self.filters.push(FilterEntry {
+                            label,
+                            expr: parsed_expr,
+                            exclude: state.exclude,
+                        });
+                    }
+                    Err(e) => {
+                        self.status_message = Some(format!("Filter error: {}", e));
+                        ok = false;
+                    }
                 }
+            }
+
+            if ok {
+                self.field_filter = None;
+                self.input_mode = InputMode::Normal;
+                self.reapply_filters();
             }
         }
     }
@@ -1202,12 +1283,12 @@ mod tests {
         assert_eq!(app.input_mode, InputMode::FieldFilter);
         let ff = app.field_filter.as_ref().unwrap();
         assert!(ff.fields.len() >= 4); // timestamp, level, source, process_name, pid, message
-        assert!(ff.fields.iter().any(|(name, _, _)| name == "level"));
-        assert!(ff.fields.iter().any(|(name, _, _)| name == "process_name"));
-        assert!(ff.fields.iter().any(|(name, _, _)| name == "source"));
-        assert!(ff.fields.iter().any(|(name, _, _)| name == "timestamp"));
-        assert!(ff.fields.iter().any(|(name, _, _)| name == "message"));
-        assert!(ff.fields.iter().any(|(name, _, _)| name == "pid"));
+        assert!(ff.fields.iter().any(|e| e.name == "level"));
+        assert!(ff.fields.iter().any(|e| e.name == "process_name"));
+        assert!(ff.fields.iter().any(|e| e.name == "source"));
+        assert!(ff.fields.iter().any(|e| e.name == "timestamp"));
+        assert!(ff.fields.iter().any(|e| e.name == "message"));
+        assert!(ff.fields.iter().any(|e| e.name == "pid"));
         assert!(ff.logic_or); // default OR
     }
 }
@@ -1307,8 +1388,8 @@ mod field_filter_v2_tests {
         assert!(ff.logic_or);
 
         // Check level field (index 1) and message field
-        let level_idx = ff.fields.iter().position(|(n, _, _)| n == "level").unwrap();
-        ff.fields[level_idx].2 = true; // check level = ERROR
+        let level_idx = ff.fields.iter().position(|e| e.name == "level").unwrap();
+        ff.fields[level_idx].checked = true; // check level = ERROR
 
         // Apply — should include only record with level=ERROR
         app.apply_field_filter();
@@ -1328,10 +1409,10 @@ mod field_filter_v2_tests {
         ff.logic_or = false; // AND
 
         // Check both level and pid
-        let level_idx = ff.fields.iter().position(|(n, _, _)| n == "level").unwrap();
-        let pid_idx = ff.fields.iter().position(|(n, _, _)| n == "pid").unwrap();
-        ff.fields[level_idx].2 = true;
-        ff.fields[pid_idx].2 = true;
+        let level_idx = ff.fields.iter().position(|e| e.name == "level").unwrap();
+        let pid_idx = ff.fields.iter().position(|e| e.name == "pid").unwrap();
+        ff.fields[level_idx].checked = true;
+        ff.fields[pid_idx].checked = true;
 
         app.apply_field_filter();
         // Only record 0 has level=ERROR AND pid=1000
@@ -1351,8 +1432,8 @@ mod field_filter_v2_tests {
         let ff = app.field_filter.as_ref().unwrap();
         // 2 time options + 8 standard fields + 2 metadata
         assert_eq!(ff.fields.len(), 12);
-        assert!(ff.fields.iter().any(|(n, _, _)| n == "env"));
-        assert!(ff.fields.iter().any(|(n, _, _)| n == "region"));
+        assert!(ff.fields.iter().any(|e| e.name == "env"));
+        assert!(ff.fields.iter().any(|e| e.name == "region"));
     }
 
     #[test]
