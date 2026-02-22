@@ -42,31 +42,19 @@ impl StatusBarWidget {
         let mut spans: Vec<Span> = Vec::new();
 
         if chart_width >= 4 && app.total() > 0 {
-            let timestamps: Vec<chrono::DateTime<chrono::Utc>> = app
-                .filtered_indices
-                .iter()
-                .map(|&i| app.records[i].timestamp)
-                .collect();
+            if let Some(cache) = &app.density_cache {
+                let cursor_char_idx = app.cursor_char_in_density();
 
-            let num_buckets = (chart_width * 2).min(200);
-            let buckets = crate::density::compute_density(&timestamps, num_buckets);
-
-            let cursor_ts = app.selected_record().map(|r| r.timestamp);
-            let cursor_bucket = cursor_ts
-                .and_then(|ts| crate::density::cursor_bucket(ts, &timestamps, num_buckets));
-
-            let (braille_text, cursor_char_idx) =
-                crate::density::render_braille(&buckets, cursor_bucket);
-
-            for (i, ch) in braille_text.chars().enumerate() {
-                let style = if Some(i) == cursor_char_idx {
-                    Style::default()
-                        .fg(Color::Yellow)
-                        .bg(Color::Rgb(40, 40, 60))
-                } else {
-                    Style::default().fg(Color::Cyan)
-                };
-                spans.push(Span::styled(ch.to_string(), style));
+                for (i, ch) in cache.braille_text.chars().enumerate() {
+                    let style = if Some(i) == cursor_char_idx {
+                        Style::default()
+                            .fg(Color::Yellow)
+                            .bg(Color::Rgb(40, 40, 60))
+                    } else {
+                        Style::default().fg(Color::Cyan)
+                    };
+                    spans.push(Span::styled(ch.to_string(), style));
+                }
             }
 
             spans.push(Span::styled(" │", Style::default().fg(Color::DarkGray)));

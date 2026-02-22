@@ -41,6 +41,7 @@ fn braille_char(left_height: usize, right_height: usize) -> char {
 /// Compute density histogram buckets from filtered record timestamps.
 ///
 /// Returns a Vec of counts, one per bucket.
+#[cfg(test)]
 pub fn compute_density(timestamps: &[DateTime<Utc>], num_buckets: usize) -> Vec<usize> {
     if timestamps.is_empty() || num_buckets == 0 {
         return vec![0; num_buckets.max(1)];
@@ -69,6 +70,7 @@ pub fn compute_density(timestamps: &[DateTime<Utc>], num_buckets: usize) -> Vec<
 }
 
 /// Find which bucket the cursor timestamp falls into.
+#[cfg(test)]
 pub fn cursor_bucket(
     cursor_ts: DateTime<Utc>,
     timestamps: &[DateTime<Utc>],
@@ -86,6 +88,35 @@ pub fn cursor_bucket(
     let offset_ms = (cursor_ts - min_ts).num_milliseconds() as f64;
     let idx = ((offset_ms / range_ms) * (num_buckets as f64 - 1.0)) as usize;
     Some(idx.min(num_buckets - 1))
+}
+
+/// Compute density without collecting timestamps into a Vec.
+/// Iterates filtered indices directly, looking up timestamps in records.
+pub fn compute_density_indexed(
+    records: &[std::sync::Arc<scouty::record::LogRecord>],
+    filtered_indices: &[usize],
+    num_buckets: usize,
+) -> (Vec<usize>, DateTime<Utc>, DateTime<Utc>) {
+    let min_ts = records[filtered_indices[0]].timestamp;
+    let max_ts = records[*filtered_indices.last().unwrap()].timestamp;
+
+    let buckets = if min_ts == max_ts {
+        let mut b = vec![0usize; num_buckets];
+        b[0] = filtered_indices.len();
+        b
+    } else {
+        let range_ms = (max_ts - min_ts).num_milliseconds() as f64;
+        let mut b = vec![0usize; num_buckets];
+        for &i in filtered_indices {
+            let ts = records[i].timestamp;
+            let offset_ms = (ts - min_ts).num_milliseconds() as f64;
+            let idx = ((offset_ms / range_ms) * (num_buckets as f64 - 1.0)) as usize;
+            b[idx.min(num_buckets - 1)] += 1;
+        }
+        b
+    };
+
+    (buckets, min_ts, max_ts)
 }
 
 /// Render density buckets as a Braille string.
