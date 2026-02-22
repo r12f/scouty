@@ -10,7 +10,7 @@ mod tests {
 
     #[test]
     fn test_esc_closes() {
-        let mut w = HelpWindow;
+        let mut w = HelpWindow::new();
         assert_eq!(
             dispatch_key(&mut w, key(KeyCode::Esc)),
             ComponentResult::Close
@@ -18,8 +18,8 @@ mod tests {
     }
 
     #[test]
-    fn test_any_key_closes() {
-        let mut w = HelpWindow;
+    fn test_q_closes() {
+        let mut w = HelpWindow::new();
         assert_eq!(
             dispatch_key(&mut w, key(KeyCode::Char('q'))),
             ComponentResult::Close
@@ -28,10 +28,38 @@ mod tests {
 
     #[test]
     fn test_enter_closes() {
-        let mut w = HelpWindow;
+        let mut w = HelpWindow::new();
         assert_eq!(
             dispatch_key(&mut w, key(KeyCode::Enter)),
             ComponentResult::Close
         );
+    }
+
+    #[test]
+    fn test_jk_scrolls() {
+        let mut w = HelpWindow::new();
+        assert_eq!(w.scroll, 0);
+        dispatch_key(&mut w, key(KeyCode::Char('j')));
+        assert_eq!(w.scroll, 1);
+        dispatch_key(&mut w, key(KeyCode::Char('j')));
+        assert_eq!(w.scroll, 2);
+        dispatch_key(&mut w, key(KeyCode::Char('k')));
+        assert_eq!(w.scroll, 1);
+    }
+
+    #[test]
+    fn test_scroll_doesnt_go_below_zero() {
+        let mut w = HelpWindow::new();
+        dispatch_key(&mut w, key(KeyCode::Char('k')));
+        assert_eq!(w.scroll, 0);
+    }
+
+    #[test]
+    fn test_arrow_scrolls() {
+        let mut w = HelpWindow::new();
+        dispatch_key(&mut w, key(KeyCode::Down));
+        assert_eq!(w.scroll, 1);
+        dispatch_key(&mut w, key(KeyCode::Up));
+        assert_eq!(w.scroll, 0);
     }
 }

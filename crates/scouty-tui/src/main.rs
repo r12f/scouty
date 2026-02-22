@@ -318,6 +318,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 }
                                 KeyCode::Char('?') => {
                                     app.input_mode = InputMode::Help;
+                                    app.help_scroll = 0;
                                 }
                                 KeyCode::Char('h') => {
                                     app.input_mode = InputMode::Highlight;
@@ -484,8 +485,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     }
                     InputMode::Help => {
                         use ui::windows::help_window::HelpWindow;
-                        let mut window = HelpWindow;
+                        let mut window = HelpWindow::new();
+                        window.scroll = app.help_scroll;
                         let result = ui::dispatch_key(&mut window, key);
+                        app.help_scroll = window.scroll;
                         if result == ui::ComponentResult::Close {
                             app.input_mode = InputMode::Normal;
                         }

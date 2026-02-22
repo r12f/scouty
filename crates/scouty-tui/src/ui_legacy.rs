@@ -44,7 +44,8 @@ pub fn render(frame: &mut Frame, app: &App) {
     if app.input_mode == InputMode::Help {
         use crate::ui::windows::help_window::HelpWindow;
         use crate::ui::UiComponent;
-        let window = HelpWindow;
+        let mut window = HelpWindow::new();
+        window.scroll = app.help_scroll;
         window.render(frame, area);
     }
 

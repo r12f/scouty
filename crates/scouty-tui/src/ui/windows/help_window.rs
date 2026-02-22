@@ -11,21 +11,22 @@ use ratatui::text::Line;
 use ratatui::widgets::{Block, Borders, Clear, Paragraph};
 use ratatui::Frame;
 
-/// Help overlay showing keyboard shortcuts.
-#[allow(dead_code)]
-pub struct HelpWindow;
+/// Help overlay showing keyboard shortcuts — scrollable with j/k.
+pub struct HelpWindow {
+    pub scroll: u16,
+    /// Visible content height (set during render).
+    pub visible_height: u16,
+}
 
-#[allow(dead_code)]
-impl UiComponent for HelpWindow {
-    fn render(&self, frame: &mut Frame, area: Rect) {
-        let width = 58u16.min(area.width.saturating_sub(4));
-        let height = 36u16.min(area.height.saturating_sub(4));
-        let x = (area.width.saturating_sub(width)) / 2;
-        let y = (area.height.saturating_sub(height)) / 2;
-        let overlay = Rect::new(x, y, width, height);
+impl HelpWindow {
+    pub fn new() -> Self {
+        Self {
+            scroll: 0,
+            visible_height: 20,
+        }
+    }
 
-        frame.render_widget(Clear, overlay);
-
+    fn help_lines() -> Vec<Line<'static>> {
         let section = |title: &str| {
             Line::styled(
                 format!(" {title}"),
@@ -35,18 +36,26 @@ impl UiComponent for HelpWindow {
             )
         };
 
-        let help_text = vec![
+        vec![
             Line::styled(
-                " Keyboard Shortcuts ",
+                " scouty-tui — TUI Log Viewer ",
                 Style::default()
                     .fg(Color::White)
                     .add_modifier(Modifier::BOLD),
+            ),
+            Line::styled(
+                format!(" Version {}", env!("CARGO_PKG_VERSION")),
+                Style::default().fg(Color::DarkGray),
+            ),
+            Line::styled(
+                " https://github.com/r12f/scouty",
+                Style::default().fg(Color::Blue),
             ),
             Line::from(""),
             section("Navigation"),
             Line::from("  j / ↓            Move down one row"),
             Line::from("  k / ↑            Move up one row"),
-            Line::from("  Ctrl+j/k / PgDn  Page down / up"),
+            Line::from("  PgDn / PgUp       Page down / up"),
             Line::from("  g / Home         Jump to first row"),
             Line::from("  G / End          Jump to last row"),
             Line::from("  Ctrl+G           Go to line number"),
@@ -62,16 +71,52 @@ impl UiComponent for HelpWindow {
             Line::from("  _ / +            Exclude / include field filter"),
             Line::from("  Ctrl+F           Filter manager"),
             Line::from(""),
+            section("Bookmarks"),
+            Line::from("  m                Toggle bookmark"),
+            Line::from("  '                Jump to next bookmark"),
+            Line::from("  \"                Jump to prev bookmark"),
+            Line::from("  M                Bookmark manager"),
+            Line::from(""),
+            section("Highlight"),
+            Line::from("  h                Quick highlight word"),
+            Line::from("  H                Highlight manager"),
+            Line::from(""),
             section("Display"),
             Line::from("  Enter            Toggle detail panel"),
-            Line::from("  Ctrl+C           Column selector"),
+            Line::from("  c                Column selector"),
+            Line::from("  S                Statistics summary"),
+            Line::from("  Ctrl+S           Export filtered log to file"),
             Line::from(""),
             section("General"),
+            Line::from("  y                Copy selected line"),
+            Line::from("  Y                Copy format dialog"),
             Line::from("  ?                Show this help"),
-            Line::from("  S                Statistics summary"),
             Line::from("  Esc              Close dialog / panel"),
-            Line::from("  q                Quit"),
-        ];
+            Line::from("  q                Quit (or close dialog)"),
+            Line::from(""),
+            Line::styled(
+                " j/k to scroll • Esc/q to close ",
+                Style::default().fg(Color::DarkGray),
+            ),
+        ]
+    }
+
+    fn total_lines() -> u16 {
+        Self::help_lines().len() as u16
+    }
+}
+
+impl UiComponent for HelpWindow {
+    fn render(&self, frame: &mut Frame, area: Rect) {
+        let width = 58u16.min(area.width.saturating_sub(4));
+        let height = area.height.saturating_sub(4).min(area.height).max(3);
+        let x = (area.width.saturating_sub(width)) / 2;
+        let y = (area.height.saturating_sub(height)) / 2;
+        let overlay = Rect::new(x, y, width, height);
+
+        frame.render_widget(Clear, overlay);
+
+        let help_text = Self::help_lines();
 
         let help = Paragraph::new(help_text)
             .block(
@@ -80,7 +125,8 @@ impl UiComponent for HelpWindow {
                     .borders(Borders::ALL)
                     .border_style(Style::default().fg(Color::Yellow)),
             )
-            .style(Style::default().bg(Color::Black));
+            .style(Style::default().bg(Color::Black))
+            .scroll((self.scroll, 0));
         frame.render_widget(help, overlay);
     }
 
@@ -88,19 +134,33 @@ impl UiComponent for HelpWindow {
         ComponentResult::Close
     }
 
-    fn on_key(&mut self, _key: crossterm::event::KeyEvent) -> ComponentResult {
-        ComponentResult::Close
+    fn on_up(&mut self) -> ComponentResult {
+        self.scroll = self.scroll.saturating_sub(1);
+        ComponentResult::Consumed
     }
 
-    fn on_char(&mut self, _c: char) -> ComponentResult {
-        ComponentResult::Close
+    fn on_down(&mut self) -> ComponentResult {
+        // Cap scroll so the last few lines remain visible (assume ~20 visible rows)
+        let max_scroll = Self::total_lines().saturating_sub(self.visible_height);
+        if self.scroll < max_scroll {
+            self.scroll += 1;
+        }
+        ComponentResult::Consumed
+    }
+
+    fn enable_jk_navigation(&self) -> bool {
+        true
     }
 
     fn on_confirm(&mut self) -> ComponentResult {
         ComponentResult::Close
     }
 
-    fn on_toggle(&mut self) -> ComponentResult {
-        ComponentResult::Close
+    fn on_char(&mut self, c: char) -> ComponentResult {
+        if c == 'q' {
+            ComponentResult::Close
+        } else {
+            ComponentResult::Consumed
+        }
     }
 }
