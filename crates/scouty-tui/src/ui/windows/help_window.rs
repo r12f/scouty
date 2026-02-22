@@ -14,11 +14,16 @@ use ratatui::Frame;
 /// Help overlay showing keyboard shortcuts — scrollable with j/k.
 pub struct HelpWindow {
     pub scroll: u16,
+    /// Visible content height (set during render).
+    pub visible_height: u16,
 }
 
 impl HelpWindow {
     pub fn new() -> Self {
-        Self { scroll: 0 }
+        Self {
+            scroll: 0,
+            visible_height: 20,
+        }
     }
 
     fn help_lines() -> Vec<Line<'static>> {
@@ -50,7 +55,7 @@ impl HelpWindow {
             section("Navigation"),
             Line::from("  j / ↓            Move down one row"),
             Line::from("  k / ↑            Move up one row"),
-            Line::from("  Ctrl+j/k / PgDn  Page down / up"),
+            Line::from("  PgDn / PgUp       Page down / up"),
             Line::from("  g / Home         Jump to first row"),
             Line::from("  G / End          Jump to last row"),
             Line::from("  Ctrl+G           Go to line number"),
@@ -80,18 +85,14 @@ impl HelpWindow {
             Line::from("  Enter            Toggle detail panel"),
             Line::from("  c                Column selector"),
             Line::from("  S                Statistics summary"),
-            Line::from(""),
-            section("Commands"),
-            Line::from("  :                Enter command mode"),
-            Line::from("  :w <file>        Export filtered log"),
-            Line::from("  :q               Quit"),
+            Line::from("  Ctrl+S           Export filtered log to file"),
             Line::from(""),
             section("General"),
             Line::from("  y                Copy selected line"),
             Line::from("  Y                Copy format dialog"),
             Line::from("  ?                Show this help"),
             Line::from("  Esc              Close dialog / panel"),
-            Line::from("  q                Quit"),
+            Line::from("  q                Quit (or close dialog)"),
             Line::from(""),
             Line::styled(
                 " j/k to scroll • Esc/q to close ",
@@ -108,7 +109,7 @@ impl HelpWindow {
 impl UiComponent for HelpWindow {
     fn render(&self, frame: &mut Frame, area: Rect) {
         let width = 58u16.min(area.width.saturating_sub(4));
-        let height = area.height.saturating_sub(4).max(5);
+        let height = area.height.saturating_sub(4).min(area.height).max(3);
         let x = (area.width.saturating_sub(width)) / 2;
         let y = (area.height.saturating_sub(height)) / 2;
         let overlay = Rect::new(x, y, width, height);
@@ -139,7 +140,8 @@ impl UiComponent for HelpWindow {
     }
 
     fn on_down(&mut self) -> ComponentResult {
-        let max_scroll = Self::total_lines().saturating_sub(1);
+        // Cap scroll so the last few lines remain visible (assume ~20 visible rows)
+        let max_scroll = Self::total_lines().saturating_sub(self.visible_height);
         if self.scroll < max_scroll {
             self.scroll += 1;
         }
