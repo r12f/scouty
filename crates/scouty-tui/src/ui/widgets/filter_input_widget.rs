@@ -12,8 +12,10 @@ use ratatui::text::{Line, Span};
 use ratatui::widgets::Paragraph;
 use ratatui::Frame;
 
+#[allow(dead_code)]
 pub struct FilterInputWidget;
 
+#[allow(dead_code)]
 impl FilterInputWidget {
     pub fn render_with_app(&self, frame: &mut Frame, area: Rect, app: &App) {
         let mut spans = vec![

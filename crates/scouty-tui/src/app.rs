@@ -173,6 +173,7 @@ pub struct FieldEntry {
     pub kind: FieldEntryKind,
 }
 
+#[derive(Clone)]
 pub struct FieldFilterState {
     /// Available fields from the selected record.
     pub fields: Vec<FieldEntry>,
@@ -226,6 +227,8 @@ pub struct App {
     pub goto_input: String,
     /// Status message shown temporarily.
     pub status_message: Option<String>,
+    /// Timestamp when status_message was set (for auto-clear).
+    pub status_message_at: Option<std::time::Instant>,
     /// Column widths computed from data (Time, Level, ProcessName, Pid, Tid, Component).
     pub col_widths: [u16; 6],
     /// Column visibility configuration.
@@ -285,6 +288,7 @@ impl App {
             time_input: String::new(),
             goto_input: String::new(),
             status_message: None,
+            status_message_at: None,
             col_widths,
             column_config: ColumnConfig::default(),
             follow_mode: false,
@@ -333,6 +337,28 @@ impl App {
     /// Total filtered record count.
     pub fn total(&self) -> usize {
         self.filtered_indices.len()
+    }
+
+    /// Set a status message with auto-clear timestamp.
+    pub fn set_status(&mut self, msg: String) {
+        self.status_message = Some(msg);
+        self.status_message_at = Some(std::time::Instant::now());
+    }
+
+    /// Clear status message if it has been displayed for >= 3 seconds.
+    pub fn tick_status_clear(&mut self) {
+        if let Some(at) = self.status_message_at {
+            if at.elapsed() >= std::time::Duration::from_secs(3) {
+                self.status_message = None;
+                self.status_message_at = None;
+            }
+        }
+    }
+
+    /// Clear status message immediately (on keypress).
+    pub fn clear_status(&mut self) {
+        self.status_message = None;
+        self.status_message_at = None;
     }
 
     // ── Filter application ──────────────────────────────────────
@@ -402,7 +428,7 @@ impl App {
                 self.reapply_filters();
             }
             Err(e) => {
-                self.status_message = Some(format!("Filter error: {}", e));
+                self.set_status(format!("Filter error: {}", e));
             }
         }
     }
@@ -425,7 +451,7 @@ impl App {
                 self.reapply_filters();
             }
             Err(e) => {
-                self.status_message = Some(format!("Filter error: {}", e));
+                self.set_status(format!("Filter error: {}", e));
             }
         }
     }
@@ -518,110 +544,112 @@ impl App {
             });
             self.input_mode = InputMode::FieldFilter;
         } else {
-            self.status_message = Some("No record selected".to_string());
+            self.set_status("No record selected".to_string());
         }
     }
 
     /// Apply the field filter dialog selections.
     pub fn apply_field_filter(&mut self) {
-        if let Some(ref state) = self.field_filter {
-            let mut time_parts: Vec<String> = Vec::new();
-            let mut field_parts: Vec<String> = Vec::new();
+        let state = match self.field_filter.clone() {
+            Some(s) => s,
+            None => return,
+        };
+        let mut time_parts: Vec<String> = Vec::new();
+        let mut field_parts: Vec<String> = Vec::new();
 
-            for entry in &state.fields {
-                if !entry.checked {
-                    continue;
-                }
+        for entry in &state.fields {
+            if !entry.checked {
+                continue;
+            }
 
-                match &entry.kind {
-                    FieldEntryKind::TimeBefore { rfc3339 } => {
-                        if state.exclude {
-                            time_parts.push(format!("timestamp < \"{}\"", rfc3339));
-                        } else {
-                            time_parts.push(format!("timestamp <= \"{}\"", rfc3339));
-                        }
-                    }
-                    FieldEntryKind::TimeAfter { rfc3339 } => {
-                        if state.exclude {
-                            time_parts.push(format!("timestamp > \"{}\"", rfc3339));
-                        } else {
-                            time_parts.push(format!("timestamp >= \"{}\"", rfc3339));
-                        }
-                    }
-                    FieldEntryKind::Field => {
-                        field_parts.push(format!(
-                            "{} = \"{}\"",
-                            entry.name,
-                            entry.value.replace('"', "\\\"")
-                        ));
+            match &entry.kind {
+                FieldEntryKind::TimeBefore { rfc3339 } => {
+                    if state.exclude {
+                        time_parts.push(format!("timestamp < \"{}\"", rfc3339));
+                    } else {
+                        time_parts.push(format!("timestamp <= \"{}\"", rfc3339));
                     }
                 }
-            }
-
-            // Time filters are always emitted as separate FilterEntry items (AND with stack)
-            // Field filters use the user-selected joiner (OR/AND)
-            let has_time = !time_parts.is_empty();
-            let has_fields = !field_parts.is_empty();
-
-            if !has_time && !has_fields {
-                self.status_message = Some("No fields selected".to_string());
-                return;
-            }
-
-            let mut ok = true;
-
-            // Emit each time filter as a separate entry
-            for part in &time_parts {
-                match expr::parse(part) {
-                    Ok(parsed_expr) => {
-                        let label = if state.exclude {
-                            format!("exclude: {}", part)
-                        } else {
-                            format!("include: {}", part)
-                        };
-                        self.filters.push(FilterEntry {
-                            label,
-                            expr: parsed_expr,
-                            exclude: state.exclude,
-                        });
-                    }
-                    Err(e) => {
-                        self.status_message = Some(format!("Filter error: {}", e));
-                        ok = false;
+                FieldEntryKind::TimeAfter { rfc3339 } => {
+                    if state.exclude {
+                        time_parts.push(format!("timestamp > \"{}\"", rfc3339));
+                    } else {
+                        time_parts.push(format!("timestamp >= \"{}\"", rfc3339));
                     }
                 }
-            }
-
-            // Emit field filters as a combined expression
-            if has_fields {
-                let joiner = if state.logic_or { " OR " } else { " AND " };
-                let expr_str = field_parts.join(joiner);
-                let label = if state.exclude {
-                    format!("exclude: {}", expr_str)
-                } else {
-                    format!("include: {}", expr_str)
-                };
-
-                match expr::parse(&expr_str) {
-                    Ok(parsed_expr) => {
-                        self.filters.push(FilterEntry {
-                            label,
-                            expr: parsed_expr,
-                            exclude: state.exclude,
-                        });
-                    }
-                    Err(e) => {
-                        self.status_message = Some(format!("Filter error: {}", e));
-                        ok = false;
-                    }
+                FieldEntryKind::Field => {
+                    field_parts.push(format!(
+                        "{} = \"{}\"",
+                        entry.name,
+                        entry.value.replace('"', "\\\"")
+                    ));
                 }
             }
+        }
 
-            if ok {
-                self.field_filter = None;
-                self.input_mode = InputMode::Normal;
-                self.reapply_filters();
+        // Time filters are always emitted as separate FilterEntry items (AND with stack)
+        // Field filters use the user-selected joiner (OR/AND)
+        let has_time = !time_parts.is_empty();
+        let has_fields = !field_parts.is_empty();
+
+        if !has_time && !has_fields {
+            self.set_status("No fields selected".to_string());
+            return;
+        }
+
+        let mut ok = true;
+
+        // Emit each time filter as a separate entry
+        for part in &time_parts {
+            match expr::parse(part) {
+                Ok(parsed_expr) => {
+                    let label = if state.exclude {
+                        format!("exclude: {}", part)
+                    } else {
+                        format!("include: {}", part)
+                    };
+                    self.filters.push(FilterEntry {
+                        label,
+                        expr: parsed_expr,
+                        exclude: state.exclude,
+                    });
+                }
+                Err(e) => {
+                    self.set_status(format!("Filter error: {}", e));
+                    ok = false;
+                }
             }
+        }
+
+        // Emit field filters as a combined expression
+        if has_fields {
+            let joiner = if state.logic_or { " OR " } else { " AND " };
+            let expr_str = field_parts.join(joiner);
+            let label = if state.exclude {
+                format!("exclude: {}", expr_str)
+            } else {
+                format!("include: {}", expr_str)
+            };
+
+            match expr::parse(&expr_str) {
+                Ok(parsed_expr) => {
+                    self.filters.push(FilterEntry {
+                        label,
+                        expr: parsed_expr,
+                        exclude: state.exclude,
+                    });
+                }
+                Err(e) => {
+                    self.set_status(format!("Filter error: {}", e));
+                    ok = false;
+                }
+            }
+        }
+
+        if ok {
+            self.field_filter = None;
+            self.input_mode = InputMode::Normal;
+            self.reapply_filters();
         }
     }
 
@@ -655,7 +683,7 @@ impl App {
             Err(e) => {
                 self.search_matches.clear();
                 self.search_match_idx = None;
-                self.status_message = Some(format!("Invalid regex: {}", e));
+                self.set_status(format!("Invalid regex: {}", e));
                 return;
             }
         };
@@ -673,7 +701,7 @@ impl App {
 
         if self.search_matches.is_empty() {
             self.search_match_idx = None;
-            self.status_message = Some("No matches found".to_string());
+            self.set_status("No matches found".to_string());
         } else {
             let idx = self
                 .search_matches
@@ -715,7 +743,7 @@ impl App {
             let target = self.search_matches[idx];
             self.selected = target;
             self.ensure_selected_visible();
-            self.status_message = Some(format!("Match {}/{}", idx + 1, self.search_matches.len()));
+            self.set_status(format!("Match {}/{}", idx + 1, self.search_matches.len()));
         }
     }
 
@@ -738,11 +766,11 @@ impl App {
                 if self.records[ri].timestamp.time() >= time {
                     self.selected = fi;
                     self.ensure_selected_visible();
-                    self.status_message = Some(format!("Jumped to {}", time));
+                    self.set_status(format!("Jumped to {}", time));
                     return;
                 }
             }
-            self.status_message = Some("No record at or after that time".to_string());
+            self.set_status("No record at or after that time".to_string());
             return;
         }
 
@@ -752,11 +780,11 @@ impl App {
                 if self.records[ri].timestamp >= dt_utc {
                     self.selected = fi;
                     self.ensure_selected_visible();
-                    self.status_message = Some(format!("Jumped to {}", dt_utc));
+                    self.set_status(format!("Jumped to {}", dt_utc));
                     return;
                 }
             }
-            self.status_message = Some("No record at or after that time".to_string());
+            self.set_status("No record at or after that time".to_string());
             return;
         }
 
@@ -773,14 +801,14 @@ impl App {
             Ok(line) if line >= 1 && line <= self.total() => {
                 self.selected = line - 1;
                 self.ensure_selected_visible();
-                self.status_message = Some(format!("Line {}", line));
+                self.set_status(format!("Line {}", line));
             }
             Ok(line) if line > self.total() => {
                 self.scroll_to_bottom();
-                self.status_message = Some(format!("Line {} (clamped to {})", line, self.total()));
+                self.set_status(format!("Line {} (clamped to {})", line, self.total()));
             }
             _ => {
-                self.status_message = Some("Invalid line number".to_string());
+                self.set_status("Invalid line number".to_string());
             }
         }
     }
@@ -866,10 +894,10 @@ impl App {
     pub fn copy_raw(&mut self) -> Option<String> {
         if let Some(record) = self.selected_record() {
             let text = record.raw.clone();
-            self.status_message = Some("Copied raw log to clipboard".to_string());
+            self.set_status("Copied raw log to clipboard".to_string());
             Some(text)
         } else {
-            self.status_message = Some("No record selected".to_string());
+            self.set_status("No record selected".to_string());
             None
         }
     }
@@ -901,7 +929,7 @@ impl App {
             self.input_mode = InputMode::Normal;
             Some(text)
         } else {
-            self.status_message = Some("No record selected".to_string());
+            self.set_status("No record selected".to_string());
             None
         }
     }
@@ -985,6 +1013,7 @@ mod tests {
             time_input: String::new(),
             goto_input: String::new(),
             status_message: None,
+            status_message_at: None,
             col_widths: [19, 5, 11, 3, 3, 9],
             column_config: ColumnConfig::default(),
             follow_mode: false,
@@ -1020,6 +1049,7 @@ mod tests {
             time_input: String::new(),
             goto_input: String::new(),
             status_message: None,
+            status_message_at: None,
             col_widths: [19, 5, 11, 3, 3, 9],
             column_config: ColumnConfig::default(),
             follow_mode: false,
@@ -1345,6 +1375,7 @@ mod field_filter_v2_tests {
             time_input: String::new(),
             goto_input: String::new(),
             status_message: None,
+            status_message_at: None,
             col_widths: [19, 5, 11, 3, 3, 9],
             column_config: ColumnConfig::default(),
             follow_mode: false,
@@ -1505,6 +1536,7 @@ mod column_follow_tests {
             time_input: String::new(),
             goto_input: String::new(),
             status_message: None,
+            status_message_at: None,
             col_widths: [19, 5, 11, 3, 3, 9],
             column_config: ColumnConfig::default(),
             follow_mode: false,
@@ -1676,6 +1708,7 @@ mod copy_tests {
             time_input: String::new(),
             goto_input: String::new(),
             status_message: None,
+            status_message_at: None,
             col_widths: [19, 5, 11, 3, 3, 9],
             column_config: ColumnConfig::default(),
             follow_mode: false,

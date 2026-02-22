@@ -97,26 +97,40 @@ fn render_footer(frame: &mut Frame, app: &App, area: Rect) {
     let line2_area = Rect::new(area.x, area.y + 1, area.width, 1);
     match app.input_mode {
         InputMode::Filter => {
-            use crate::ui::widgets::filter_input_widget::FilterInputWidget;
-            let widget = FilterInputWidget;
-            widget.render_with_app(frame, line2_area, app);
+            render_input_line2(
+                frame,
+                line2_area,
+                "[FILTER]",
+                &app.filter_input,
+                app.filter_error.as_deref(),
+            );
         }
         InputMode::Search => {
-            use crate::ui::widgets::search_input_widget::SearchInputWidget;
-            let widget = SearchInputWidget;
-            widget.render_with_app(frame, line2_area, app);
+            render_input_line2(frame, line2_area, "[SEARCH]", &app.search_input, None);
         }
         InputMode::TimeJump => {
-            render_input_footer(frame, line2_area, "Jump to time: ", &app.time_input);
+            render_input_line2(frame, line2_area, "[GOTO]", &app.time_input, None);
         }
         InputMode::GotoLine => {
-            render_input_footer(frame, line2_area, "Go to line: ", &app.goto_input);
+            render_input_line2(frame, line2_area, "[GOTO]", &app.goto_input, None);
         }
         InputMode::QuickExclude => {
-            render_input_footer(frame, line2_area, "Exclude text: ", &app.quick_filter_input);
+            render_input_line2(
+                frame,
+                line2_area,
+                "[EXCLUDE]",
+                &app.quick_filter_input,
+                None,
+            );
         }
         InputMode::QuickInclude => {
-            render_input_footer(frame, line2_area, "Include text: ", &app.quick_filter_input);
+            render_input_line2(
+                frame,
+                line2_area,
+                "[INCLUDE]",
+                &app.quick_filter_input,
+                None,
+            );
         }
         _ => {
             use crate::ui::widgets::status_bar_widget::StatusBarWidget;
@@ -126,11 +140,24 @@ fn render_footer(frame: &mut Frame, app: &App, area: Rect) {
     }
 }
 
-fn render_input_footer(frame: &mut Frame, area: Rect, prompt: &str, input: &str) {
-    let input_line = Paragraph::new(Line::from(vec![
-        Span::styled(prompt, Style::default().fg(Color::Yellow)),
+fn render_input_line2(frame: &mut Frame, area: Rect, mode: &str, input: &str, error: Option<&str>) {
+    let mut spans = vec![
+        Span::styled(
+            format!(" {} ", mode),
+            Style::default().fg(Color::Black).bg(Color::Yellow),
+        ),
+        Span::raw(" "),
         Span::raw(input),
         Span::styled("█", Style::default().fg(Color::White)),
-    ]));
+    ];
+
+    if let Some(err) = error {
+        spans.push(Span::styled(
+            format!("  {}", err),
+            Style::default().fg(Color::Red),
+        ));
+    }
+
+    let input_line = Paragraph::new(Line::from(spans));
     frame.render_widget(input_line, area);
 }
