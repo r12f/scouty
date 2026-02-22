@@ -7,19 +7,8 @@ use ratatui::{prelude::*, widgets::Paragraph};
 pub fn render(frame: &mut Frame, app: &App) {
     let area = frame.area();
 
-    let footer_height = if matches!(
-        app.input_mode,
-        InputMode::Filter
-            | InputMode::Search
-            | InputMode::TimeJump
-            | InputMode::GotoLine
-            | InputMode::QuickExclude
-            | InputMode::QuickInclude
-    ) {
-        2
-    } else {
-        1
-    };
+    // Footer is always 2 lines: line 1 = density/position, line 2 = mode/shortcuts or input
+    let footer_height = 2;
 
     let main_chunks = Layout::default()
         .direction(Direction::Vertical)
@@ -93,56 +82,55 @@ fn render_detail_panel(frame: &mut Frame, app: &App, area: Rect) {
 }
 
 fn render_footer(frame: &mut Frame, app: &App, area: Rect) {
+    // Line 1: density chart + position info (always shown)
+    let line1_area = Rect::new(area.x, area.y, area.width, 1);
+    {
+        use crate::ui::widgets::status_bar_widget::StatusBarWidget;
+        let widget = StatusBarWidget;
+        widget.render_line1(frame, line1_area, app);
+    }
+
+    // Line 2: mode/shortcuts or input
+    if area.height < 2 {
+        return;
+    }
+    let line2_area = Rect::new(area.x, area.y + 1, area.width, 1);
     match app.input_mode {
         InputMode::Filter => {
             use crate::ui::widgets::filter_input_widget::FilterInputWidget;
             let widget = FilterInputWidget;
-            widget.render_with_app(frame, area, app);
+            widget.render_with_app(frame, line2_area, app);
         }
         InputMode::Search => {
             use crate::ui::widgets::search_input_widget::SearchInputWidget;
             let widget = SearchInputWidget;
-            widget.render_with_app(frame, area, app);
+            widget.render_with_app(frame, line2_area, app);
         }
         InputMode::TimeJump => {
-            render_input_footer(frame, area, "Jump to time: ", &app.time_input, None);
+            render_input_footer(frame, line2_area, "Jump to time: ", &app.time_input);
         }
         InputMode::GotoLine => {
-            render_input_footer(frame, area, "Go to line: ", &app.goto_input, None);
+            render_input_footer(frame, line2_area, "Go to line: ", &app.goto_input);
         }
         InputMode::QuickExclude => {
-            render_input_footer(frame, area, "Exclude text: ", &app.quick_filter_input, None);
+            render_input_footer(frame, line2_area, "Exclude text: ", &app.quick_filter_input);
         }
         InputMode::QuickInclude => {
-            render_input_footer(frame, area, "Include text: ", &app.quick_filter_input, None);
+            render_input_footer(frame, line2_area, "Include text: ", &app.quick_filter_input);
         }
         _ => {
             use crate::ui::widgets::status_bar_widget::StatusBarWidget;
             let widget = StatusBarWidget;
-            widget.render_with_app(frame, area, app);
+            widget.render_line2(frame, line2_area, app);
         }
     }
 }
 
-fn render_input_footer(
-    frame: &mut Frame,
-    area: Rect,
-    prompt: &str,
-    input: &str,
-    error: Option<&str>,
-) {
+fn render_input_footer(frame: &mut Frame, area: Rect, prompt: &str, input: &str) {
     let input_line = Paragraph::new(Line::from(vec![
         Span::styled(prompt, Style::default().fg(Color::Yellow)),
         Span::raw(input),
         Span::styled("█", Style::default().fg(Color::White)),
     ]));
     frame.render_widget(input_line, area);
-
-    if let Some(err) = error {
-        if area.height > 1 {
-            let err_area = Rect::new(area.x, area.y + 1, area.width, 1);
-            let err_line = Paragraph::new(Span::styled(err, Style::default().fg(Color::Red)));
-            frame.render_widget(err_line, err_area);
-        }
-    }
 }

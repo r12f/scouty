@@ -1,4 +1,7 @@
-//! Status bar widget — bottom bar with density chart and position info.
+//! Status bar widget — 2-line bottom bar.
+//!
+//! Line 1: density chart (left) + position info (right)
+//! Line 2: mode label + shortcut hints
 
 #[cfg(test)]
 #[path = "status_bar_widget_tests.rs"]
@@ -16,8 +19,8 @@ use ratatui::Frame;
 pub struct StatusBarWidget;
 
 impl StatusBarWidget {
-    /// Render the status bar with app context.
-    pub fn render_with_app(&self, frame: &mut Frame, area: Rect, app: &App) {
+    /// Render line 1: density chart + position info.
+    pub fn render_line1(&self, frame: &mut Frame, area: Rect, app: &App) {
         let position = if app.total() == 0 {
             format!("0/0 (Total: {})", app.total_records)
         } else {
@@ -31,14 +34,10 @@ impl StatusBarWidget {
             }
         };
 
-        let follow_indicator = if app.follow_mode { " [FOLLOW]" } else { "" };
-        let mut right_text = format!(" {}{} ", position, follow_indicator);
-        if let Some(ref msg) = app.status_message {
-            right_text = format!(" {} │{}", msg, right_text);
-        }
-        let right_width = right_text.len() as u16 + 1;
+        let right_text = format!(" {} ", position);
+        let right_width = right_text.len() as u16;
 
-        let chart_width = area.width.saturating_sub(right_width + 3) as usize;
+        let chart_width = area.width.saturating_sub(right_width + 2) as usize;
 
         let mut spans: Vec<Span> = Vec::new();
 
@@ -73,16 +72,61 @@ impl StatusBarWidget {
             spans.push(Span::styled(" │", Style::default().fg(Color::DarkGray)));
         }
 
-        if let Some(ref msg) = app.status_message {
-            spans.push(Span::styled(
-                format!(" {} │", msg),
-                Style::default().fg(Color::Yellow),
-            ));
-        }
         spans.push(Span::styled(
-            format!(" {}{} ", position, follow_indicator),
+            right_text,
             Style::default().fg(Color::White).bg(Color::DarkGray),
         ));
+
+        let footer = Paragraph::new(Line::from(spans));
+        frame.render_widget(footer, area);
+    }
+
+    /// Render line 2: mode label + shortcut hints.
+    pub fn render_line2(&self, frame: &mut Frame, area: Rect, app: &App) {
+        let mode_label = if app.follow_mode {
+            "[FOLLOW]"
+        } else {
+            "[VIEW]"
+        };
+
+        let mut spans = vec![Span::styled(
+            format!(" {} ", mode_label),
+            Style::default().fg(Color::Black).bg(Color::Cyan),
+        )];
+
+        // Show status message if present, otherwise show shortcut hints
+        if let Some(ref msg) = app.status_message {
+            spans.push(Span::styled(
+                format!(" {} ", msg),
+                Style::default().fg(Color::Yellow),
+            ));
+        } else {
+            let shortcuts = [
+                ("/", "Search"),
+                ("f", "Filter"),
+                ("-", "Exclude"),
+                ("=", "Include"),
+                ("Enter", "Detail"),
+                ("c", "Columns"),
+                ("?", "Help"),
+            ];
+
+            let mode_width = mode_label.len() + 2; // + spaces for " {} "
+            let mut remaining = area.width.saturating_sub(mode_width as u16) as usize;
+
+            for (i, (key, desc)) in shortcuts.iter().enumerate() {
+                let entry = if i == 0 {
+                    format!(" {}: {}", key, desc)
+                } else {
+                    format!(" │ {}: {}", key, desc)
+                };
+                if entry.len() > remaining {
+                    break;
+                }
+                remaining -= entry.len();
+                spans.push(Span::styled(entry, Style::default().fg(Color::DarkGray)));
+            }
+        }
 
         let footer = Paragraph::new(Line::from(spans));
         frame.render_widget(footer, area);
