@@ -65,7 +65,7 @@ impl StatusBarWidget {
             Style::default().fg(Color::White).bg(Color::DarkGray),
         ));
 
-        let footer = Paragraph::new(Line::from(spans));
+        let footer = Paragraph::new(Line::from(spans)).style(Style::default().bg(Color::DarkGray));
         frame.render_widget(footer, area);
     }
 
@@ -118,7 +118,7 @@ impl StatusBarWidget {
             }
         }
 
-        let footer = Paragraph::new(Line::from(spans));
+        let footer = Paragraph::new(Line::from(spans)).style(Style::default().bg(Color::DarkGray));
         frame.render_widget(footer, area);
     }
 }
