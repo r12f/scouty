@@ -254,4 +254,46 @@ mod tests {
             .unwrap();
         assert_eq!(record.component_name.as_deref(), Some("SWITCH_TABLE"));
     }
+
+    #[test]
+    fn test_sairedis_detection() {
+        let info = text_loader_info(vec![
+            "2025-05-18.06:38:00.123456|c|SAI_OBJECT_TYPE_HOSTIF:oid:0x12345678|SAI_HOSTIF_ATTR_TYPE=SAI_HOSTIF_TYPE_NETDEV".to_string(),
+            "2025-05-18.06:38:01.234567|g|SAI_OBJECT_TYPE_SWITCH:oid:0x00000001".to_string(),
+        ]);
+        let group = ParserFactory::create_parser_group(&info);
+        let record = group
+            .parse(
+                "2025-05-18.06:38:00.123456|c|SAI_OBJECT_TYPE_HOSTIF:oid:0x12345678|SAI_HOSTIF_ATTR_TYPE=SAI_HOSTIF_TYPE_NETDEV",
+                "test",
+                "loader",
+                1,
+            )
+            .unwrap();
+        // Sairedis parser should handle this, not SWSS
+        assert_eq!(record.function.as_deref(), Some("Create"));
+        assert_eq!(
+            record.component_name.as_deref(),
+            Some("SAI_OBJECT_TYPE_HOSTIF")
+        );
+        assert!(record.message.contains("SAI_HOSTIF_ATTR_TYPE"));
+    }
+
+    #[test]
+    fn test_swss_not_detected_as_sairedis() {
+        let info = text_loader_info(vec![
+            "2025-11-13.22:19:35.512358|SWITCH_TABLE:switch|SET|k:v".to_string(),
+            "2025-11-13.22:19:36.123456|PORT_TABLE:Ethernet0|SET|speed:100000".to_string(),
+        ]);
+        let group = ParserFactory::create_parser_group(&info);
+        let record = group
+            .parse(
+                "2025-11-13.22:19:35.512358|SWITCH_TABLE:switch|SET|k:v",
+                "test",
+                "loader",
+                1,
+            )
+            .unwrap();
+        assert_eq!(record.component_name.as_deref(), Some("SWITCH_TABLE"));
+    }
 }

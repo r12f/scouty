@@ -15,7 +15,7 @@ use std::cell::RefCell;
 use std::sync::Arc;
 
 /// Known op codes for sairedis logs.
-const KNOWN_OPS: &[u8] = b"cCrRsSgGbBpPqQnN";
+const KNOWN_OPS: &[u8] = b"crsgGpCRSBqQn";
 
 /// Parser for SONiC sairedis log format.
 ///
