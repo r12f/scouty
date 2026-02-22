@@ -1,6 +1,7 @@
 //! scouty-tui — Terminal UI for scouty log viewer.
 
 mod app;
+pub mod config;
 mod density;
 pub mod text_input;
 mod ui;
@@ -154,6 +155,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         }
     };
+
+    // Load config and resolve theme
+    {
+        let cfg = config::load_config();
+        app.theme = config::resolve_theme(&cfg, None);
+    }
 
     loop {
         // Pre-compute density cache using exact position text width
@@ -462,7 +469,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     }
                     InputMode::Help => {
                         use ui::windows::help_window::HelpWindow;
-                        let mut window = HelpWindow::new();
+                        let mut window = HelpWindow::new(&app.theme);
                         window.scroll = app.help_scroll;
                         let result = ui::dispatch_key(&mut window, key);
                         app.help_scroll = window.scroll;
@@ -474,7 +481,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         use ui::windows::stats_window::StatsWindow;
                         // Stats are pre-computed on mode entry; reuse cached data.
                         if let Some(ref stats) = app.cached_stats {
-                            let mut window = StatsWindow { stats };
+                            let mut window = StatsWindow {
+                                stats,
+                                theme: &app.theme,
+                            };
                             let result = ui::dispatch_key(&mut window, key);
                             if result == ui::ComponentResult::Close {
                                 app.cached_stats = None;

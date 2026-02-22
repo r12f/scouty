@@ -7,7 +7,7 @@ mod search_input_widget_tests;
 use crate::app::App;
 use crate::ui::{ComponentResult, UiComponent};
 use ratatui::layout::Rect;
-use ratatui::style::{Color, Style};
+
 use ratatui::text::{Line, Span};
 use ratatui::widgets::Paragraph;
 use ratatui::Frame;
@@ -18,10 +18,11 @@ pub struct SearchInputWidget;
 #[allow(dead_code)]
 impl SearchInputWidget {
     pub fn render_with_app(&self, frame: &mut Frame, area: Rect, app: &App) {
+        let theme = &app.theme;
         let input_line = Paragraph::new(Line::from(vec![
-            Span::styled("/", Style::default().fg(Color::Yellow)),
+            Span::styled("/", theme.input.prompt.to_style()),
             Span::raw(app.search_input.value()),
-            Span::styled("█", Style::default().fg(Color::White)),
+            Span::styled("█", theme.input.cursor.to_style()),
         ]));
         frame.render_widget(input_line, area);
     }

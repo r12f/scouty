@@ -8,7 +8,7 @@ use crate::app::App;
 use crate::ui::{ComponentResult, UiComponent};
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::layout::Rect;
-use ratatui::style::{Color, Modifier, Style};
+use ratatui::style::{Modifier, Style};
 use ratatui::text::Line;
 use ratatui::widgets::{Block, Borders, Clear, Paragraph};
 use ratatui::Frame;
@@ -32,6 +32,7 @@ impl FilterManagerWindow {
     }
 
     pub fn render_with_app(&self, frame: &mut Frame, app: &App, area: Rect) {
+        let theme = &app.theme;
         let width = 55u16.min(area.width.saturating_sub(4));
         let height = (app.filters.len() as u16 + 7)
             .min(area.height.saturating_sub(4))
@@ -45,9 +46,7 @@ impl FilterManagerWindow {
         let mut lines = vec![
             Line::styled(
                 format!(" Active Filters ({})", app.filters.len()),
-                Style::default()
-                    .fg(Color::White)
-                    .add_modifier(Modifier::BOLD),
+                theme.dialog.text.to_style().add_modifier(Modifier::BOLD),
             ),
             Line::from(""),
         ];
@@ -55,14 +54,14 @@ impl FilterManagerWindow {
         if app.filters.is_empty() {
             lines.push(Line::styled(
                 " (no active filters)",
-                Style::default().fg(Color::DarkGray),
+                theme.dialog.muted.to_style(),
             ));
         } else {
             for (i, filter) in app.filters.iter().enumerate() {
                 let is_cursor = i == self.cursor;
                 let prefix = if filter.exclude { "−" } else { "+" };
                 let style = if is_cursor {
-                    Style::default().bg(Color::DarkGray).fg(Color::White)
+                    theme.dialog.selected.to_style()
                 } else {
                     Style::default()
                 };
@@ -73,7 +72,7 @@ impl FilterManagerWindow {
         lines.push(Line::from(""));
         lines.push(Line::styled(
             " d: Delete  c: Clear all  Esc: Close",
-            Style::default().fg(Color::DarkGray),
+            theme.dialog.muted.to_style(),
         ));
 
         let dialog = Paragraph::new(lines)
@@ -81,9 +80,9 @@ impl FilterManagerWindow {
                 Block::default()
                     .title(" Filter Manager (F) ")
                     .borders(Borders::ALL)
-                    .border_style(Style::default().fg(Color::Cyan)),
+                    .border_style(theme.dialog.border.to_style()),
             )
-            .style(Style::default().bg(Color::Black));
+            .style(theme.dialog.background.to_style());
         frame.render_widget(dialog, overlay);
     }
 

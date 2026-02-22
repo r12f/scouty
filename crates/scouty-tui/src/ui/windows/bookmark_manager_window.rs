@@ -7,7 +7,7 @@ mod bookmark_manager_window_tests;
 use crate::app::App;
 use crate::ui::{ComponentResult, UiComponent};
 use ratatui::layout::Rect;
-use ratatui::style::{Color, Modifier, Style};
+use ratatui::style::Modifier;
 use ratatui::text::Line;
 use ratatui::widgets::{Block, Borders, Clear, Paragraph};
 use ratatui::Frame;
@@ -60,7 +60,8 @@ impl BookmarkManagerWindow {
         }
     }
 
-    pub fn render_with_app(&self, frame: &mut Frame, _app: &App, area: Rect) {
+    pub fn render_with_app(&self, frame: &mut Frame, app: &App, area: Rect) {
+        let theme = &app.theme;
         let width = 60u16.min(area.width.saturating_sub(4));
         let height = (self.entries.len() as u16 + 7)
             .min(area.height.saturating_sub(4))
@@ -74,9 +75,7 @@ impl BookmarkManagerWindow {
         let mut lines = vec![
             Line::styled(
                 format!(" Bookmarks ({})", self.entries.len()),
-                Style::default()
-                    .fg(Color::White)
-                    .add_modifier(Modifier::BOLD),
+                theme.dialog.text.to_style().add_modifier(Modifier::BOLD),
             ),
             Line::from(""),
         ];
@@ -84,18 +83,16 @@ impl BookmarkManagerWindow {
         if self.entries.is_empty() {
             lines.push(Line::styled(
                 " (no bookmarks — press m to add)",
-                Style::default().fg(Color::DarkGray),
+                theme.dialog.muted.to_style(),
             ));
         } else {
             for (i, entry) in self.entries.iter().enumerate() {
                 let is_cursor = i == self.cursor;
                 let prefix = if is_cursor { "▸ " } else { "  " };
                 let style = if is_cursor {
-                    Style::default()
-                        .fg(Color::Yellow)
-                        .add_modifier(Modifier::BOLD)
+                    theme.dialog.accent.to_style().add_modifier(Modifier::BOLD)
                 } else {
-                    Style::default().fg(Color::White)
+                    theme.dialog.text.to_style()
                 };
                 lines.push(Line::styled(
                     format!("{}{:>6}  {}", prefix, entry.filtered_idx + 1, entry.message),
@@ -107,7 +104,7 @@ impl BookmarkManagerWindow {
         lines.push(Line::from(""));
         lines.push(Line::styled(
             " j/k:navigate  Enter:jump  d:delete  Esc:close",
-            Style::default().fg(Color::DarkGray),
+            theme.dialog.muted.to_style(),
         ));
 
         let widget = Paragraph::new(lines)
@@ -115,9 +112,9 @@ impl BookmarkManagerWindow {
                 Block::default()
                     .title(" Bookmark Manager ")
                     .borders(Borders::ALL)
-                    .border_style(Style::default().fg(Color::Yellow)),
+                    .border_style(theme.dialog.accent.to_style()),
             )
-            .style(Style::default().bg(Color::Black));
+            .style(theme.dialog.background.to_style());
         frame.render_widget(widget, overlay);
     }
 

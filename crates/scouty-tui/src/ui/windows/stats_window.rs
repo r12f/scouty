@@ -5,9 +5,10 @@
 mod stats_window_tests;
 
 use crate::app::App;
+use crate::config::Theme;
 use crate::ui::{ComponentResult, UiComponent};
 use ratatui::layout::Rect;
-use ratatui::style::{Color, Modifier, Style};
+use ratatui::style::Modifier;
 use ratatui::text::Line;
 use ratatui::widgets::{Block, Borders, Clear, Paragraph};
 use ratatui::Frame;
@@ -89,6 +90,7 @@ impl StatsData {
 /// Statistics overlay window.
 pub struct StatsWindow<'a> {
     pub stats: &'a StatsData,
+    pub theme: &'a Theme,
 }
 
 impl<'a> UiComponent for StatsWindow<'a> {
@@ -109,8 +111,10 @@ impl<'a> UiComponent for StatsWindow<'a> {
         let section = |title: &str| -> Line<'_> {
             Line::styled(
                 format!(" {title}"),
-                Style::default()
-                    .fg(Color::Cyan)
+                self.theme
+                    .dialog
+                    .title
+                    .to_style()
                     .add_modifier(Modifier::BOLD),
             )
         };
@@ -191,9 +195,9 @@ impl<'a> UiComponent for StatsWindow<'a> {
                 Block::default()
                     .title(" Statistics ")
                     .borders(Borders::ALL)
-                    .border_style(Style::default().fg(Color::Yellow)),
+                    .border_style(self.theme.dialog.accent.to_style()),
             )
-            .style(Style::default().bg(Color::Black));
+            .style(self.theme.dialog.background.to_style());
         frame.render_widget(para, overlay);
     }
 

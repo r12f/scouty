@@ -17,6 +17,7 @@ mod tests {
                 (Column::Level, true),
                 (Column::Log, true),
             ],
+            theme: crate::config::Theme::default(),
         }
     }
 

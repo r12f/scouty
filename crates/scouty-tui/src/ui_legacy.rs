@@ -44,7 +44,7 @@ pub fn render(frame: &mut Frame, app: &App) {
     if app.input_mode == InputMode::Help {
         use crate::ui::windows::help_window::HelpWindow;
         use crate::ui::UiComponent;
-        let mut window = HelpWindow::new();
+        let mut window = HelpWindow::new(&app.theme);
         window.scroll = app.help_scroll;
         window.render(frame, area);
     }
@@ -54,7 +54,10 @@ pub fn render(frame: &mut Frame, app: &App) {
         use crate::ui::windows::stats_window::StatsWindow;
         use crate::ui::UiComponent;
         if let Some(ref stats) = app.cached_stats {
-            let window = StatsWindow { stats };
+            let window = StatsWindow {
+                stats,
+                theme: &app.theme,
+            };
             window.render(frame, area);
         }
     }
@@ -137,6 +140,7 @@ fn render_footer(frame: &mut Frame, app: &App, area: Rect) {
                 "[FILTER]",
                 app.filter_input.value(),
                 app.filter_error.as_deref(),
+                app,
             );
         }
         InputMode::Search => {
@@ -146,10 +150,18 @@ fn render_footer(frame: &mut Frame, app: &App, area: Rect) {
                 "[SEARCH]",
                 app.search_input.value(),
                 None,
+                app,
             );
         }
         InputMode::GotoLine => {
-            render_input_line2(frame, line2_area, "[GOTO]", app.goto_input.value(), None);
+            render_input_line2(
+                frame,
+                line2_area,
+                "[GOTO]",
+                app.goto_input.value(),
+                None,
+                app,
+            );
         }
         InputMode::QuickExclude => {
             render_input_line2(
@@ -158,6 +170,7 @@ fn render_footer(frame: &mut Frame, app: &App, area: Rect) {
                 "[EXCLUDE]",
                 app.quick_filter_input.value(),
                 None,
+                app,
             );
         }
         InputMode::QuickInclude => {
@@ -167,6 +180,7 @@ fn render_footer(frame: &mut Frame, app: &App, area: Rect) {
                 "[INCLUDE]",
                 app.quick_filter_input.value(),
                 None,
+                app,
             );
         }
         InputMode::Highlight => {
@@ -176,6 +190,7 @@ fn render_footer(frame: &mut Frame, app: &App, area: Rect) {
                 "[HIGHLIGHT]",
                 app.highlight_input.value(),
                 None,
+                app,
             );
         }
         _ => {
@@ -186,24 +201,32 @@ fn render_footer(frame: &mut Frame, app: &App, area: Rect) {
     }
 }
 
-fn render_input_line2(frame: &mut Frame, area: Rect, mode: &str, input: &str, error: Option<&str>) {
+fn render_input_line2(
+    frame: &mut Frame,
+    area: Rect,
+    mode: &str,
+    input: &str,
+    error: Option<&str>,
+    app: &App,
+) {
+    let theme = &app.theme;
     let mut spans = vec![
         Span::styled(
             format!(" {} ", mode),
-            Style::default().fg(Color::Black).bg(Color::Yellow),
+            theme.status_bar.search_mode_label.to_style(),
         ),
         Span::raw(" "),
         Span::raw(input),
-        Span::styled("█", Style::default().fg(Color::White)),
+        Span::styled("█", theme.input.cursor.to_style()),
     ];
 
     if let Some(err) = error {
         spans.push(Span::styled(
             format!("  {}", err),
-            Style::default().fg(Color::Red),
+            theme.input.error.to_style(),
         ));
     }
 
-    let input_line = Paragraph::new(Line::from(spans)).style(Style::default().bg(Color::DarkGray));
+    let input_line = Paragraph::new(Line::from(spans)).style(theme.input.background.to_style());
     frame.render_widget(input_line, area);
 }

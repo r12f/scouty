@@ -29,6 +29,7 @@ mod tests {
             exclude: true,
             logic_or: false,
             confirmed: false,
+            theme: crate::config::Theme::default(),
         }
     }
 
