@@ -232,15 +232,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 KeyCode::Char(']') => {
                                     app.toggle_follow();
                                 }
-                                // Ctrl+- = exclude field filter
-                                // Some terminals send Char('-'), others Char('\x1f') (ASCII 31)
-                                KeyCode::Char('-') | KeyCode::Char('\x1f') => {
-                                    app.open_field_filter(true);
-                                }
-                                // Ctrl+= = include field filter
-                                KeyCode::Char('=') => {
-                                    app.open_field_filter(false);
-                                }
                                 _ => {}
                             }
                         } else {
