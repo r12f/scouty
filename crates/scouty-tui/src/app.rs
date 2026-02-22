@@ -2363,6 +2363,9 @@ mod time_jump_tests {
             save_file_input: String::new(),
             filter_version: 0,
             density_cache: None,
+            highlight_input: String::new(),
+            highlight_manager_cursor: 0,
+            highlight_rules: Vec::new(),
         }
     }
 
