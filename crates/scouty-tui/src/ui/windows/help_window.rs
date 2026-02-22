@@ -58,7 +58,7 @@ impl UiComponent for HelpWindow {
             Line::from("  n / N            Next / prev search match"),
             Line::from("  f                Filter expression"),
             Line::from("  - / =            Quick exclude / include"),
-            Line::from("  Ctrl+- / Ctrl+=  Exclude / include field filter"),
+            Line::from("  _ / +            Exclude / include field filter"),
             Line::from("  Ctrl+F           Filter manager"),
             Line::from(""),
             section("Display"),
