@@ -12,10 +12,31 @@ use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, Clear, Paragraph};
 use ratatui::Frame;
 
+const FORMAT_OPTIONS: [(&str, CopyFormat); 3] = [
+    ("Raw text", CopyFormat::Raw),
+    ("JSON", CopyFormat::Json),
+    ("YAML", CopyFormat::Yaml),
+];
+
 /// Popup dialog for selecting copy format (Raw/JSON/YAML).
-pub struct CopyFormatWindow;
+pub struct CopyFormatWindow {
+    pub cursor: usize,
+    pub confirmed: bool,
+}
 
 impl CopyFormatWindow {
+    pub fn from_app(app: &App) -> Self {
+        Self {
+            cursor: app.copy_format_cursor,
+            confirmed: false,
+        }
+    }
+
+    /// Get the selected format.
+    pub fn selected_format(&self) -> CopyFormat {
+        FORMAT_OPTIONS[self.cursor].1
+    }
+
     /// Handle the selected format: copy to clipboard and return Close.
     pub fn select_format(app: &mut App, format: CopyFormat) -> ComponentResult {
         if let Some(text) = app.copy_as_format(format) {
@@ -27,53 +48,41 @@ impl CopyFormatWindow {
 
 impl UiComponent for CopyFormatWindow {
     fn enable_jk_navigation(&self) -> bool {
-        false
+        true
     }
 
     fn render(&self, frame: &mut Frame, area: Rect) {
-        let width = 35u16.min(area.width.saturating_sub(4));
-        let height = 9u16.min(area.height.saturating_sub(4));
+        let width = 30u16.min(area.width.saturating_sub(4));
+        let height = 8u16.min(area.height.saturating_sub(4));
         let x = (area.width.saturating_sub(width)) / 2;
         let y = (area.height.saturating_sub(height)) / 2;
         let overlay = Rect::new(x, y, width, height);
 
         frame.render_widget(Clear, overlay);
 
-        let lines = vec![
-            Line::from(""),
-            Line::from(vec![
-                Span::styled(
-                    " [r] ",
-                    Style::default()
-                        .fg(Color::Yellow)
-                        .add_modifier(Modifier::BOLD),
-                ),
-                Span::raw("Raw text (default)"),
-            ]),
-            Line::from(vec![
-                Span::styled(
-                    " [j] ",
-                    Style::default()
-                        .fg(Color::Yellow)
-                        .add_modifier(Modifier::BOLD),
-                ),
-                Span::raw("JSON"),
-            ]),
-            Line::from(vec![
-                Span::styled(
-                    " [y] ",
-                    Style::default()
-                        .fg(Color::Yellow)
-                        .add_modifier(Modifier::BOLD),
-                ),
-                Span::raw("YAML"),
-            ]),
-            Line::from(""),
-            Line::styled(
-                " Enter: Raw  Esc: Cancel",
-                Style::default().fg(Color::DarkGray),
-            ),
-        ];
+        let mut lines = vec![Line::from("")];
+
+        for (i, (label, _)) in FORMAT_OPTIONS.iter().enumerate() {
+            let is_selected = i == self.cursor;
+            let marker = if is_selected { "▸ " } else { "  " };
+            let style = if is_selected {
+                Style::default()
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::BOLD)
+            } else {
+                Style::default().fg(Color::White)
+            };
+            lines.push(Line::from(Span::styled(
+                format!(" {}{}", marker, label),
+                style,
+            )));
+        }
+
+        lines.push(Line::from(""));
+        lines.push(Line::styled(
+            " Enter: Copy  Esc: Cancel",
+            Style::default().fg(Color::DarkGray),
+        ));
 
         let dialog = Paragraph::new(lines)
             .block(
@@ -86,16 +95,27 @@ impl UiComponent for CopyFormatWindow {
         frame.render_widget(dialog, overlay);
     }
 
+    fn on_up(&mut self) -> ComponentResult {
+        if self.cursor > 0 {
+            self.cursor -= 1;
+        }
+        ComponentResult::Consumed
+    }
+
+    fn on_down(&mut self) -> ComponentResult {
+        if self.cursor < FORMAT_OPTIONS.len() - 1 {
+            self.cursor += 1;
+        }
+        ComponentResult::Consumed
+    }
+
     fn on_confirm(&mut self) -> ComponentResult {
-        // Enter defaults to Raw — actual copy happens in the dispatch layer
-        // because we need access to App state.
+        self.confirmed = true;
         ComponentResult::Close
     }
 
-    fn on_char(&mut self, c: char) -> ComponentResult {
-        match c {
-            'r' | 'j' | 'y' => ComponentResult::Close,
-            _ => ComponentResult::Ignored,
-        }
+    fn on_cancel(&mut self) -> ComponentResult {
+        self.confirmed = false;
+        ComponentResult::Close
     }
 }

@@ -1,5 +1,6 @@
 #[cfg(test)]
 mod tests {
+    use crate::app::CopyFormat;
     use crate::ui::windows::copy_format_window::CopyFormatWindow;
     use crate::ui::{dispatch_key, ComponentResult, UiComponent};
     use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
@@ -8,54 +9,106 @@ mod tests {
         KeyEvent::new(code, KeyModifiers::empty())
     }
 
-    #[test]
-    fn test_esc_closes() {
-        let mut w = CopyFormatWindow;
-        assert_eq!(
-            dispatch_key(&mut w, key(KeyCode::Esc)),
-            ComponentResult::Close
-        );
-    }
-
-    #[test]
-    fn test_enter_closes() {
-        let mut w = CopyFormatWindow;
-        assert_eq!(
-            dispatch_key(&mut w, key(KeyCode::Enter)),
-            ComponentResult::Close
-        );
-    }
-
-    #[test]
-    fn test_r_j_y_close() {
-        for c in ['r', 'j', 'y'] {
-            let mut w = CopyFormatWindow;
-            assert_eq!(
-                dispatch_key(&mut w, key(KeyCode::Char(c))),
-                ComponentResult::Close
-            );
+    fn sample_window() -> CopyFormatWindow {
+        CopyFormatWindow {
+            cursor: 0,
+            confirmed: false,
         }
     }
 
     #[test]
-    fn test_unknown_key_ignored() {
-        let mut w = CopyFormatWindow;
+    fn test_esc_cancels() {
+        let mut w = sample_window();
         assert_eq!(
-            dispatch_key(&mut w, key(KeyCode::Char('x'))),
-            ComponentResult::Ignored
+            dispatch_key(&mut w, key(KeyCode::Esc)),
+            ComponentResult::Close
         );
+        assert!(!w.confirmed);
     }
 
     #[test]
-    fn test_navigation_ignored() {
-        let mut w = CopyFormatWindow;
+    fn test_enter_confirms() {
+        let mut w = sample_window();
         assert_eq!(
-            dispatch_key(&mut w, key(KeyCode::Up)),
-            ComponentResult::Ignored
+            dispatch_key(&mut w, key(KeyCode::Enter)),
+            ComponentResult::Close
         );
+        assert!(w.confirmed);
+        assert_eq!(w.selected_format(), CopyFormat::Raw);
+    }
+
+    #[test]
+    fn test_jk_navigation() {
+        let mut w = sample_window();
+        assert_eq!(w.cursor, 0);
+
         assert_eq!(
             dispatch_key(&mut w, key(KeyCode::Down)),
-            ComponentResult::Ignored
+            ComponentResult::Consumed
         );
+        assert_eq!(w.cursor, 1);
+
+        assert_eq!(
+            dispatch_key(&mut w, key(KeyCode::Char('j'))),
+            ComponentResult::Consumed
+        );
+        assert_eq!(w.cursor, 2);
+
+        // Can't go past end
+        assert_eq!(
+            dispatch_key(&mut w, key(KeyCode::Down)),
+            ComponentResult::Consumed
+        );
+        assert_eq!(w.cursor, 2);
+
+        assert_eq!(
+            dispatch_key(&mut w, key(KeyCode::Up)),
+            ComponentResult::Consumed
+        );
+        assert_eq!(w.cursor, 1);
+
+        assert_eq!(
+            dispatch_key(&mut w, key(KeyCode::Char('k'))),
+            ComponentResult::Consumed
+        );
+        assert_eq!(w.cursor, 0);
+
+        // Can't go past start
+        assert_eq!(
+            dispatch_key(&mut w, key(KeyCode::Up)),
+            ComponentResult::Consumed
+        );
+        assert_eq!(w.cursor, 0);
+    }
+
+    #[test]
+    fn test_select_json() {
+        let mut w = sample_window();
+        dispatch_key(&mut w, key(KeyCode::Down)); // cursor=1 (JSON)
+        assert_eq!(
+            dispatch_key(&mut w, key(KeyCode::Enter)),
+            ComponentResult::Close
+        );
+        assert!(w.confirmed);
+        assert_eq!(w.selected_format(), CopyFormat::Json);
+    }
+
+    #[test]
+    fn test_select_yaml() {
+        let mut w = sample_window();
+        dispatch_key(&mut w, key(KeyCode::Down));
+        dispatch_key(&mut w, key(KeyCode::Down)); // cursor=2 (YAML)
+        assert_eq!(
+            dispatch_key(&mut w, key(KeyCode::Enter)),
+            ComponentResult::Close
+        );
+        assert!(w.confirmed);
+        assert_eq!(w.selected_format(), CopyFormat::Yaml);
+    }
+
+    #[test]
+    fn test_enable_jk_navigation() {
+        let w = sample_window();
+        assert!(w.enable_jk_navigation());
     }
 }

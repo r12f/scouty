@@ -235,6 +235,8 @@ pub struct App {
     pub column_config: ColumnConfig,
     /// Follow mode: auto-scroll to bottom.
     pub follow_mode: bool,
+    /// Copy format dialog cursor (0=Raw, 1=JSON, 2=YAML).
+    pub copy_format_cursor: usize,
     /// Filter version counter (incremented on filter/data change, for density cache invalidation).
     pub filter_version: u64,
     /// Cached density chart data.
@@ -313,6 +315,7 @@ impl App {
             col_widths,
             column_config: ColumnConfig::default(),
             follow_mode: false,
+            copy_format_cursor: 0,
             filter_version: 0,
             density_cache: None,
         })
@@ -1119,6 +1122,7 @@ mod tests {
             col_widths: [19, 5, 11, 3, 3, 9],
             column_config: ColumnConfig::default(),
             follow_mode: false,
+            copy_format_cursor: 0,
             filter_version: 0,
             density_cache: None,
         }
@@ -1160,6 +1164,7 @@ mod tests {
             col_widths: [19, 5, 11, 3, 3, 9],
             column_config: ColumnConfig::default(),
             follow_mode: false,
+            copy_format_cursor: 0,
             filter_version: 0,
             density_cache: None,
         }
@@ -1198,6 +1203,7 @@ mod tests {
             col_widths: [19, 5, 11, 3, 3, 9],
             column_config: ColumnConfig::default(),
             follow_mode: false,
+            copy_format_cursor: 0,
             filter_version: 0,
             density_cache: None,
         }
@@ -1632,6 +1638,7 @@ mod field_filter_v2_tests {
             col_widths: [19, 5, 11, 3, 3, 9],
             column_config: ColumnConfig::default(),
             follow_mode: false,
+            copy_format_cursor: 0,
             filter_version: 0,
             density_cache: None,
         }
@@ -1795,6 +1802,7 @@ mod column_follow_tests {
             col_widths: [19, 5, 11, 3, 3, 9],
             column_config: ColumnConfig::default(),
             follow_mode: false,
+            copy_format_cursor: 0,
             filter_version: 0,
             density_cache: None,
         }
@@ -1969,6 +1977,7 @@ mod copy_tests {
             col_widths: [19, 5, 11, 3, 3, 9],
             column_config: ColumnConfig::default(),
             follow_mode: false,
+            copy_format_cursor: 0,
             filter_version: 0,
             density_cache: None,
         }
