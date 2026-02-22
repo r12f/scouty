@@ -10,7 +10,7 @@ mod status_bar_widget_tests;
 use crate::app::App;
 use crate::ui::UiComponent;
 use ratatui::layout::Rect;
-use ratatui::style::{Color, Style};
+
 use ratatui::text::{Line, Span};
 use ratatui::widgets::Paragraph;
 use ratatui::Frame;
@@ -30,6 +30,7 @@ fn spans_display_width(spans: &[Span]) -> usize {
 impl StatusBarWidget {
     /// Render line 1: density chart + position info.
     pub fn render_line1(&self, frame: &mut Frame, area: Rect, app: &App) {
+        let theme = &app.theme;
         let position = if app.total() == 0 {
             format!("0/0 (Total: {})", app.total_records)
         } else {
@@ -56,19 +57,15 @@ impl StatusBarWidget {
 
                 for (i, ch) in cache.braille_text.chars().enumerate() {
                     let style = if Some(i) == cursor_char_idx {
-                        Style::default()
-                            .fg(Color::Yellow)
-                            .bg(Color::Rgb(40, 40, 60))
+                        theme.status_bar.density_hot.to_style()
                     } else {
-                        Style::default().fg(Color::Cyan)
+                        theme.status_bar.density_normal.to_style()
                     };
                     spans.push(Span::styled(ch.to_string(), style));
                 }
             }
         }
 
-        // Pad to push position info to the right edge
-        // Use unicode_width for correct column count (braille chars are 3 bytes but 1 column)
         let used_width = spans_display_width(&spans);
         let total_width = area.width as usize;
         let right_len = right_text.len();
@@ -76,38 +73,36 @@ impl StatusBarWidget {
             let pad = total_width - used_width - right_len;
             spans.push(Span::styled(
                 " ".repeat(pad),
-                Style::default().bg(Color::Rgb(20, 20, 40)),
+                theme.status_bar.line1_bg.to_style(),
             ));
         }
 
         spans.push(Span::styled(
             right_text,
-            Style::default().fg(Color::White).bg(Color::DarkGray),
+            theme.status_bar.position.to_style(),
         ));
 
-        let footer =
-            Paragraph::new(Line::from(spans)).style(Style::default().bg(Color::Rgb(20, 20, 40)));
+        let footer = Paragraph::new(Line::from(spans)).style(theme.status_bar.line1_bg.to_style());
         frame.render_widget(footer, area);
     }
 
     /// Render line 2: mode label + shortcut hints or status message.
     pub fn render_line2(&self, frame: &mut Frame, area: Rect, app: &App) {
+        let theme = &app.theme;
         let mut spans: Vec<Span> = Vec::new();
 
-        // Command mode: show command input line
         if app.input_mode == crate::app::InputMode::Command {
             spans.push(Span::styled(
                 " [CMD] ",
-                Style::default().fg(Color::Black).bg(Color::Magenta),
+                theme.status_bar.command_mode_label.to_style(),
             ));
             spans.push(Span::styled(
                 format!(" :{}█", app.command_input),
-                Style::default().fg(Color::White),
+                theme.dialog.text.to_style(),
             ));
         } else if app.input_mode == crate::app::InputMode::JumpForward
             || app.input_mode == crate::app::InputMode::JumpBackward
         {
-            // JumpForward / JumpBackward mode: show input line
             let label = if app.input_mode == crate::app::InputMode::JumpForward {
                 "[JUMP+]"
             } else {
@@ -115,30 +110,25 @@ impl StatusBarWidget {
             };
             spans.push(Span::styled(
                 format!(" {} ", label),
-                Style::default().fg(Color::Black).bg(Color::Magenta),
+                theme.status_bar.mode_label.to_style(),
             ));
             spans.push(Span::styled(
                 format!(" {}█", app.time_input),
-                Style::default().fg(Color::White),
+                theme.dialog.text.to_style(),
             ));
         } else {
-            // Normal VIEW/FOLLOW mode
-            let (mode_label, mode_color) = if app.follow_mode {
-                ("[FOLLOW]", Color::Green)
+            let (mode_label, mode_style) = if app.follow_mode {
+                ("[FOLLOW]", theme.status_bar.mode_follow.to_style())
             } else {
-                ("[VIEW]", Color::Cyan)
+                ("[VIEW]", theme.status_bar.mode_view.to_style())
             };
 
-            spans.push(Span::styled(
-                format!(" {} ", mode_label),
-                Style::default().fg(Color::Black).bg(mode_color),
-            ));
+            spans.push(Span::styled(format!(" {} ", mode_label), mode_style));
 
-            // Show status message if present, otherwise show shortcut hints
             if let Some(ref msg) = app.status_message {
                 spans.push(Span::styled(
                     format!(" {} ", msg),
-                    Style::default().fg(Color::Yellow),
+                    theme.status_bar.shortcut_key.to_style(),
                 ));
             } else {
                 let shortcuts = [
@@ -167,28 +157,27 @@ impl StatusBarWidget {
                         break;
                     }
                     remaining -= entry_width;
-                    spans.push(Span::styled(entry, Style::default().fg(Color::DarkGray)));
+                    spans.push(Span::styled(
+                        entry,
+                        theme.status_bar.shortcut_sep.to_style(),
+                    ));
                 }
             }
         }
 
-        // Fill remaining width to prevent stale cells from previous frames
         let current_width = spans_display_width(&spans);
         let area_width = area.width as usize;
         if current_width < area_width {
             spans.push(Span::raw(" ".repeat(area_width - current_width)));
         }
 
-        let footer =
-            Paragraph::new(Line::from(spans)).style(Style::default().bg(Color::Rgb(30, 30, 30)));
+        let footer = Paragraph::new(Line::from(spans)).style(theme.status_bar.line2_bg.to_style());
         frame.render_widget(footer, area);
     }
 }
 
 impl UiComponent for StatusBarWidget {
-    fn render(&self, _frame: &mut Frame, _area: Rect) {
-        // No-op: use render_with_app() for app-aware rendering.
-    }
+    fn render(&self, _frame: &mut Frame, _area: Rect) {}
 
     fn enable_jk_navigation(&self) -> bool {
         false

@@ -5,6 +5,7 @@
 mod log_table_widget_tests;
 
 use crate::app::{App, Column};
+use crate::config::Theme;
 use crate::ui::{ComponentResult, UiComponent};
 use ratatui::layout::{Constraint, Rect};
 use ratatui::style::{Color, Modifier, Style};
@@ -13,15 +14,15 @@ use ratatui::widgets::{Cell, Row, Table};
 use ratatui::Frame;
 use scouty::record::LogLevel;
 
-fn level_style(level: Option<LogLevel>) -> Style {
+pub fn level_style(level: Option<LogLevel>, theme: &Theme) -> Style {
     match level {
-        Some(LogLevel::Fatal) => Style::default().fg(Color::Red).add_modifier(Modifier::BOLD),
-        Some(LogLevel::Error) => Style::default().fg(Color::Red),
-        Some(LogLevel::Warn) => Style::default().fg(Color::Yellow),
-        Some(LogLevel::Notice) => Style::default().fg(Color::Cyan),
-        Some(LogLevel::Info) => Style::default().fg(Color::Green),
-        Some(LogLevel::Debug) => Style::default().fg(Color::Gray),
-        Some(LogLevel::Trace) => Style::default().fg(Color::DarkGray),
+        Some(LogLevel::Fatal) => theme.log_levels.fatal.to_style(),
+        Some(LogLevel::Error) => theme.log_levels.error.to_style(),
+        Some(LogLevel::Warn) => theme.log_levels.warn.to_style(),
+        Some(LogLevel::Notice) => theme.log_levels.notice.to_style(),
+        Some(LogLevel::Info) => theme.log_levels.info.to_style(),
+        Some(LogLevel::Debug) => theme.log_levels.debug.to_style(),
+        Some(LogLevel::Trace) => theme.log_levels.trace.to_style(),
         None => Style::default(),
     }
 }
@@ -30,6 +31,7 @@ pub struct LogTableWidget;
 
 impl LogTableWidget {
     pub fn render_with_app(&self, frame: &mut Frame, area: Rect, app: &App) {
+        let theme = &app.theme;
         let visible = app.visible_records();
         let cw = &app.col_widths;
         let vis_cols = app.column_config.visible_columns();
@@ -57,8 +59,7 @@ impl LogTableWidget {
             .map(|col| Cell::from(col.label()).style(Style::default().add_modifier(Modifier::BOLD)))
             .collect();
 
-        let header =
-            Row::new(header_cells).style(Style::default().bg(Color::DarkGray).fg(Color::White));
+        let header = Row::new(header_cells).style(theme.table.header.to_style());
 
         let rows: Vec<Row> = visible
             .iter()
@@ -69,7 +70,7 @@ impl LogTableWidget {
                 let is_match = app.is_search_match(filtered_idx);
                 let record_idx = app.filtered_indices[filtered_idx];
                 let is_bookmarked = app.is_bookmarked(record_idx);
-                let row_style = level_style(record.level);
+                let row_style = level_style(record.level, theme);
 
                 let cells: Vec<Cell> = vis_cols
                     .iter()
@@ -153,15 +154,15 @@ impl LogTableWidget {
 
                 let mut row = Row::new(cells).style(row_style);
                 if is_selected && is_match {
-                    row = row.style(row_style.bg(Color::Rgb(120, 120, 0)));
+                    row = row.style(row_style.bg(theme.table.selected_search.bg_color()));
                 } else if is_selected && is_bookmarked {
-                    row = row.style(row_style.bg(Color::Rgb(40, 60, 80)));
+                    row = row.style(row_style.bg(theme.table.selected_highlight.bg_color()));
                 } else if is_selected {
-                    row = row.style(row_style.bg(Color::Rgb(40, 40, 60)));
+                    row = row.style(row_style.bg(theme.table.selected.bg_color()));
                 } else if is_match {
-                    row = row.style(row_style.bg(Color::Rgb(80, 80, 0)));
+                    row = row.style(row_style.bg(theme.table.search_match.bg_color()));
                 } else if is_bookmarked {
-                    row = row.style(row_style.bg(Color::Rgb(20, 40, 60)));
+                    row = row.style(row_style.bg(theme.table.bookmark.bg_color()));
                 }
                 row
             })

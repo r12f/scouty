@@ -5,9 +5,10 @@
 mod column_selector_window_tests;
 
 use crate::app::{App, Column};
+use crate::config::Theme;
 use crate::ui::{ComponentResult, UiComponent};
 use ratatui::layout::Rect;
-use ratatui::style::{Color, Style};
+use ratatui::style::Style;
 use ratatui::text::Line;
 use ratatui::widgets::{Block, Borders, Clear, Paragraph};
 use ratatui::Frame;
@@ -17,6 +18,7 @@ use ratatui::Frame;
 pub struct ColumnSelectorWindow {
     pub cursor: usize,
     pub columns: Vec<(Column, bool)>,
+    pub theme: Theme,
 }
 
 #[allow(dead_code)]
@@ -25,6 +27,7 @@ impl ColumnSelectorWindow {
         Self {
             cursor: app.column_config.cursor,
             columns: app.column_config.columns.clone(),
+            theme: app.theme.clone(),
         }
     }
 
@@ -44,6 +47,7 @@ impl ColumnSelectorWindow {
 #[allow(dead_code)]
 impl UiComponent for ColumnSelectorWindow {
     fn render(&self, frame: &mut Frame, area: Rect) {
+        let t = &self.theme;
         let width = 35u16.min(area.width.saturating_sub(4));
         let height = (self.columns.len() as u16 + 5).min(area.height.saturating_sub(4));
         let x = (area.width.saturating_sub(width)) / 2;
@@ -53,10 +57,7 @@ impl UiComponent for ColumnSelectorWindow {
         frame.render_widget(Clear, overlay);
 
         let mut lines = vec![
-            Line::styled(
-                " Toggle columns (Space/Enter)",
-                Style::default().fg(Color::DarkGray),
-            ),
+            Line::styled(" Toggle columns (Space/Enter)", t.dialog.muted.to_style()),
             Line::from(""),
         ];
 
@@ -69,7 +70,7 @@ impl UiComponent for ColumnSelectorWindow {
                 ""
             };
             let style = if is_cursor {
-                Style::default().bg(Color::DarkGray).fg(Color::White)
+                t.dialog.selected.to_style()
             } else {
                 Style::default()
             };
@@ -80,19 +81,16 @@ impl UiComponent for ColumnSelectorWindow {
         }
 
         lines.push(Line::from(""));
-        lines.push(Line::styled(
-            " Esc: Close",
-            Style::default().fg(Color::DarkGray),
-        ));
+        lines.push(Line::styled(" Esc: Close", t.dialog.muted.to_style()));
 
         let dialog = Paragraph::new(lines)
             .block(
                 Block::default()
                     .title(" Columns (c) ")
                     .borders(Borders::ALL)
-                    .border_style(Style::default().fg(Color::Cyan)),
+                    .border_style(t.dialog.border.to_style()),
             )
-            .style(Style::default().bg(Color::Black));
+            .style(t.dialog.background.to_style());
         frame.render_widget(dialog, overlay);
     }
 

@@ -30,6 +30,7 @@ impl HighlightManagerWindow {
     }
 
     pub fn render_with_app(&self, frame: &mut Frame, app: &App, area: Rect) {
+        let theme = &app.theme;
         let width = 55u16.min(area.width.saturating_sub(4));
         let height = (app.highlight_rules.len() as u16 + 7)
             .min(area.height.saturating_sub(4))
@@ -43,9 +44,7 @@ impl HighlightManagerWindow {
         let mut lines = vec![
             Line::styled(
                 format!(" Highlight Rules ({})", app.highlight_rules.len()),
-                Style::default()
-                    .fg(Color::White)
-                    .add_modifier(Modifier::BOLD),
+                theme.dialog.text.to_style().add_modifier(Modifier::BOLD),
             ),
             Line::from(""),
         ];
@@ -53,7 +52,7 @@ impl HighlightManagerWindow {
         if app.highlight_rules.is_empty() {
             lines.push(Line::styled(
                 " (no highlight rules)",
-                Style::default().fg(Color::DarkGray),
+                theme.dialog.muted.to_style(),
             ));
         } else {
             for (i, rule) in app.highlight_rules.iter().enumerate() {
@@ -68,7 +67,7 @@ impl HighlightManagerWindow {
                     _ => "?",
                 };
                 let style = if is_cursor {
-                    Style::default().bg(Color::DarkGray).fg(rule.color)
+                    theme.dialog.selected.to_style().fg(rule.color)
                 } else {
                     Style::default().fg(rule.color)
                 };
@@ -82,7 +81,7 @@ impl HighlightManagerWindow {
         lines.push(Line::from(""));
         lines.push(Line::styled(
             " d: Delete  Esc: Close",
-            Style::default().fg(Color::DarkGray),
+            theme.dialog.muted.to_style(),
         ));
 
         let dialog = Paragraph::new(lines)
@@ -90,9 +89,9 @@ impl HighlightManagerWindow {
                 Block::default()
                     .title(" Highlight Manager (H) ")
                     .borders(Borders::ALL)
-                    .border_style(Style::default().fg(Color::Cyan)),
+                    .border_style(theme.dialog.border.to_style()),
             )
-            .style(Style::default().bg(Color::Black));
+            .style(theme.dialog.background.to_style());
         frame.render_widget(dialog, overlay);
     }
 
