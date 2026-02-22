@@ -24,6 +24,8 @@ Features for copying log records to clipboard and exporting filtered results to 
 - No filename: error `Usage: :w <filename>`
 - Command mode extensible for future commands
 
+> **Note:** Prior to command mode implementation, export uses `Ctrl+s` with a `[SAVE]` prompt.
+
 ## Change Log
 
 | Date | Change |

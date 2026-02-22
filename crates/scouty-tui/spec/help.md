@@ -14,7 +14,7 @@ A scrollable help overlay displaying all available keybindings, version informat
 ### Content
 
 - Complete keybinding reference table (all shortcuts with descriptions)
-- Grouped by category: Navigation, Search, Filter, Bookmarks, Highlight, Copy/Export, Misc
+- Grouped by category: Navigation, Search, Filter, Highlight, Copy/Export, Misc
 - Version number (from `Cargo.toml`)
 - GitHub repository URL: `https://github.com/r12f/scouty`
 
