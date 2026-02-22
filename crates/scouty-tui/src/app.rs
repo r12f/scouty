@@ -386,12 +386,8 @@ impl App {
             follow_mode: false,
             should_quit: false,
             copy_format_cursor: 0,
-<<<<<<< HEAD
             help_scroll: 0,
-            save_file_input: String::new(),
-=======
             command_input: String::new(),
->>>>>>> 0962859 (feat: replace Ctrl+S export with :w command mode)
             filter_version: 0,
             density_cache: None,
             highlight_rules: Vec::new(),
@@ -1393,12 +1389,8 @@ mod tests {
             follow_mode: false,
             should_quit: false,
             copy_format_cursor: 0,
-<<<<<<< HEAD
             help_scroll: 0,
-            save_file_input: String::new(),
-=======
             command_input: String::new(),
->>>>>>> 0962859 (feat: replace Ctrl+S export with :w command mode)
             filter_version: 0,
             density_cache: None,
             highlight_rules: Vec::new(),
@@ -1446,12 +1438,8 @@ mod tests {
             follow_mode: false,
             should_quit: false,
             copy_format_cursor: 0,
-<<<<<<< HEAD
             help_scroll: 0,
-            save_file_input: String::new(),
-=======
             command_input: String::new(),
->>>>>>> 0962859 (feat: replace Ctrl+S export with :w command mode)
             filter_version: 0,
             density_cache: None,
             highlight_rules: Vec::new(),
@@ -1496,12 +1484,8 @@ mod tests {
             follow_mode: false,
             should_quit: false,
             copy_format_cursor: 0,
-<<<<<<< HEAD
             help_scroll: 0,
-            save_file_input: String::new(),
-=======
             command_input: String::new(),
->>>>>>> 0962859 (feat: replace Ctrl+S export with :w command mode)
             filter_version: 0,
             density_cache: None,
             highlight_rules: Vec::new(),
@@ -1942,12 +1926,8 @@ mod field_filter_v2_tests {
             follow_mode: false,
             should_quit: false,
             copy_format_cursor: 0,
-<<<<<<< HEAD
             help_scroll: 0,
-            save_file_input: String::new(),
-=======
             command_input: String::new(),
->>>>>>> 0962859 (feat: replace Ctrl+S export with :w command mode)
             filter_version: 0,
             density_cache: None,
             highlight_rules: Vec::new(),
@@ -2117,12 +2097,8 @@ mod column_follow_tests {
             follow_mode: false,
             should_quit: false,
             copy_format_cursor: 0,
-<<<<<<< HEAD
             help_scroll: 0,
-            save_file_input: String::new(),
-=======
             command_input: String::new(),
->>>>>>> 0962859 (feat: replace Ctrl+S export with :w command mode)
             filter_version: 0,
             density_cache: None,
             highlight_rules: Vec::new(),
@@ -2303,12 +2279,8 @@ mod copy_tests {
             follow_mode: false,
             should_quit: false,
             copy_format_cursor: 0,
-<<<<<<< HEAD
             help_scroll: 0,
-            save_file_input: String::new(),
-=======
             command_input: String::new(),
->>>>>>> 0962859 (feat: replace Ctrl+S export with :w command mode)
             filter_version: 0,
             density_cache: None,
             highlight_rules: Vec::new(),
@@ -2463,12 +2435,8 @@ mod time_jump_tests {
             follow_mode: false,
             should_quit: false,
             copy_format_cursor: 0,
-<<<<<<< HEAD
             help_scroll: 0,
-            save_file_input: String::new(),
-=======
             command_input: String::new(),
->>>>>>> 0962859 (feat: replace Ctrl+S export with :w command mode)
             filter_version: 0,
             density_cache: None,
             highlight_input: String::new(),
@@ -2579,6 +2547,7 @@ mod command_tests {
             follow_mode: false,
             should_quit: false,
             copy_format_cursor: 0,
+            help_scroll: 0,
             command_input: String::new(),
             filter_version: 0,
             density_cache: None,
