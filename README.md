@@ -4,7 +4,7 @@
 
 Scouty helps developers and SREs browse, parse, filter, and analyze logs from multiple sources — all within the terminal.
 
-![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)
+![Apache-2.0 License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)
 
 ## ✨ Features
 
@@ -269,4 +269,4 @@ hostname = "BSL-0101-0101-01LT0" AND container = "restapi"
 
 ## 📄 License
 
-MIT
+Apache-2.0
