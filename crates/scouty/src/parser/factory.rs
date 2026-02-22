@@ -6,6 +6,7 @@ mod factory_tests;
 
 use crate::parser::group::ParserGroup;
 use crate::parser::regex_parser::RegexParser;
+use crate::parser::sairedis_parser::{looks_like_sairedis, SairedisParser};
 use crate::parser::swss_parser::SwssParser;
 use crate::parser::unified_syslog_parser::UnifiedSyslogParser;
 use crate::traits::{LoaderInfo, LoaderType};
@@ -31,7 +32,10 @@ impl ParserFactory {
             }
             LoaderType::TextFile | LoaderType::Archive => {
                 // Try to auto-detect from sample lines
-                if Self::looks_like_swss(&info.sample_lines) {
+                // Sairedis before SWSS (both share YYYY-MM-DD. prefix)
+                if Self::looks_like_sairedis(&info.sample_lines) {
+                    Self::add_sairedis_parser(&mut group);
+                } else if Self::looks_like_swss(&info.sample_lines) {
                     Self::add_swss_parsers(&mut group);
                 } else if Self::looks_like_syslog(&info.sample_lines) {
                     Self::add_unified_syslog_parser(&mut group);
@@ -86,6 +90,11 @@ impl ParserFactory {
         })
     }
 
+    /// Sairedis detection — `YYYY-MM-DD.HH:MM:SS.ffffff|<single-char-op>|...`
+    fn looks_like_sairedis(sample_lines: &[String]) -> bool {
+        Self::majority_match(sample_lines, looks_like_sairedis)
+    }
+
     fn looks_like_swss(sample_lines: &[String]) -> bool {
         static RE: OnceLock<regex::Regex> = OnceLock::new();
         let re = RE.get_or_init(|| {
@@ -107,6 +116,10 @@ impl ParserFactory {
         }
         let matched = lines.iter().filter(|l| pred(l)).count();
         matched * 2 > lines.len() // majority: more than half
+    }
+
+    fn add_sairedis_parser(group: &mut ParserGroup) {
+        group.add_parser(Box::new(SairedisParser::new()));
     }
 
     fn add_swss_parsers(group: &mut ParserGroup) {
