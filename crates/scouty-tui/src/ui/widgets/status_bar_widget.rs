@@ -70,6 +70,24 @@ impl StatusBarWidget {
 
     /// Render line 2: mode label + shortcut hints or status message.
     pub fn render_line2(&self, frame: &mut Frame, area: Rect, app: &App) {
+        // SaveFile mode: show special input line
+        if app.input_mode == crate::app::InputMode::SaveFile {
+            let spans = vec![
+                Span::styled(
+                    " [SAVE] ",
+                    Style::default().fg(Color::Black).bg(Color::Yellow),
+                ),
+                Span::styled(
+                    format!(" {}█", app.save_file_input),
+                    Style::default().fg(Color::White),
+                ),
+            ];
+            let footer = Paragraph::new(Line::from(spans))
+                .style(Style::default().bg(Color::Rgb(30, 30, 30)));
+            frame.render_widget(footer, area);
+            return;
+        }
+
         let (mode_label, mode_color) = if app.follow_mode {
             ("[FOLLOW]", Color::Green)
         } else {
