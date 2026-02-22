@@ -9,10 +9,10 @@ use crate::config::Theme;
 use crate::ui::UiComponent;
 use ratatui::layout::{Constraint, Layout, Rect};
 
+use crate::ui::widgets::log_table_widget::level_style;
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, Cell, Paragraph, Row, Table, Wrap};
 use ratatui::Frame;
-use crate::ui::widgets::log_table_widget::level_style;
 
 /// Count the number of field rows that would be displayed for a record,
 /// without allocating the full field pairs vector.
@@ -138,7 +138,13 @@ impl DetailPanelWidget {
         }
     }
 
-    fn render_split(&self, frame: &mut Frame, area: Rect, record: &scouty::record::LogRecord, theme: &Theme) {
+    fn render_split(
+        &self,
+        frame: &mut Frame,
+        area: Rect,
+        record: &scouty::record::LogRecord,
+        theme: &Theme,
+    ) {
         let chunks = Layout::horizontal([Constraint::Percentage(70), Constraint::Percentage(30)])
             .split(area);
 
@@ -177,7 +183,10 @@ impl DetailPanelWidget {
     ) {
         let mut lines = build_field_lines(record, theme);
         lines.push(Line::from(""));
-        lines.push(Line::styled("Message:", theme.detail_panel.section_header.to_style()));
+        lines.push(Line::styled(
+            "Message:",
+            theme.detail_panel.section_header.to_style(),
+        ));
         lines.push(Line::from(record.message.clone()));
 
         let detail = Paragraph::new(lines).wrap(Wrap { trim: false });

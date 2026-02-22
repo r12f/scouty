@@ -54,7 +54,10 @@ pub fn render(frame: &mut Frame, app: &App) {
         use crate::ui::windows::stats_window::StatsWindow;
         use crate::ui::UiComponent;
         if let Some(ref stats) = app.cached_stats {
-            let window = StatsWindow { stats, theme: &app.theme };
+            let window = StatsWindow {
+                stats,
+                theme: &app.theme,
+            };
             window.render(frame, area);
         }
     }
@@ -151,7 +154,14 @@ fn render_footer(frame: &mut Frame, app: &App, area: Rect) {
             );
         }
         InputMode::GotoLine => {
-            render_input_line2(frame, line2_area, "[GOTO]", app.goto_input.value(), None, app);
+            render_input_line2(
+                frame,
+                line2_area,
+                "[GOTO]",
+                app.goto_input.value(),
+                None,
+                app,
+            );
         }
         InputMode::QuickExclude => {
             render_input_line2(
@@ -191,7 +201,14 @@ fn render_footer(frame: &mut Frame, app: &App, area: Rect) {
     }
 }
 
-fn render_input_line2(frame: &mut Frame, area: Rect, mode: &str, input: &str, error: Option<&str>, app: &App) {
+fn render_input_line2(
+    frame: &mut Frame,
+    area: Rect,
+    mode: &str,
+    input: &str,
+    error: Option<&str>,
+    app: &App,
+) {
     let theme = &app.theme;
     let mut spans = vec![
         Span::styled(

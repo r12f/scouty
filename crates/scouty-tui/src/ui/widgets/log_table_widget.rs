@@ -59,8 +59,7 @@ impl LogTableWidget {
             .map(|col| Cell::from(col.label()).style(Style::default().add_modifier(Modifier::BOLD)))
             .collect();
 
-        let header =
-            Row::new(header_cells).style(theme.table.header.to_style());
+        let header = Row::new(header_cells).style(theme.table.header.to_style());
 
         let rows: Vec<Row> = visible
             .iter()

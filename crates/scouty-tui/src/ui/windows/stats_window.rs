@@ -111,7 +111,11 @@ impl<'a> UiComponent for StatsWindow<'a> {
         let section = |title: &str| -> Line<'_> {
             Line::styled(
                 format!(" {title}"),
-                self.theme.dialog.title.to_style().add_modifier(Modifier::BOLD),
+                self.theme
+                    .dialog
+                    .title
+                    .to_style()
+                    .add_modifier(Modifier::BOLD),
             )
         };
 

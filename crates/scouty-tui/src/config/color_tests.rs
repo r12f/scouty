@@ -12,13 +12,19 @@ mod tests {
 
     #[test]
     fn parse_hex_rgb() {
-        assert_eq!(ThemeColor::parse("#FF6600").unwrap().0, Color::Rgb(255, 102, 0));
+        assert_eq!(
+            ThemeColor::parse("#FF6600").unwrap().0,
+            Color::Rgb(255, 102, 0)
+        );
         assert_eq!(ThemeColor::parse("#000000").unwrap().0, Color::Rgb(0, 0, 0));
     }
 
     #[test]
     fn parse_256_color() {
-        assert_eq!(ThemeColor::parse("color(123)").unwrap().0, Color::Indexed(123));
+        assert_eq!(
+            ThemeColor::parse("color(123)").unwrap().0,
+            Color::Indexed(123)
+        );
     }
 
     #[test]

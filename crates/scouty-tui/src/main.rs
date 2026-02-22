@@ -481,7 +481,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         use ui::windows::stats_window::StatsWindow;
                         // Stats are pre-computed on mode entry; reuse cached data.
                         if let Some(ref stats) = app.cached_stats {
-                            let mut window = StatsWindow { stats, theme: &app.theme };
+                            let mut window = StatsWindow {
+                                stats,
+                                theme: &app.theme,
+                            };
                             let result = ui::dispatch_key(&mut window, key);
                             if result == ui::ComponentResult::Close {
                                 app.cached_stats = None;

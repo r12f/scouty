@@ -57,10 +57,7 @@ impl UiComponent for ColumnSelectorWindow {
         frame.render_widget(Clear, overlay);
 
         let mut lines = vec![
-            Line::styled(
-                " Toggle columns (Space/Enter)",
-                t.dialog.muted.to_style(),
-            ),
+            Line::styled(" Toggle columns (Space/Enter)", t.dialog.muted.to_style()),
             Line::from(""),
         ];
 
@@ -84,10 +81,7 @@ impl UiComponent for ColumnSelectorWindow {
         }
 
         lines.push(Line::from(""));
-        lines.push(Line::styled(
-            " Esc: Close",
-            t.dialog.muted.to_style(),
-        ));
+        lines.push(Line::styled(" Esc: Close", t.dialog.muted.to_style()));
 
         let dialog = Paragraph::new(lines)
             .block(

@@ -82,8 +82,7 @@ impl StatusBarWidget {
             theme.status_bar.position.to_style(),
         ));
 
-        let footer =
-            Paragraph::new(Line::from(spans)).style(theme.status_bar.line1_bg.to_style());
+        let footer = Paragraph::new(Line::from(spans)).style(theme.status_bar.line1_bg.to_style());
         frame.render_widget(footer, area);
     }
 
@@ -124,10 +123,7 @@ impl StatusBarWidget {
                 ("[VIEW]", theme.status_bar.mode_view.to_style())
             };
 
-            spans.push(Span::styled(
-                format!(" {} ", mode_label),
-                mode_style,
-            ));
+            spans.push(Span::styled(format!(" {} ", mode_label), mode_style));
 
             if let Some(ref msg) = app.status_message {
                 spans.push(Span::styled(
@@ -161,7 +157,10 @@ impl StatusBarWidget {
                         break;
                     }
                     remaining -= entry_width;
-                    spans.push(Span::styled(entry, theme.status_bar.shortcut_sep.to_style()));
+                    spans.push(Span::styled(
+                        entry,
+                        theme.status_bar.shortcut_sep.to_style(),
+                    ));
                 }
             }
         }
@@ -172,8 +171,7 @@ impl StatusBarWidget {
             spans.push(Span::raw(" ".repeat(area_width - current_width)));
         }
 
-        let footer =
-            Paragraph::new(Line::from(spans)).style(theme.status_bar.line2_bg.to_style());
+        let footer = Paragraph::new(Line::from(spans)).style(theme.status_bar.line2_bg.to_style());
         frame.render_widget(footer, area);
     }
 }

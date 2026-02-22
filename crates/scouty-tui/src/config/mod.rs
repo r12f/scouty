@@ -65,17 +65,11 @@ pub fn resolve_theme(config: &Config, cli_theme: Option<&str>) -> Theme {
             Ok(content) => match Theme::from_yaml(&content) {
                 Ok(theme) => return theme,
                 Err(e) => {
-                    eprintln!(
-                        "warning: invalid theme file {}: {e}",
-                        theme_path.display()
-                    );
+                    eprintln!("warning: invalid theme file {}: {e}", theme_path.display());
                 }
             },
             Err(_) => {
-                eprintln!(
-                    "warning: theme '{}' not found, using default",
-                    theme_name
-                );
+                eprintln!("warning: theme '{}' not found, using default", theme_name);
             }
         }
     }
