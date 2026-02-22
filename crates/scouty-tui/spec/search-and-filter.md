@@ -27,7 +27,7 @@ Interactive search and filtering in the TUI, providing regex search with match n
 
 - Text input; adds exclude/include filter for records containing that text
 
-### Field Filter Dialog (`_` / `+` or `Ctrl+-` / `Ctrl+=`)
+### Field Filter Dialog (`_` / `+`)
 
 Shared dialog component, differing only in initial action (exclude vs include):
 
