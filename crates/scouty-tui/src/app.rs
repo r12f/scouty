@@ -2521,3 +2521,122 @@ mod time_jump_tests {
         assert_eq!(app.selected, 1);
     }
 }
+
+#[cfg(test)]
+mod command_tests {
+    use super::*;
+
+    fn make_cmd_record(id: u64, msg: &str) -> LogRecord {
+        LogRecord {
+            id,
+            timestamp: chrono::Utc::now(),
+            level: Some(scouty::record::LogLevel::Info),
+            source: "test".into(),
+            pid: None,
+            tid: None,
+            component_name: None,
+            process_name: None,
+            message: msg.to_string(),
+            hostname: None,
+            container: None,
+            context: None,
+            function: None,
+            raw: msg.to_string(),
+            metadata: None,
+            loader_id: "test".into(),
+        }
+    }
+
+    fn make_command_app() -> App {
+        let records: Vec<Arc<LogRecord>> = (0..2)
+            .map(|i| Arc::new(make_cmd_record(i, &format!("line{}", i))))
+            .collect();
+        let filtered_indices = vec![0, 1];
+        App {
+            records,
+            total_records: 2,
+            filtered_indices,
+            scroll_offset: 0,
+            selected: 0,
+            visible_rows: 10,
+            detail_open: false,
+            input_mode: InputMode::Normal,
+            filter_input: String::new(),
+            filter_error: None,
+            filters: Vec::new(),
+            quick_filter_input: String::new(),
+            field_filter: None,
+            filter_manager_cursor: 0,
+            search_input: String::new(),
+            search_matches: vec![],
+            search_match_idx: None,
+            time_input: String::new(),
+            goto_input: String::new(),
+            status_message: None,
+            status_message_at: None,
+            col_widths: [19, 5, 11, 3, 3, 9],
+            column_config: ColumnConfig::default(),
+            follow_mode: false,
+            should_quit: false,
+            copy_format_cursor: 0,
+            command_input: String::new(),
+            filter_version: 0,
+            density_cache: None,
+            highlight_rules: Vec::new(),
+            highlight_input: String::new(),
+            highlight_manager_cursor: 0,
+            cached_stats: None,
+        }
+    }
+
+    #[test]
+    fn test_command_w_default_filename() {
+        let mut app = make_command_app();
+        app.command_input = "w".to_string();
+        app.execute_command();
+        // Should set a status message about saving
+        assert!(app.status_message.is_some());
+        let msg = app.status_message.as_ref().unwrap();
+        assert!(msg.contains("Saved 2 records") || msg.contains("Save failed"));
+        assert!(!app.should_quit);
+    }
+
+    #[test]
+    fn test_command_w_with_filename() {
+        let mut app = make_command_app();
+        let tmp = "/tmp/scouty_test_cmd_export.log";
+        app.command_input = format!("w {}", tmp);
+        app.execute_command();
+        let msg = app.status_message.as_ref().unwrap();
+        assert!(msg.contains("Saved 2 records"));
+        assert!(msg.contains(tmp));
+        // Cleanup
+        let _ = std::fs::remove_file(tmp);
+    }
+
+    #[test]
+    fn test_command_q_sets_should_quit() {
+        let mut app = make_command_app();
+        app.command_input = "q".to_string();
+        app.execute_command();
+        assert!(app.should_quit);
+    }
+
+    #[test]
+    fn test_command_unknown() {
+        let mut app = make_command_app();
+        app.command_input = "foobar".to_string();
+        app.execute_command();
+        let msg = app.status_message.as_ref().unwrap();
+        assert!(msg.contains("Unknown command"));
+    }
+
+    #[test]
+    fn test_command_empty() {
+        let mut app = make_command_app();
+        app.command_input = "".to_string();
+        app.execute_command();
+        // No status change for empty command
+        assert!(!app.should_quit);
+    }
+}

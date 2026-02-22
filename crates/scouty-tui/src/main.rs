@@ -241,10 +241,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 KeyCode::Char('=') => {
                                     app.open_field_filter(false);
                                 }
-                                KeyCode::Char(':') => {
-                                    app.command_input = String::new();
-                                    app.input_mode = InputMode::Command;
-                                }
                                 _ => {}
                             }
                         } else {
@@ -319,6 +315,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 KeyCode::Char('?') => {
                                     app.input_mode = InputMode::Help;
                                     app.help_scroll = 0;
+                                }
+                                KeyCode::Char(':') => {
+                                    app.command_input = String::new();
+                                    app.input_mode = InputMode::Command;
                                 }
                                 KeyCode::Char('h') => {
                                     app.input_mode = InputMode::Highlight;
