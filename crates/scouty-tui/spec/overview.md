@@ -99,9 +99,9 @@ Components notify App via return values or callbacks. App updates shared state (
 | `c` | Column selector |
 | `y`/`Y` | Copy raw / format selection |
 | `h`/`H` | Add highlight / highlight manager |
-| `m` | Toggle bookmark *(planned)* |
-| `'`/`"` | Next/prev bookmark *(planned)* |
-| `M` | Bookmark manager *(planned)* |
+| `m` | Toggle bookmark |
+| `'`/`"` | Next/prev bookmark |
+| `M` | Bookmark manager |
 | `S` | Stats summary |
 | `]`/`[` | Relative time jump (forward/backward) |
 | `Ctrl+]` | Toggle follow mode |
