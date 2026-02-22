@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
     use crate::ui::widgets::detail_panel_widget::{
-        build_field_lines, DetailPanelWidget, MIN_SPLIT_WIDTH,
+        build_field_lines, build_field_pairs, DetailPanelWidget, MIN_SPLIT_WIDTH,
     };
     use crate::ui::{dispatch_key, ComponentResult, UiComponent};
     use chrono::Utc;
@@ -62,28 +62,37 @@ mod tests {
     }
 
     #[test]
-    fn test_build_field_lines_includes_required_fields() {
+    fn test_build_field_pairs_includes_required_fields() {
+        let record = sample_record();
+        let pairs = build_field_pairs(&record);
+        let keys: Vec<&str> = pairs.iter().map(|(k, _)| *k).collect();
+        assert!(keys.contains(&"Timestamp"));
+        assert!(keys.contains(&"Level"));
+        assert!(keys.contains(&"Source"));
+        assert!(keys.contains(&"Hostname"));
+        assert!(keys.contains(&"Component"));
+        assert!(keys.contains(&"PID"));
+        assert!(keys.contains(&"Context"));
+        assert!(keys.contains(&"Function"));
+    }
+
+    #[test]
+    fn test_build_field_pairs_omits_none_fields() {
+        let record = sample_record();
+        let pairs = build_field_pairs(&record);
+        let keys: Vec<&str> = pairs.iter().map(|(k, _)| *k).collect();
+        // container and tid are None
+        assert!(!keys.contains(&"Container"));
+        assert!(!keys.contains(&"TID"));
+    }
+
+    #[test]
+    fn test_build_field_lines_from_pairs() {
         let record = sample_record();
         let lines = build_field_lines(&record);
         let text: Vec<String> = lines.iter().map(|l| l.to_string()).collect();
         assert!(text.iter().any(|l| l.contains("Timestamp:")));
         assert!(text.iter().any(|l| l.contains("Level:")));
-        assert!(text.iter().any(|l| l.contains("Source:")));
-        assert!(text.iter().any(|l| l.contains("Hostname:")));
-        assert!(text.iter().any(|l| l.contains("Component:")));
-        assert!(text.iter().any(|l| l.contains("PID:")));
-        assert!(text.iter().any(|l| l.contains("Context:")));
-        assert!(text.iter().any(|l| l.contains("Function:")));
-    }
-
-    #[test]
-    fn test_build_field_lines_omits_none_fields() {
-        let record = sample_record();
-        let lines = build_field_lines(&record);
-        let text: Vec<String> = lines.iter().map(|l| l.to_string()).collect();
-        // container and tid are None
-        assert!(!text.iter().any(|l| l.contains("Container:")));
-        assert!(!text.iter().any(|l| l.contains("TID:")));
     }
 
     #[test]

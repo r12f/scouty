@@ -9,7 +9,7 @@ use crate::ui::UiComponent;
 use ratatui::layout::{Constraint, Layout, Rect};
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, Borders, Paragraph, Wrap};
+use ratatui::widgets::{Block, Borders, Cell, Paragraph, Row, Table, Wrap};
 use ratatui::Frame;
 use scouty::record::LogLevel;
 
@@ -26,59 +26,61 @@ fn level_style(level: Option<LogLevel>) -> Style {
     }
 }
 
-/// Build field lines for the right pane.
-fn build_field_lines(record: &scouty::record::LogRecord) -> Vec<Line<'static>> {
-    let label_style = Style::default().fg(Color::Cyan);
-    let mut lines = vec![
-        Line::from(vec![
-            Span::styled("Timestamp: ", label_style),
-            Span::raw(record.timestamp.format("%Y-%m-%d %H:%M:%S%.3f").to_string()),
-        ]),
-        Line::from(vec![
-            Span::styled("Level:     ", label_style),
-            Span::styled(
-                record
-                    .level
-                    .map(|l| l.to_string())
-                    .unwrap_or_else(|| "-".to_string()),
-                level_style(record.level),
-            ),
-        ]),
-        Line::from(vec![
-            Span::styled("Source:    ", label_style),
-            Span::raw(record.source.to_string()),
-        ]),
+/// Build field key-value pairs for the right pane.
+fn build_field_pairs(record: &scouty::record::LogRecord) -> Vec<(&'static str, String)> {
+    let mut pairs = vec![
+        (
+            "Timestamp",
+            record.timestamp.format("%Y-%m-%d %H:%M:%S%.3f").to_string(),
+        ),
+        (
+            "Level",
+            record
+                .level
+                .map(|l| l.to_string())
+                .unwrap_or_else(|| "-".to_string()),
+        ),
+        ("Source", record.source.to_string()),
     ];
 
     let optional_fields: Vec<(&str, Option<String>)> = vec![
-        ("Hostname:  ", record.hostname.clone()),
-        ("Container: ", record.container.clone()),
-        ("Context:   ", record.context.clone()),
-        ("Function:  ", record.function.clone()),
-        ("Component: ", record.component_name.clone()),
-        ("Process:   ", record.process_name.clone()),
-        ("PID:       ", record.pid.map(|p| p.to_string())),
-        ("TID:       ", record.tid.map(|t| t.to_string())),
+        ("Hostname", record.hostname.clone()),
+        ("Container", record.container.clone()),
+        ("Context", record.context.clone()),
+        ("Function", record.function.clone()),
+        ("Component", record.component_name.clone()),
+        ("Process", record.process_name.clone()),
+        ("PID", record.pid.map(|p| p.to_string())),
+        ("TID", record.tid.map(|t| t.to_string())),
     ];
 
     for (label, value) in optional_fields {
         if let Some(val) = value {
-            lines.push(Line::from(vec![
-                Span::styled(label, label_style),
-                Span::raw(val),
-            ]));
+            pairs.push((label, val));
         }
     }
 
     if record.metadata.as_ref().is_some_and(|m| !m.is_empty()) {
-        lines.push(Line::from(""));
-        lines.push(Line::styled("Metadata:", label_style));
         for (k, v) in record.metadata.as_ref().unwrap() {
-            lines.push(Line::from(format!("  {} = {}", k, v)));
+            // Leak is fine since these are short-lived display strings
+            // Use a static prefix instead
+            pairs.push(("Meta", format!("{} = {}", k, v)));
         }
     }
 
-    lines
+    pairs
+}
+
+/// Build Line spans from field pairs (for single-column fallback).
+fn build_field_lines(record: &scouty::record::LogRecord) -> Vec<Line<'static>> {
+    let label_style = Style::default().fg(Color::Cyan);
+    build_field_pairs(record)
+        .into_iter()
+        .map(|(key, val)| {
+            let padded_key = format!("{:<11}", format!("{}:", key));
+            Line::from(vec![Span::styled(padded_key, label_style), Span::raw(val)])
+        })
+        .collect()
 }
 
 pub struct DetailPanelWidget;
@@ -123,10 +125,23 @@ impl DetailPanelWidget {
             .wrap(Wrap { trim: false });
         frame.render_widget(raw_text, chunks[0]);
 
-        // Right pane: field list
-        let field_lines = build_field_lines(record);
-        let fields = Paragraph::new(field_lines).wrap(Wrap { trim: false });
-        frame.render_widget(fields, chunks[1]);
+        // Right pane: field table
+        let pairs = build_field_pairs(record);
+        let label_style = Style::default().fg(Color::Cyan);
+        let rows: Vec<Row> = pairs
+            .into_iter()
+            .map(|(key, val)| {
+                let val_cell = if key == "Level" {
+                    Cell::from(Span::styled(val, level_style(record.level)))
+                } else {
+                    Cell::from(val)
+                };
+                Row::new(vec![Cell::from(Span::styled(key, label_style)), val_cell])
+            })
+            .collect();
+        let table =
+            Table::new(rows, [Constraint::Length(11), Constraint::Fill(1)]).column_spacing(1);
+        frame.render_widget(table, chunks[1]);
     }
 
     fn render_single_column(
