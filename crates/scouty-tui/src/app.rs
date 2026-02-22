@@ -246,7 +246,7 @@ pub struct App {
 pub struct DensityCache {
     /// Pre-rendered braille string.
     pub braille_text: String,
-    /// Bucket values for cursor_bucket lookup.
+    /// Number of buckets used for cursor position lookup.
     pub num_buckets: usize,
     /// Min timestamp in filtered data.
     pub min_ts: chrono::DateTime<chrono::Utc>,
@@ -388,7 +388,13 @@ impl App {
 
     /// Get or rebuild the density cache. Returns None if no data.
     pub fn get_density_cache(&mut self, chart_width: usize) -> Option<&DensityCache> {
+        if chart_width == 0 {
+            return None;
+        }
         let num_buckets = (chart_width * 2).min(200);
+        if num_buckets == 0 {
+            return None;
+        }
         let needs_rebuild = match &self.density_cache {
             Some(c) => c.filter_version != self.filter_version || c.chart_width != chart_width,
             None => true,
@@ -400,24 +406,11 @@ impl App {
                 return None;
             }
 
-            let min_ts = self.records[self.filtered_indices[0]].timestamp;
-            let max_ts = self.records[*self.filtered_indices.last().unwrap()].timestamp;
-
-            let buckets = if min_ts == max_ts {
-                let mut b = vec![0usize; num_buckets];
-                b[0] = self.filtered_indices.len();
-                b
-            } else {
-                let range_ms = (max_ts - min_ts).num_milliseconds() as f64;
-                let mut b = vec![0usize; num_buckets];
-                for &i in &self.filtered_indices {
-                    let ts = self.records[i].timestamp;
-                    let offset_ms = (ts - min_ts).num_milliseconds() as f64;
-                    let idx = ((offset_ms / range_ms) * (num_buckets as f64 - 1.0)) as usize;
-                    b[idx.min(num_buckets - 1)] += 1;
-                }
-                b
-            };
+            let (buckets, min_ts, max_ts) = crate::density::compute_density_indexed(
+                &self.records,
+                &self.filtered_indices,
+                num_buckets,
+            );
 
             let (braille_text, _) = crate::density::render_braille(&buckets, None);
 
@@ -1069,6 +1062,68 @@ mod tests {
         }
     }
 
+    fn make_record_with_ts(id: u64, ts: chrono::DateTime<Utc>) -> LogRecord {
+        LogRecord {
+            id,
+            timestamp: ts,
+            level: Some(LogLevel::Info),
+            source: "test".into(),
+            pid: None,
+            tid: None,
+            component_name: None,
+            process_name: None,
+            message: format!("msg {}", id),
+            hostname: None,
+            container: None,
+            context: None,
+            function: None,
+            raw: format!("msg {}", id),
+            metadata: None,
+            loader_id: "test".into(),
+        }
+    }
+
+    fn make_app_with_timestamps(n: usize) -> App {
+        let base = Utc::now();
+        let records: Vec<Arc<LogRecord>> = (0..n)
+            .map(|i| {
+                Arc::new(make_record_with_ts(
+                    i as u64,
+                    base + chrono::Duration::seconds(i as i64),
+                ))
+            })
+            .collect();
+        let filtered_indices = (0..n).collect();
+        App {
+            records,
+            total_records: n,
+            filtered_indices,
+            scroll_offset: 0,
+            selected: 0,
+            visible_rows: 10,
+            detail_open: false,
+            input_mode: InputMode::Normal,
+            filter_input: String::new(),
+            filter_error: None,
+            filters: Vec::new(),
+            quick_filter_input: String::new(),
+            field_filter: None,
+            filter_manager_cursor: 0,
+            search_input: String::new(),
+            search_matches: vec![],
+            search_match_idx: None,
+            time_input: String::new(),
+            goto_input: String::new(),
+            status_message: None,
+            status_message_at: None,
+            col_widths: [19, 5, 11, 3, 3, 9],
+            column_config: ColumnConfig::default(),
+            follow_mode: false,
+            filter_version: 0,
+            density_cache: None,
+        }
+    }
+
     fn make_app(n: usize) -> App {
         let records: Vec<Arc<LogRecord>> = (0..n)
             .map(|i| {
@@ -1412,6 +1467,112 @@ mod tests {
         assert!(ff.fields.iter().any(|e| e.name == "message"));
         assert!(ff.fields.iter().any(|e| e.name == "pid"));
         assert!(ff.logic_or); // default OR
+    }
+
+    // ── Density cache tests ─────────────────────────────────────
+
+    #[test]
+    fn test_density_cache_built_on_first_call() {
+        let mut app = make_app(50);
+        assert!(app.density_cache.is_none());
+        let result = app.get_density_cache(40);
+        assert!(result.is_some());
+        assert!(app.density_cache.is_some());
+        let cache = app.density_cache.as_ref().unwrap();
+        assert_eq!(cache.chart_width, 40);
+        assert_eq!(cache.filter_version, 0);
+        assert!(!cache.braille_text.is_empty());
+    }
+
+    #[test]
+    fn test_density_cache_reused_on_same_params() {
+        let mut app = make_app(50);
+        app.get_density_cache(40);
+        let v1 = app.density_cache.as_ref().unwrap().filter_version;
+        app.get_density_cache(40);
+        let v2 = app.density_cache.as_ref().unwrap().filter_version;
+        assert_eq!(v1, v2);
+    }
+
+    #[test]
+    fn test_density_cache_invalidated_on_filter_change() {
+        let mut app = make_app(50);
+        app.get_density_cache(40);
+        let text1 = app.density_cache.as_ref().unwrap().braille_text.clone();
+        app.filter_version += 1;
+        app.get_density_cache(40);
+        assert_eq!(app.density_cache.as_ref().unwrap().filter_version, 1);
+        assert_eq!(app.density_cache.as_ref().unwrap().braille_text, text1);
+    }
+
+    #[test]
+    fn test_density_cache_invalidated_on_width_change() {
+        let mut app = make_app(50);
+        app.get_density_cache(40);
+        assert_eq!(app.density_cache.as_ref().unwrap().chart_width, 40);
+        app.get_density_cache(60);
+        assert_eq!(app.density_cache.as_ref().unwrap().chart_width, 60);
+    }
+
+    #[test]
+    fn test_density_cache_none_for_empty() {
+        let mut app = make_app(0);
+        assert!(app.get_density_cache(40).is_none());
+    }
+
+    #[test]
+    fn test_density_cache_zero_width() {
+        let mut app = make_app(10);
+        assert!(app.get_density_cache(0).is_none());
+    }
+
+    #[test]
+    fn test_cursor_char_in_density_at_start() {
+        let mut app = make_app_with_timestamps(100);
+        app.selected = 0;
+        app.get_density_cache(40);
+        let idx = app.cursor_char_in_density();
+        assert_eq!(idx, Some(0));
+    }
+
+    #[test]
+    fn test_cursor_char_in_density_at_end() {
+        let mut app = make_app_with_timestamps(100);
+        app.selected = app.filtered_indices.len() - 1;
+        app.get_density_cache(40);
+        let idx = app.cursor_char_in_density();
+        assert!(idx.is_some());
+        let max_char = app
+            .density_cache
+            .as_ref()
+            .unwrap()
+            .braille_text
+            .chars()
+            .count()
+            .saturating_sub(1);
+        assert_eq!(idx.unwrap(), max_char);
+    }
+
+    #[test]
+    fn test_cursor_char_in_density_at_middle() {
+        let mut app = make_app_with_timestamps(100);
+        app.selected = 50;
+        app.get_density_cache(40);
+        let idx = app.cursor_char_in_density().unwrap();
+        let max_char = app
+            .density_cache
+            .as_ref()
+            .unwrap()
+            .braille_text
+            .chars()
+            .count()
+            - 1;
+        assert!(
+            idx > 0 && idx < max_char,
+            "Expected middle, got {}/{}",
+            idx,
+            max_char
+        );
     }
 }
 

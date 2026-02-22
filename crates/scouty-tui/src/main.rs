@@ -91,13 +91,26 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
 
     loop {
-        // Pre-compute density cache using terminal width (avoids O(N) inside draw)
+        // Pre-compute density cache using exact position text width
         if let Ok(size) = crossterm::terminal::size() {
             let term_width = size.0;
-            // Estimate chart_width: width - position text (~20 chars) - 2 for separator
-            let est_chart_width = term_width.saturating_sub(22) as usize;
-            if est_chart_width >= 4 && app.total() > 0 {
-                app.get_density_cache(est_chart_width);
+            // Compute exact right_text width (mirrors StatusBarWidget::render_line1)
+            let position = if app.total() == 0 {
+                format!("0/0 (Total: {})", app.total_records)
+            } else {
+                let current = app.selected + 1;
+                let filtered = app.total();
+                let total = app.total_records;
+                if filtered == total {
+                    format!("{}/{}", current, total)
+                } else {
+                    format!("{}/{} (Total: {})", current, filtered, total)
+                }
+            };
+            let right_width = position.len() as u16 + 2; // " {} " padding
+            let chart_width = term_width.saturating_sub(right_width + 2) as usize;
+            if chart_width >= 4 && app.total() > 0 {
+                app.get_density_cache(chart_width);
             }
         }
 
@@ -375,8 +388,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
             } // if let Event::Key
 
-            // For input coalescing: only coalesce navigation keys in Normal mode.
-            // For other modes (input, dialogs), process one key at a time.
+            // For input coalescing: in Normal mode, coalesce consecutive key presses
+            // while events are available. For other modes (input, dialogs), process
+            // one key at a time.
             if app.input_mode != InputMode::Normal || !event::poll(Duration::from_millis(0))? {
                 break;
             }
