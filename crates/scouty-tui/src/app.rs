@@ -15,6 +15,8 @@ pub enum InputMode {
     Filter,
     Search,
     TimeJump,
+    JumpForward,
+    JumpBackward,
     GotoLine,
     QuickExclude,
     QuickInclude,
@@ -878,6 +880,118 @@ impl App {
 
         self.status_message =
             Some("Invalid time format (use HH:MM:SS or YYYY-MM-DD HH:MM:SS)".to_string());
+    }
+
+    /// Parse a relative duration string like "5m", "30s", "2h", "1d".
+    /// Returns the duration in seconds, or None if invalid.
+    fn parse_relative_duration(input: &str) -> Option<i64> {
+        let input = input.trim();
+        if input.is_empty() {
+            return None;
+        }
+        let (num_str, suffix) = input.split_at(input.len() - 1);
+        let value: i64 = num_str.parse().ok()?;
+        if value <= 0 {
+            return None;
+        }
+        match suffix {
+            "s" => Some(value),
+            "m" => value.checked_mul(60),
+            "h" => value.checked_mul(3600),
+            "d" => value.checked_mul(86400),
+            _ => None,
+        }
+    }
+
+    /// Format seconds as a human-readable relative duration.
+    fn format_duration_secs(secs: i64) -> String {
+        let abs = secs.unsigned_abs();
+        if abs >= 86400 && abs.is_multiple_of(86400) {
+            format!("{}d", abs / 86400)
+        } else if abs >= 3600 && abs.is_multiple_of(3600) {
+            format!("{}h", abs / 3600)
+        } else if abs >= 60 && abs.is_multiple_of(60) {
+            format!("{}m", abs / 60)
+        } else {
+            format!("{}s", abs)
+        }
+    }
+
+    /// Jump forward (`forward=true`) or backward (`forward=false`) by relative duration.
+    /// Returns `true` if the jump succeeded, `false` on invalid input.
+    pub fn jump_relative(&mut self, forward: bool) -> bool {
+        let input = self.time_input.trim().to_string();
+        if input.is_empty() {
+            return false;
+        }
+
+        let secs = match Self::parse_relative_duration(&input) {
+            Some(s) => s,
+            None => {
+                self.set_status("Invalid duration (use Ns, Nm, Nh, Nd)".to_string());
+                return false;
+            }
+        };
+
+        if self.filtered_indices.is_empty() {
+            self.set_status("No records".to_string());
+            return false;
+        }
+
+        let current_ri = self.filtered_indices[self.selected];
+        let current_ts = self.records[current_ri].timestamp;
+        let delta = chrono::Duration::seconds(if forward { secs } else { -secs });
+        let target_ts = current_ts + delta;
+
+        // Binary search filtered_indices for the closest row to target_ts
+        let fi_len = self.filtered_indices.len();
+        let mut lo: usize = 0;
+        let mut hi: usize = fi_len;
+        while lo < hi {
+            let mid = lo + (hi - lo) / 2;
+            let ri = self.filtered_indices[mid];
+            if self.records[ri].timestamp < target_ts {
+                lo = mid + 1;
+            } else {
+                hi = mid;
+            }
+        }
+
+        // lo is the first index with timestamp >= target_ts
+        // Pick the closest between lo and lo-1
+        let best = if lo == 0 {
+            0
+        } else if lo >= fi_len {
+            fi_len - 1
+        } else {
+            let ri_lo = self.filtered_indices[lo];
+            let ri_prev = self.filtered_indices[lo - 1];
+            let diff_lo = (self.records[ri_lo].timestamp - target_ts)
+                .num_milliseconds()
+                .unsigned_abs();
+            let diff_prev = (target_ts - self.records[ri_prev].timestamp)
+                .num_milliseconds()
+                .unsigned_abs();
+            if diff_prev <= diff_lo {
+                lo - 1
+            } else {
+                lo
+            }
+        };
+
+        let actual_ri = self.filtered_indices[best];
+        let actual_ts = self.records[actual_ri].timestamp;
+        let actual_diff = (actual_ts - current_ts).num_seconds();
+        let direction = if forward { "→+" } else { "→-" };
+        let actual_str = Self::format_duration_secs(actual_diff);
+
+        self.selected = best;
+        self.ensure_selected_visible();
+        self.set_status(format!(
+            "Jumped {} (actual {}{})",
+            input, direction, actual_str
+        ));
+        true
     }
 
     pub fn goto_line(&mut self) {
@@ -2099,5 +2213,119 @@ mod copy_tests {
         let labels: Vec<&str> = config.columns.iter().map(|(c, _)| c.label()).collect();
         assert!(labels.contains(&"Hostname"));
         assert!(labels.contains(&"Container"));
+    }
+}
+
+#[cfg(test)]
+mod time_jump_tests {
+    use super::*;
+    use chrono::{TimeZone, Utc};
+    use scouty::record::{LogLevel, LogRecord};
+    use std::sync::Arc;
+
+    fn make_record_with_ts(id: u64, ts: chrono::DateTime<Utc>) -> LogRecord {
+        LogRecord {
+            id,
+            timestamp: ts,
+            level: Some(LogLevel::Info),
+            source: "test".into(),
+            pid: None,
+            tid: None,
+            component_name: None,
+            process_name: None,
+            message: format!("msg {}", id),
+            hostname: None,
+            container: None,
+            context: None,
+            function: None,
+            raw: format!("msg {}", id),
+            metadata: None,
+            loader_id: "test".into(),
+        }
+    }
+
+    fn make_jump_app(selected: usize, time_input: &str) -> App {
+        let base = Utc.with_ymd_and_hms(2024, 1, 1, 0, 0, 0).unwrap();
+        let records: Vec<Arc<LogRecord>> = (0..3)
+            .map(|i| {
+                Arc::new(make_record_with_ts(
+                    i as u64,
+                    base + chrono::Duration::minutes(i as i64 * 5),
+                ))
+            })
+            .collect();
+        App {
+            records,
+            total_records: 3,
+            filtered_indices: vec![0, 1, 2],
+            scroll_offset: 0,
+            selected,
+            visible_rows: 10,
+            detail_open: false,
+            input_mode: InputMode::Normal,
+            filter_input: String::new(),
+            filter_error: None,
+            filters: Vec::new(),
+            quick_filter_input: String::new(),
+            field_filter: None,
+            filter_manager_cursor: 0,
+            search_input: String::new(),
+            search_matches: vec![],
+            search_match_idx: None,
+            time_input: time_input.to_string(),
+            goto_input: String::new(),
+            status_message: None,
+            status_message_at: None,
+            col_widths: [0; 6],
+            column_config: ColumnConfig::default(),
+            follow_mode: false,
+            copy_format_cursor: 0,
+            save_file_input: String::new(),
+            filter_version: 0,
+            density_cache: None,
+        }
+    }
+
+    #[test]
+    fn test_parse_relative_duration() {
+        assert_eq!(App::parse_relative_duration("5s"), Some(5));
+        assert_eq!(App::parse_relative_duration("5m"), Some(300));
+        assert_eq!(App::parse_relative_duration("2h"), Some(7200));
+        assert_eq!(App::parse_relative_duration("1d"), Some(86400));
+        assert_eq!(App::parse_relative_duration(""), None);
+        assert_eq!(App::parse_relative_duration("abc"), None);
+        assert_eq!(App::parse_relative_duration("5x"), None);
+        assert_eq!(App::parse_relative_duration("0s"), None);
+    }
+
+    #[test]
+    fn test_format_duration_secs() {
+        assert_eq!(App::format_duration_secs(30), "30s");
+        assert_eq!(App::format_duration_secs(60), "1m");
+        assert_eq!(App::format_duration_secs(300), "5m");
+        assert_eq!(App::format_duration_secs(3600), "1h");
+        assert_eq!(App::format_duration_secs(86400), "1d");
+        assert_eq!(App::format_duration_secs(90), "90s");
+        assert_eq!(App::format_duration_secs(-300), "5m");
+    }
+
+    #[test]
+    fn test_jump_relative_forward() {
+        let mut app = make_jump_app(0, "5m");
+
+        app.jump_relative(true);
+        assert_eq!(app.selected, 1);
+
+        app.time_input = "5m".to_string();
+        app.jump_relative(true);
+        assert_eq!(app.selected, 2);
+    }
+
+    #[test]
+    fn test_jump_relative_backward() {
+        let mut app = make_jump_app(2, "5m");
+
+        app.jump_relative(false);
+        assert_eq!(app.selected, 1);
     }
 }

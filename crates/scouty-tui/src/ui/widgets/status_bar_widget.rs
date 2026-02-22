@@ -88,6 +88,31 @@ impl StatusBarWidget {
             return;
         }
 
+        // JumpForward / JumpBackward mode: show input line
+        if app.input_mode == crate::app::InputMode::JumpForward
+            || app.input_mode == crate::app::InputMode::JumpBackward
+        {
+            let (label, color) = if app.input_mode == crate::app::InputMode::JumpForward {
+                ("[JUMP+]", Color::Magenta)
+            } else {
+                ("[JUMP-]", Color::Magenta)
+            };
+            let spans = vec![
+                Span::styled(
+                    format!(" {} ", label),
+                    Style::default().fg(Color::Black).bg(color),
+                ),
+                Span::styled(
+                    format!(" {}█", app.time_input),
+                    Style::default().fg(Color::White),
+                ),
+            ];
+            let footer = Paragraph::new(Line::from(spans))
+                .style(Style::default().bg(Color::Rgb(30, 30, 30)));
+            frame.render_widget(footer, area);
+            return;
+        }
+
         let (mode_label, mode_color) = if app.follow_mode {
             ("[FOLLOW]", Color::Green)
         } else {
