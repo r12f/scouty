@@ -2604,7 +2604,8 @@ mod command_tests {
     #[test]
     fn test_command_w_with_filename() {
         let mut app = make_command_app();
-        let tmp = "/tmp/scouty_test_cmd_export.log";
+        let tmp_path = std::env::temp_dir().join("scouty_test_cmd_export.log");
+        let tmp = tmp_path.to_str().unwrap();
         app.command_input = format!("w {}", tmp);
         app.execute_command();
         let msg = app.status_message.as_ref().unwrap();
