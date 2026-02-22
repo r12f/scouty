@@ -65,6 +65,11 @@ pub(crate) fn field_count(record: &scouty::record::LogRecord) -> usize {
 }
 
 /// Build field key-value pairs for the right pane.
+/// Count the number of field rows that would be displayed for a record.
+pub fn field_count(record: &scouty::record::LogRecord) -> usize {
+    build_field_pairs(record).len()
+}
+
 fn build_field_pairs(record: &scouty::record::LogRecord) -> Vec<(&'static str, String)> {
     let mut pairs = vec![
         (
