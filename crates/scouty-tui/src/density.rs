@@ -41,6 +41,7 @@ fn braille_char(left_height: usize, right_height: usize) -> char {
 /// Compute density histogram buckets from filtered record timestamps.
 ///
 /// Returns a Vec of counts, one per bucket.
+#[allow(dead_code)]
 pub fn compute_density(timestamps: &[DateTime<Utc>], num_buckets: usize) -> Vec<usize> {
     if timestamps.is_empty() || num_buckets == 0 {
         return vec![0; num_buckets.max(1)];
@@ -69,6 +70,7 @@ pub fn compute_density(timestamps: &[DateTime<Utc>], num_buckets: usize) -> Vec<
 }
 
 /// Find which bucket the cursor timestamp falls into.
+#[allow(dead_code)]
 pub fn cursor_bucket(
     cursor_ts: DateTime<Utc>,
     timestamps: &[DateTime<Utc>],

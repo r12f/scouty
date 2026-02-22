@@ -235,6 +235,27 @@ pub struct App {
     pub column_config: ColumnConfig,
     /// Follow mode: auto-scroll to bottom.
     pub follow_mode: bool,
+    /// Filter version counter (incremented on filter/data change, for density cache invalidation).
+    pub filter_version: u64,
+    /// Cached density chart data.
+    pub density_cache: Option<DensityCache>,
+}
+
+/// Cached density chart — avoids O(N) recomputation on every frame.
+#[derive(Clone)]
+pub struct DensityCache {
+    /// Pre-rendered braille string.
+    pub braille_text: String,
+    /// Bucket values for cursor_bucket lookup.
+    pub num_buckets: usize,
+    /// Min timestamp in filtered data.
+    pub min_ts: chrono::DateTime<chrono::Utc>,
+    /// Max timestamp in filtered data.
+    pub max_ts: chrono::DateTime<chrono::Utc>,
+    /// Filter version when cache was built.
+    pub filter_version: u64,
+    /// Chart width when cache was built.
+    pub chart_width: usize,
 }
 
 impl App {
@@ -292,6 +313,8 @@ impl App {
             col_widths,
             column_config: ColumnConfig::default(),
             follow_mode: false,
+            filter_version: 0,
+            density_cache: None,
         })
     }
 
@@ -361,6 +384,70 @@ impl App {
         self.status_message_at = None;
     }
 
+    // ── Density chart cache ─────────────────────────────────────
+
+    /// Get or rebuild the density cache. Returns None if no data.
+    pub fn get_density_cache(&mut self, chart_width: usize) -> Option<&DensityCache> {
+        let num_buckets = (chart_width * 2).min(200);
+        let needs_rebuild = match &self.density_cache {
+            Some(c) => c.filter_version != self.filter_version || c.chart_width != chart_width,
+            None => true,
+        };
+
+        if needs_rebuild {
+            if self.filtered_indices.is_empty() {
+                self.density_cache = None;
+                return None;
+            }
+
+            let min_ts = self.records[self.filtered_indices[0]].timestamp;
+            let max_ts = self.records[*self.filtered_indices.last().unwrap()].timestamp;
+
+            let buckets = if min_ts == max_ts {
+                let mut b = vec![0usize; num_buckets];
+                b[0] = self.filtered_indices.len();
+                b
+            } else {
+                let range_ms = (max_ts - min_ts).num_milliseconds() as f64;
+                let mut b = vec![0usize; num_buckets];
+                for &i in &self.filtered_indices {
+                    let ts = self.records[i].timestamp;
+                    let offset_ms = (ts - min_ts).num_milliseconds() as f64;
+                    let idx = ((offset_ms / range_ms) * (num_buckets as f64 - 1.0)) as usize;
+                    b[idx.min(num_buckets - 1)] += 1;
+                }
+                b
+            };
+
+            let (braille_text, _) = crate::density::render_braille(&buckets, None);
+
+            self.density_cache = Some(DensityCache {
+                braille_text,
+                num_buckets,
+                min_ts,
+                max_ts,
+                filter_version: self.filter_version,
+                chart_width,
+            });
+        }
+
+        self.density_cache.as_ref()
+    }
+
+    /// Compute cursor char index in braille text from current selection — O(1).
+    pub fn cursor_char_in_density(&self) -> Option<usize> {
+        let cache = self.density_cache.as_ref()?;
+        let record = self.selected_record()?;
+        let cursor_ts = record.timestamp;
+        if cache.min_ts == cache.max_ts {
+            return Some(0);
+        }
+        let range_ms = (cache.max_ts - cache.min_ts).num_milliseconds() as f64;
+        let offset_ms = (cursor_ts - cache.min_ts).num_milliseconds() as f64;
+        let idx = ((offset_ms / range_ms) * (cache.num_buckets as f64 - 1.0)) as usize;
+        Some(idx.min(cache.num_buckets - 1) / 2)
+    }
+
     // ── Filter application ──────────────────────────────────────
 
     /// Re-apply all active filters to compute filtered_indices.
@@ -385,6 +472,7 @@ impl App {
         self.scroll_offset = 0;
         self.selected = 0;
         self.clear_search();
+        self.filter_version += 1;
     }
 
     /// Apply filter expression from the `f` input mode.
@@ -1017,6 +1105,8 @@ mod tests {
             col_widths: [19, 5, 11, 3, 3, 9],
             column_config: ColumnConfig::default(),
             follow_mode: false,
+            filter_version: 0,
+            density_cache: None,
         }
     }
 
@@ -1053,6 +1143,8 @@ mod tests {
             col_widths: [19, 5, 11, 3, 3, 9],
             column_config: ColumnConfig::default(),
             follow_mode: false,
+            filter_version: 0,
+            density_cache: None,
         }
     }
 
@@ -1379,6 +1471,8 @@ mod field_filter_v2_tests {
             col_widths: [19, 5, 11, 3, 3, 9],
             column_config: ColumnConfig::default(),
             follow_mode: false,
+            filter_version: 0,
+            density_cache: None,
         }
     }
 
@@ -1540,6 +1634,8 @@ mod column_follow_tests {
             col_widths: [19, 5, 11, 3, 3, 9],
             column_config: ColumnConfig::default(),
             follow_mode: false,
+            filter_version: 0,
+            density_cache: None,
         }
     }
 
@@ -1712,6 +1808,8 @@ mod copy_tests {
             col_widths: [19, 5, 11, 3, 3, 9],
             column_config: ColumnConfig::default(),
             follow_mode: false,
+            filter_version: 0,
+            density_cache: None,
         }
     }
 
