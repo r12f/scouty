@@ -8,6 +8,7 @@ use crate::app::{App, Column};
 use crate::ui::{ComponentResult, UiComponent};
 use ratatui::layout::{Constraint, Rect};
 use ratatui::style::{Color, Modifier, Style};
+use ratatui::text::{Line, Span};
 use ratatui::widgets::{Cell, Row, Table};
 use ratatui::Frame;
 use scouty::record::LogLevel;
@@ -102,7 +103,49 @@ impl LogTableWidget {
                             Cell::from(record.component_name.as_deref().unwrap_or("").to_string())
                         }
                         Column::Source => Cell::from(record.source.to_string()),
-                        Column::Log => Cell::from(record.message.clone()),
+                        Column::Log => {
+                            if app.highlight_rules.is_empty() {
+                                Cell::from(record.message.clone())
+                            } else {
+                                // Build highlighted spans for the message
+                                let msg = &record.message;
+                                // Collect all matches: (start, end, color)
+                                let mut matches: Vec<(usize, usize, Color)> = Vec::new();
+                                for rule in &app.highlight_rules {
+                                    for m in rule.regex.find_iter(msg) {
+                                        matches.push((m.start(), m.end(), rule.color));
+                                    }
+                                }
+                                if matches.is_empty() {
+                                    Cell::from(record.message.clone())
+                                } else {
+                                    // Sort by start position
+                                    matches.sort_by_key(|m| m.0);
+                                    let mut spans: Vec<Span> = Vec::new();
+                                    let mut pos = 0usize;
+                                    for (start, end, color) in &matches {
+                                        let start = *start;
+                                        let end = *end;
+                                        if start < pos {
+                                            // Overlapping match, skip
+                                            continue;
+                                        }
+                                        if start > pos {
+                                            spans.push(Span::raw(msg[pos..start].to_string()));
+                                        }
+                                        spans.push(Span::styled(
+                                            msg[start..end].to_string(),
+                                            Style::default().fg(*color),
+                                        ));
+                                        pos = end;
+                                    }
+                                    if pos < msg.len() {
+                                        spans.push(Span::raw(msg[pos..].to_string()));
+                                    }
+                                    Cell::from(Line::from(spans))
+                                }
+                            }
+                        }
                     })
                     .collect();
 

@@ -78,6 +78,13 @@ pub fn render(frame: &mut Frame, app: &App) {
         let window = CopyFormatWindow::from_app(app);
         window.render(frame, area);
     }
+
+    // Highlight manager overlay
+    if app.input_mode == InputMode::HighlightManager {
+        use crate::ui::windows::highlight_manager_window::HighlightManagerWindow;
+        let window = HighlightManagerWindow::from_app(app);
+        window.render_with_app(frame, app, area);
+    }
 }
 
 fn render_log_table(frame: &mut Frame, app: &App, area: Rect) {
@@ -142,6 +149,9 @@ fn render_footer(frame: &mut Frame, app: &App, area: Rect) {
                 &app.quick_filter_input,
                 None,
             );
+        }
+        InputMode::Highlight => {
+            render_input_line2(frame, line2_area, "[HIGHLIGHT]", &app.highlight_input, None);
         }
         _ => {
             use crate::ui::widgets::status_bar_widget::StatusBarWidget;
