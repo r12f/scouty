@@ -187,15 +187,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
 
         terminal.draw(|frame| {
-            let body_area = frame.area();
-            let table_height = if app.detail_open {
-                let body = body_area.height.saturating_sub(2); // 2 for footer
-                (body * 60 / 100).saturating_sub(1) as usize
-            } else {
-                body_area.height.saturating_sub(3) as usize // header + 2 footer
-            };
-            app.visible_rows = table_height.max(1);
-            ui::render(frame, &app);
+            ui::render(frame, &mut app);
         })?;
 
         if !event::poll(Duration::from_millis(250))? {
