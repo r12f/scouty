@@ -20,7 +20,7 @@ impl SearchInputWidget {
     pub fn render_with_app(&self, frame: &mut Frame, area: Rect, app: &App) {
         let input_line = Paragraph::new(Line::from(vec![
             Span::styled("/", Style::default().fg(Color::Yellow)),
-            Span::raw(&app.search_input),
+            Span::raw(app.search_input.value()),
             Span::styled("█", Style::default().fg(Color::White)),
         ]));
         frame.render_widget(input_line, area);

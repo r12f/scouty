@@ -1,5 +1,6 @@
 //! Application state for the TUI.
 
+use crate::text_input::TextInput;
 use ratatui::style::Color;
 use regex::Regex;
 use scouty::filter::eval;
@@ -233,27 +234,27 @@ pub struct App {
     /// Current input mode.
     pub input_mode: InputMode,
     /// Filter input buffer (for expression mode).
-    pub filter_input: String,
+    pub filter_input: TextInput,
     /// Filter error message.
     pub filter_error: Option<String>,
     /// Stack of active filters.
     pub filters: Vec<FilterEntry>,
     /// Quick exclude/include input buffer.
-    pub quick_filter_input: String,
+    pub quick_filter_input: TextInput,
     /// Field filter dialog state.
     pub field_filter: Option<FieldFilterState>,
     /// Filter manager: selected index.
     pub filter_manager_cursor: usize,
     /// Search input buffer.
-    pub search_input: String,
+    pub search_input: TextInput,
     /// Current search matches (indices into filtered list).
     pub search_matches: Vec<usize>,
     /// Current search match index.
     pub search_match_idx: Option<usize>,
     /// Time jump input buffer.
-    pub time_input: String,
+    pub time_input: TextInput,
     /// Goto line input buffer.
-    pub goto_input: String,
+    pub goto_input: TextInput,
     /// Status message shown temporarily.
     pub status_message: Option<String>,
     /// Timestamp when status_message was set (for auto-clear).
@@ -270,7 +271,7 @@ pub struct App {
     /// Scroll offset for help window.
     pub help_scroll: u16,
     /// Save file input buffer.
-    pub command_input: String,
+    pub command_input: TextInput,
     /// Filter version counter (incremented on filter/data change, for density cache invalidation).
     pub filter_version: u64,
     /// Cached density chart data.
@@ -278,7 +279,7 @@ pub struct App {
     /// Highlight rules.
     pub highlight_rules: Vec<HighlightRule>,
     /// Highlight input buffer.
-    pub highlight_input: String,
+    pub highlight_input: TextInput,
     /// Highlight manager cursor.
     pub highlight_manager_cursor: usize,
     /// Cached statistics data (computed once when entering Statistics mode).
@@ -367,17 +368,17 @@ impl App {
             visible_rows: 20,
             detail_open: false,
             input_mode: InputMode::Normal,
-            filter_input: String::new(),
+            filter_input: TextInput::new(),
             filter_error: None,
             filters: Vec::new(),
-            quick_filter_input: String::new(),
+            quick_filter_input: TextInput::new(),
             field_filter: None,
             filter_manager_cursor: 0,
-            search_input: String::new(),
+            search_input: TextInput::new(),
             search_matches: vec![],
             search_match_idx: None,
-            time_input: String::new(),
-            goto_input: String::new(),
+            time_input: TextInput::new(),
+            goto_input: TextInput::new(),
             status_message: None,
             status_message_at: None,
             col_widths,
@@ -386,11 +387,11 @@ impl App {
             should_quit: false,
             copy_format_cursor: 0,
             help_scroll: 0,
-            command_input: String::new(),
+            command_input: TextInput::new(),
             filter_version: 0,
             density_cache: None,
             highlight_rules: Vec::new(),
-            highlight_input: String::new(),
+            highlight_input: TextInput::new(),
             highlight_manager_cursor: 0,
             cached_stats: None,
         })
@@ -552,10 +553,10 @@ impl App {
             self.filter_error = None;
             return;
         }
-        match expr::parse(&self.filter_input) {
+        match expr::parse(self.filter_input.value()) {
             Ok(parsed_expr) => {
                 self.filters.push(FilterEntry {
-                    label: self.filter_input.clone(),
+                    label: self.filter_input.value().to_string(),
                     expr: parsed_expr,
                     exclude: false,
                 });
@@ -834,7 +835,7 @@ impl App {
             self.clear_search();
             return;
         }
-        let pattern = match regex::RegexBuilder::new(&self.search_input)
+        let pattern = match regex::RegexBuilder::new(self.search_input.value())
             .case_insensitive(true)
             .build()
         {
@@ -1332,17 +1333,17 @@ mod tests {
             visible_rows: 10,
             detail_open: false,
             input_mode: InputMode::Normal,
-            filter_input: String::new(),
+            filter_input: TextInput::new(),
             filter_error: None,
             filters: Vec::new(),
-            quick_filter_input: String::new(),
+            quick_filter_input: TextInput::new(),
             field_filter: None,
             filter_manager_cursor: 0,
-            search_input: String::new(),
+            search_input: TextInput::new(),
             search_matches: vec![],
             search_match_idx: None,
-            time_input: String::new(),
-            goto_input: String::new(),
+            time_input: TextInput::new(),
+            goto_input: TextInput::new(),
             status_message: None,
             status_message_at: None,
             col_widths: [19, 5, 11, 3, 3, 9],
@@ -1351,11 +1352,11 @@ mod tests {
             should_quit: false,
             copy_format_cursor: 0,
             help_scroll: 0,
-            command_input: String::new(),
+            command_input: TextInput::new(),
             filter_version: 0,
             density_cache: None,
             highlight_rules: Vec::new(),
-            highlight_input: String::new(),
+            highlight_input: TextInput::new(),
             highlight_manager_cursor: 0,
             cached_stats: None,
         }
@@ -1381,17 +1382,17 @@ mod tests {
             visible_rows: 10,
             detail_open: false,
             input_mode: InputMode::Normal,
-            filter_input: String::new(),
+            filter_input: TextInput::new(),
             filter_error: None,
             filters: Vec::new(),
-            quick_filter_input: String::new(),
+            quick_filter_input: TextInput::new(),
             field_filter: None,
             filter_manager_cursor: 0,
-            search_input: String::new(),
+            search_input: TextInput::new(),
             search_matches: vec![],
             search_match_idx: None,
-            time_input: String::new(),
-            goto_input: String::new(),
+            time_input: TextInput::new(),
+            goto_input: TextInput::new(),
             status_message: None,
             status_message_at: None,
             col_widths: [19, 5, 11, 3, 3, 9],
@@ -1400,11 +1401,11 @@ mod tests {
             should_quit: false,
             copy_format_cursor: 0,
             help_scroll: 0,
-            command_input: String::new(),
+            command_input: TextInput::new(),
             filter_version: 0,
             density_cache: None,
             highlight_rules: Vec::new(),
-            highlight_input: String::new(),
+            highlight_input: TextInput::new(),
             highlight_manager_cursor: 0,
             cached_stats: None,
         }
@@ -1427,17 +1428,17 @@ mod tests {
             visible_rows: 10,
             detail_open: false,
             input_mode: InputMode::Normal,
-            filter_input: String::new(),
+            filter_input: TextInput::new(),
             filter_error: None,
             filters: Vec::new(),
-            quick_filter_input: String::new(),
+            quick_filter_input: TextInput::new(),
             field_filter: None,
             filter_manager_cursor: 0,
-            search_input: String::new(),
+            search_input: TextInput::new(),
             search_matches: vec![],
             search_match_idx: None,
-            time_input: String::new(),
-            goto_input: String::new(),
+            time_input: TextInput::new(),
+            goto_input: TextInput::new(),
             status_message: None,
             status_message_at: None,
             col_widths: [19, 5, 11, 3, 3, 9],
@@ -1446,11 +1447,11 @@ mod tests {
             should_quit: false,
             copy_format_cursor: 0,
             help_scroll: 0,
-            command_input: String::new(),
+            command_input: TextInput::new(),
             filter_version: 0,
             density_cache: None,
             highlight_rules: Vec::new(),
-            highlight_input: String::new(),
+            highlight_input: TextInput::new(),
             highlight_manager_cursor: 0,
             cached_stats: None,
         }
@@ -1518,7 +1519,7 @@ mod tests {
         let mut app = make_app(20);
         Arc::get_mut(&mut app.records[5]).unwrap().message = "error happened".to_string();
         Arc::get_mut(&mut app.records[15]).unwrap().message = "another error".to_string();
-        app.search_input = "error".to_string();
+        app.search_input.set("error");
         app.execute_search();
         assert_eq!(app.search_matches.len(), 2);
         assert_eq!(app.selected, 5);
@@ -1536,7 +1537,7 @@ mod tests {
     #[test]
     fn test_search_no_match() {
         let mut app = make_app(10);
-        app.search_input = "zzzznotfound".to_string();
+        app.search_input.set("zzzznotfound");
         app.execute_search();
         assert!(app.search_matches.is_empty());
         assert!(app.status_message.is_some());
@@ -1549,11 +1550,11 @@ mod tests {
             "ERROR: connection timeout".to_string();
         Arc::get_mut(&mut app.records[7]).unwrap().message = "error: disk full".to_string();
 
-        app.search_input = r"error.*(?:timeout|full)".to_string();
+        app.search_input.set(r"error.*(?:timeout|full)");
         app.execute_search();
         assert_eq!(app.search_matches.len(), 2);
 
-        app.search_input = "[invalid".to_string();
+        app.search_input.set("[invalid");
         app.execute_search();
         assert!(app.search_matches.is_empty());
         assert!(app
@@ -1576,7 +1577,7 @@ mod tests {
     #[test]
     fn test_goto_line() {
         let mut app = make_app(100);
-        app.goto_input = "50".to_string();
+        app.goto_input.set("50");
         app.goto_line();
         assert_eq!(app.selected, 49);
     }
@@ -1598,7 +1599,7 @@ mod tests {
             ("all good", Some(LogLevel::Info)),
         ]);
 
-        app.quick_filter_input = "timeout".to_string();
+        app.quick_filter_input.set("timeout");
         app.apply_quick_exclude();
 
         assert_eq!(app.filters.len(), 1);
@@ -1615,7 +1616,7 @@ mod tests {
             ("all good", Some(LogLevel::Info)),
         ]);
 
-        app.quick_filter_input = "timeout".to_string();
+        app.quick_filter_input.set("timeout");
         app.apply_quick_include();
 
         assert_eq!(app.filters.len(), 1);
@@ -1634,12 +1635,12 @@ mod tests {
         ]);
 
         // Exclude "timeout"
-        app.quick_filter_input = "timeout".to_string();
+        app.quick_filter_input.set("timeout");
         app.apply_quick_exclude();
         assert_eq!(app.filtered_indices.len(), 3);
 
         // Also exclude "disk"
-        app.quick_filter_input = "disk".to_string();
+        app.quick_filter_input.set("disk");
         app.apply_quick_exclude();
         assert_eq!(app.filtered_indices.len(), 2);
         assert_eq!(app.filters.len(), 2);
@@ -1653,7 +1654,7 @@ mod tests {
             ("timeout again", Some(LogLevel::Warn)),
         ]);
 
-        app.quick_filter_input = "timeout".to_string();
+        app.quick_filter_input.set("timeout");
         app.apply_quick_exclude();
         assert_eq!(app.filtered_indices.len(), 1);
 
@@ -1670,9 +1671,9 @@ mod tests {
             ("c", Some(LogLevel::Warn)),
         ]);
 
-        app.quick_filter_input = "a".to_string();
+        app.quick_filter_input.set("a");
         app.apply_quick_exclude();
-        app.quick_filter_input = "b".to_string();
+        app.quick_filter_input.set("b");
         app.apply_quick_exclude();
         assert_eq!(app.filtered_indices.len(), 1);
 
@@ -1689,7 +1690,7 @@ mod tests {
             ("warn msg", Some(LogLevel::Warn)),
         ]);
 
-        app.filter_input = r#"level = "ERROR""#.to_string();
+        app.filter_input.set(r#"level = "ERROR""#);
         app.apply_filter();
         // The filter parser requires string values in quotes
         assert_eq!(app.filters.len(), 1);
@@ -1869,17 +1870,17 @@ mod field_filter_v2_tests {
             visible_rows: 10,
             detail_open: false,
             input_mode: InputMode::Normal,
-            filter_input: String::new(),
+            filter_input: TextInput::new(),
             filter_error: None,
             filters: Vec::new(),
-            quick_filter_input: String::new(),
+            quick_filter_input: TextInput::new(),
             field_filter: None,
             filter_manager_cursor: 0,
-            search_input: String::new(),
+            search_input: TextInput::new(),
             search_matches: vec![],
             search_match_idx: None,
-            time_input: String::new(),
-            goto_input: String::new(),
+            time_input: TextInput::new(),
+            goto_input: TextInput::new(),
             status_message: None,
             status_message_at: None,
             col_widths: [19, 5, 11, 3, 3, 9],
@@ -1888,11 +1889,11 @@ mod field_filter_v2_tests {
             should_quit: false,
             copy_format_cursor: 0,
             help_scroll: 0,
-            command_input: String::new(),
+            command_input: TextInput::new(),
             filter_version: 0,
             density_cache: None,
             highlight_rules: Vec::new(),
-            highlight_input: String::new(),
+            highlight_input: TextInput::new(),
             highlight_manager_cursor: 0,
             cached_stats: None,
         }
@@ -2040,17 +2041,17 @@ mod column_follow_tests {
             visible_rows: 10,
             detail_open: false,
             input_mode: InputMode::Normal,
-            filter_input: String::new(),
+            filter_input: TextInput::new(),
             filter_error: None,
             filters: Vec::new(),
-            quick_filter_input: String::new(),
+            quick_filter_input: TextInput::new(),
             field_filter: None,
             filter_manager_cursor: 0,
-            search_input: String::new(),
+            search_input: TextInput::new(),
             search_matches: vec![],
             search_match_idx: None,
-            time_input: String::new(),
-            goto_input: String::new(),
+            time_input: TextInput::new(),
+            goto_input: TextInput::new(),
             status_message: None,
             status_message_at: None,
             col_widths: [19, 5, 11, 3, 3, 9],
@@ -2059,11 +2060,11 @@ mod column_follow_tests {
             should_quit: false,
             copy_format_cursor: 0,
             help_scroll: 0,
-            command_input: String::new(),
+            command_input: TextInput::new(),
             filter_version: 0,
             density_cache: None,
             highlight_rules: Vec::new(),
-            highlight_input: String::new(),
+            highlight_input: TextInput::new(),
             highlight_manager_cursor: 0,
             cached_stats: None,
         }
@@ -2222,17 +2223,17 @@ mod copy_tests {
             visible_rows: 10,
             detail_open: false,
             input_mode: InputMode::Normal,
-            filter_input: String::new(),
+            filter_input: TextInput::new(),
             filter_error: None,
             filters: Vec::new(),
-            quick_filter_input: String::new(),
+            quick_filter_input: TextInput::new(),
             field_filter: None,
             filter_manager_cursor: 0,
-            search_input: String::new(),
+            search_input: TextInput::new(),
             search_matches: vec![],
             search_match_idx: None,
-            time_input: String::new(),
-            goto_input: String::new(),
+            time_input: TextInput::new(),
+            goto_input: TextInput::new(),
             status_message: None,
             status_message_at: None,
             col_widths: [19, 5, 11, 3, 3, 9],
@@ -2241,11 +2242,11 @@ mod copy_tests {
             should_quit: false,
             copy_format_cursor: 0,
             help_scroll: 0,
-            command_input: String::new(),
+            command_input: TextInput::new(),
             filter_version: 0,
             density_cache: None,
             highlight_rules: Vec::new(),
-            highlight_input: String::new(),
+            highlight_input: TextInput::new(),
             highlight_manager_cursor: 0,
             cached_stats: None,
         }
@@ -2378,17 +2379,17 @@ mod time_jump_tests {
             visible_rows: 10,
             detail_open: false,
             input_mode: InputMode::Normal,
-            filter_input: String::new(),
+            filter_input: TextInput::new(),
             filter_error: None,
             filters: Vec::new(),
-            quick_filter_input: String::new(),
+            quick_filter_input: TextInput::new(),
             field_filter: None,
             filter_manager_cursor: 0,
-            search_input: String::new(),
+            search_input: TextInput::new(),
             search_matches: vec![],
             search_match_idx: None,
-            time_input: time_input.to_string(),
-            goto_input: String::new(),
+            time_input: TextInput::with_text(time_input),
+            goto_input: TextInput::new(),
             status_message: None,
             status_message_at: None,
             col_widths: [0; 6],
@@ -2397,10 +2398,10 @@ mod time_jump_tests {
             should_quit: false,
             copy_format_cursor: 0,
             help_scroll: 0,
-            command_input: String::new(),
+            command_input: TextInput::new(),
             filter_version: 0,
             density_cache: None,
-            highlight_input: String::new(),
+            highlight_input: TextInput::new(),
             highlight_manager_cursor: 0,
             highlight_rules: Vec::new(),
             cached_stats: None,
@@ -2437,7 +2438,7 @@ mod time_jump_tests {
         app.jump_relative(true);
         assert_eq!(app.selected, 1);
 
-        app.time_input = "5m".to_string();
+        app.time_input.set("5m");
         app.jump_relative(true);
         assert_eq!(app.selected, 2);
     }
@@ -2490,17 +2491,17 @@ mod command_tests {
             visible_rows: 10,
             detail_open: false,
             input_mode: InputMode::Normal,
-            filter_input: String::new(),
+            filter_input: TextInput::new(),
             filter_error: None,
             filters: Vec::new(),
-            quick_filter_input: String::new(),
+            quick_filter_input: TextInput::new(),
             field_filter: None,
             filter_manager_cursor: 0,
-            search_input: String::new(),
+            search_input: TextInput::new(),
             search_matches: vec![],
             search_match_idx: None,
-            time_input: String::new(),
-            goto_input: String::new(),
+            time_input: TextInput::new(),
+            goto_input: TextInput::new(),
             status_message: None,
             status_message_at: None,
             col_widths: [19, 5, 11, 3, 3, 9],
@@ -2509,11 +2510,11 @@ mod command_tests {
             should_quit: false,
             copy_format_cursor: 0,
             help_scroll: 0,
-            command_input: String::new(),
+            command_input: TextInput::new(),
             filter_version: 0,
             density_cache: None,
             highlight_rules: Vec::new(),
-            highlight_input: String::new(),
+            highlight_input: TextInput::new(),
             highlight_manager_cursor: 0,
             cached_stats: None,
         }
@@ -2522,7 +2523,7 @@ mod command_tests {
     #[test]
     fn test_command_w_default_filename() {
         let mut app = make_command_app();
-        app.command_input = "w".to_string();
+        app.command_input.set("w");
         app.execute_command();
         // Should set a status message about saving
         assert!(app.status_message.is_some());
@@ -2536,7 +2537,7 @@ mod command_tests {
         let mut app = make_command_app();
         let tmp_path = std::env::temp_dir().join("scouty_test_cmd_export.log");
         let tmp = tmp_path.to_str().unwrap();
-        app.command_input = format!("w {}", tmp);
+        app.command_input.set(&format!("w {}", tmp));
         app.execute_command();
         let msg = app.status_message.as_ref().unwrap();
         assert!(msg.contains("Saved 2 records"));
@@ -2548,7 +2549,7 @@ mod command_tests {
     #[test]
     fn test_command_q_sets_should_quit() {
         let mut app = make_command_app();
-        app.command_input = "q".to_string();
+        app.command_input.set("q");
         app.execute_command();
         assert!(app.should_quit);
     }
@@ -2556,7 +2557,7 @@ mod command_tests {
     #[test]
     fn test_command_unknown() {
         let mut app = make_command_app();
-        app.command_input = "foobar".to_string();
+        app.command_input.set("foobar");
         app.execute_command();
         let msg = app.status_message.as_ref().unwrap();
         assert!(msg.contains("Unknown command"));
@@ -2565,7 +2566,7 @@ mod command_tests {
     #[test]
     fn test_command_empty() {
         let mut app = make_command_app();
-        app.command_input = "".to_string();
+        app.command_input.set("");
         app.execute_command();
         // No status change for empty command
         assert!(!app.should_quit);
