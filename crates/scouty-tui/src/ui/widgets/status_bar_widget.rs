@@ -21,7 +21,10 @@ pub struct StatusBarWidget;
 
 /// Compute the display-column width of all spans combined.
 fn spans_display_width(spans: &[Span]) -> usize {
-    spans.iter().map(|s| UnicodeWidthStr::width(s.content.as_ref())).sum()
+    spans
+        .iter()
+        .map(|s| UnicodeWidthStr::width(s.content.as_ref()))
+        .sum()
 }
 
 impl StatusBarWidget {
