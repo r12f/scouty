@@ -257,6 +257,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                     app.input_mode = InputMode::HighlightManager;
                                     app.highlight_manager_cursor = 0;
                                 }
+                                KeyCode::Char('S') => {
+                                    app.input_mode = InputMode::Statistics;
+                                }
                                 _ => {}
                             }
                         }
@@ -410,6 +413,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     InputMode::Help => {
                         use ui::windows::help_window::HelpWindow;
                         let mut window = HelpWindow;
+                        let result = ui::dispatch_key(&mut window, key);
+                        if result == ui::ComponentResult::Close {
+                            app.input_mode = InputMode::Normal;
+                        }
+                    }
+                    InputMode::Statistics => {
+                        use ui::windows::stats_window::StatsWindow;
+                        let mut window = StatsWindow::new(&app);
                         let result = ui::dispatch_key(&mut window, key);
                         if result == ui::ComponentResult::Close {
                             app.input_mode = InputMode::Normal;

@@ -27,6 +27,7 @@ pub enum InputMode {
     ColumnSelector,
     CopyFormat,
     Help,
+    Statistics,
     SaveFile,
     Highlight,
     HighlightManager,

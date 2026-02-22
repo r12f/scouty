@@ -48,6 +48,14 @@ pub fn render(frame: &mut Frame, app: &App) {
         window.render(frame, area);
     }
 
+    // Statistics overlay
+    if app.input_mode == InputMode::Statistics {
+        use crate::ui::windows::stats_window::StatsWindow;
+        use crate::ui::UiComponent;
+        let window = StatsWindow::new(app);
+        window.render(frame, area);
+    }
+
     // Field filter overlay
     if app.input_mode == InputMode::FieldFilter {
         use crate::ui::windows::field_filter_window::FieldFilterWindow;
