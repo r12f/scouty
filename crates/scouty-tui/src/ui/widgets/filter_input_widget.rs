@@ -7,7 +7,7 @@ mod filter_input_widget_tests;
 use crate::app::App;
 use crate::ui::{ComponentResult, UiComponent};
 use ratatui::layout::Rect;
-use ratatui::style::{Color, Style};
+
 use ratatui::text::{Line, Span};
 use ratatui::widgets::Paragraph;
 use ratatui::Frame;
@@ -18,16 +18,17 @@ pub struct FilterInputWidget;
 #[allow(dead_code)]
 impl FilterInputWidget {
     pub fn render_with_app(&self, frame: &mut Frame, area: Rect, app: &App) {
+        let theme = &app.theme;
         let mut spans = vec![
-            Span::styled("Filter: ", Style::default().fg(Color::Yellow)),
+            Span::styled("Filter: ", theme.input.prompt.to_style()),
             Span::raw(app.filter_input.value()),
-            Span::styled("█", Style::default().fg(Color::White)),
+            Span::styled("█", theme.input.cursor.to_style()),
         ];
 
         if let Some(ref err) = app.filter_error {
             spans.push(Span::styled(
                 format!("  {}", err),
-                Style::default().fg(Color::Red),
+                theme.input.error.to_style(),
             ));
         }
 

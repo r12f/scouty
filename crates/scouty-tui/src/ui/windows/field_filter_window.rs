@@ -5,10 +5,11 @@
 mod field_filter_window_tests;
 
 use crate::app::{App, FieldEntry, FieldEntryKind};
+use crate::config::Theme;
 use crate::ui::{ComponentResult, UiComponent};
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::layout::Rect;
-use ratatui::style::{Color, Modifier, Style};
+use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, Clear, Paragraph};
 use ratatui::Frame;
@@ -21,6 +22,7 @@ pub struct FieldFilterWindow {
     pub exclude: bool,
     pub logic_or: bool,
     pub confirmed: bool,
+    pub theme: Theme,
 }
 
 #[allow(dead_code)]
@@ -33,6 +35,7 @@ impl FieldFilterWindow {
             exclude: ff.exclude,
             logic_or: ff.logic_or,
             confirmed: false,
+            theme: app.theme.clone(),
         })
     }
 
@@ -49,6 +52,7 @@ impl FieldFilterWindow {
 #[allow(dead_code)]
 impl UiComponent for FieldFilterWindow {
     fn render(&self, frame: &mut Frame, area: Rect) {
+        let t = &self.theme;
         let width = 60u16.min(area.width.saturating_sub(4));
         let height = (self.fields.len() as u16 + 8).min(area.height.saturating_sub(4));
         let x = (area.width.saturating_sub(width)) / 2;
@@ -64,19 +68,15 @@ impl UiComponent for FieldFilterWindow {
                 Span::raw(" Action: "),
                 Span::styled(
                     format!("[{}]", action),
-                    Style::default()
-                        .fg(Color::Yellow)
-                        .add_modifier(Modifier::BOLD),
+                    t.dialog.accent.to_style().add_modifier(Modifier::BOLD),
                 ),
-                Span::styled(" (Tab)", Style::default().fg(Color::DarkGray)),
+                Span::styled(" (Tab)", t.dialog.muted.to_style()),
                 Span::raw("  Logic: "),
                 Span::styled(
                     format!("[{}]", logic),
-                    Style::default()
-                        .fg(Color::Cyan)
-                        .add_modifier(Modifier::BOLD),
+                    t.dialog.title.to_style().add_modifier(Modifier::BOLD),
                 ),
-                Span::styled(" (o)", Style::default().fg(Color::DarkGray)),
+                Span::styled(" (o)", t.dialog.muted.to_style()),
             ]),
             Line::from(""),
         ];
@@ -94,14 +94,13 @@ impl UiComponent for FieldFilterWindow {
             let checkbox = if entry.checked { "[x]" } else { "[ ]" };
             let is_cursor = i == self.cursor;
             let style = if is_cursor {
-                Style::default().bg(Color::DarkGray).fg(Color::White)
+                t.dialog.selected.to_style()
             } else {
                 Style::default()
             };
 
             let display = match &entry.kind {
                 FieldEntryKind::TimeBefore { .. } | FieldEntryKind::TimeAfter { .. } => {
-                    // Time entries show just the name (e.g. "Before 2025-01-01 12:00:00.000")
                     format!(" {} {}", checkbox, entry.name)
                 }
                 FieldEntryKind::Field => {
@@ -120,14 +119,14 @@ impl UiComponent for FieldFilterWindow {
         if self.fields.len() > max_visible {
             lines.push(Line::styled(
                 format!(" ({}/{})", self.cursor + 1, self.fields.len()),
-                Style::default().fg(Color::DarkGray),
+                t.dialog.muted.to_style(),
             ));
         }
 
         lines.push(Line::from(""));
         lines.push(Line::styled(
             " Enter: Apply  Esc: Cancel  Space: Toggle",
-            Style::default().fg(Color::DarkGray),
+            t.dialog.muted.to_style(),
         ));
 
         let title = if self.exclude {
@@ -141,9 +140,9 @@ impl UiComponent for FieldFilterWindow {
                 Block::default()
                     .title(title)
                     .borders(Borders::ALL)
-                    .border_style(Style::default().fg(Color::Cyan)),
+                    .border_style(t.dialog.border.to_style()),
             )
-            .style(Style::default().bg(Color::Black));
+            .style(t.dialog.background.to_style());
         frame.render_widget(dialog, overlay);
     }
 

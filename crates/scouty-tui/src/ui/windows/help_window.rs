@@ -4,52 +4,51 @@
 #[path = "help_window_tests.rs"]
 mod help_window_tests;
 
+use crate::config::Theme;
 use crate::ui::{ComponentResult, UiComponent};
 use ratatui::layout::Rect;
-use ratatui::style::{Color, Modifier, Style};
+use ratatui::style::{Modifier, Style};
 use ratatui::text::Line;
 use ratatui::widgets::{Block, Borders, Clear, Paragraph};
 use ratatui::Frame;
 
 /// Help overlay showing keyboard shortcuts — scrollable with j/k.
-pub struct HelpWindow {
+pub struct HelpWindow<'a> {
     pub scroll: u16,
-    /// Visible content height (set during render).
     pub visible_height: u16,
+    pub theme: &'a Theme,
 }
 
-impl HelpWindow {
-    pub fn new() -> Self {
+impl<'a> HelpWindow<'a> {
+    pub fn new(theme: &'a Theme) -> Self {
         Self {
             scroll: 0,
             visible_height: 20,
+            theme,
         }
     }
 
-    fn help_lines() -> Vec<Line<'static>> {
+    fn help_lines(&self) -> Vec<Line<'static>> {
+        let t = self.theme;
         let section = |title: &str| {
             Line::styled(
                 format!(" {title}"),
-                Style::default()
-                    .fg(Color::Cyan)
-                    .add_modifier(Modifier::BOLD),
+                t.dialog.title.to_style().add_modifier(Modifier::BOLD),
             )
         };
 
         vec![
             Line::styled(
                 " scouty-tui — TUI Log Viewer ",
-                Style::default()
-                    .fg(Color::White)
-                    .add_modifier(Modifier::BOLD),
+                t.dialog.text.to_style().add_modifier(Modifier::BOLD),
             ),
             Line::styled(
                 format!(" Version {}", env!("CARGO_PKG_VERSION")),
-                Style::default().fg(Color::DarkGray),
+                t.dialog.muted.to_style(),
             ),
             Line::styled(
                 " https://github.com/r12f/scouty",
-                Style::default().fg(Color::Blue),
+                Style::default().fg(t.general.accent.fg_color()),
             ),
             Line::from(""),
             section("Navigation"),
@@ -100,18 +99,19 @@ impl HelpWindow {
             Line::from(""),
             Line::styled(
                 " j/k to scroll • Esc/q to close ",
-                Style::default().fg(Color::DarkGray),
+                t.dialog.muted.to_style(),
             ),
         ]
     }
 
-    fn total_lines() -> u16 {
-        Self::help_lines().len() as u16
+    fn total_lines(&self) -> u16 {
+        self.help_lines().len() as u16
     }
 }
 
-impl UiComponent for HelpWindow {
+impl UiComponent for HelpWindow<'_> {
     fn render(&self, frame: &mut Frame, area: Rect) {
+        let t = self.theme;
         let width = 58u16.min(area.width.saturating_sub(4));
         let height = area.height.saturating_sub(4).min(area.height).max(3);
         let x = (area.width.saturating_sub(width)) / 2;
@@ -120,16 +120,16 @@ impl UiComponent for HelpWindow {
 
         frame.render_widget(Clear, overlay);
 
-        let help_text = Self::help_lines();
+        let help_text = self.help_lines();
 
         let help = Paragraph::new(help_text)
             .block(
                 Block::default()
                     .title(" Help ")
                     .borders(Borders::ALL)
-                    .border_style(Style::default().fg(Color::Yellow)),
+                    .border_style(t.dialog.accent.to_style()),
             )
-            .style(Style::default().bg(Color::Black))
+            .style(t.dialog.background.to_style())
             .scroll((self.scroll, 0));
         frame.render_widget(help, overlay);
     }
@@ -144,8 +144,7 @@ impl UiComponent for HelpWindow {
     }
 
     fn on_down(&mut self) -> ComponentResult {
-        // Cap scroll so the last few lines remain visible (assume ~20 visible rows)
-        let max_scroll = Self::total_lines().saturating_sub(self.visible_height);
+        let max_scroll = self.total_lines().saturating_sub(self.visible_height);
         if self.scroll < max_scroll {
             self.scroll += 1;
         }

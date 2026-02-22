@@ -78,6 +78,7 @@ mod tests {
             cached_stats: None,
             bookmarks: std::collections::HashSet::new(),
             bookmark_manager_cursor: 0,
+            theme: crate::config::Theme::default(),
         }
     }
 
@@ -164,6 +165,7 @@ mod tests {
             cached_stats: None,
             bookmarks: std::collections::HashSet::new(),
             bookmark_manager_cursor: 0,
+            theme: crate::config::Theme::default(),
         };
         let stats = StatsData::compute(&app);
         assert_eq!(stats.total_records, 0);
@@ -177,8 +179,10 @@ mod tests {
     fn test_stats_window_closes_on_esc() {
         let mut app = make_test_app();
         app.cached_stats = Some(StatsData::compute(&app));
+        let theme = crate::config::Theme::default();
         let mut window = StatsWindow {
             stats: app.cached_stats.as_ref().unwrap(),
+            theme: &theme,
         };
         let key = KeyEvent::new(KeyCode::Esc, KeyModifiers::NONE);
         let result = dispatch_key(&mut window, key);
@@ -189,8 +193,10 @@ mod tests {
     fn test_stats_window_closes_on_any_char() {
         let mut app = make_test_app();
         app.cached_stats = Some(StatsData::compute(&app));
+        let theme = crate::config::Theme::default();
         let mut window = StatsWindow {
             stats: app.cached_stats.as_ref().unwrap(),
+            theme: &theme,
         };
         let key = KeyEvent::new(KeyCode::Char('q'), KeyModifiers::NONE);
         let result = dispatch_key(&mut window, key);

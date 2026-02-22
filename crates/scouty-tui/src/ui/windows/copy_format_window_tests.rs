@@ -13,6 +13,7 @@ mod tests {
         CopyFormatWindow {
             cursor: 0,
             confirmed: false,
+            theme: crate::config::Theme::default(),
         }
     }
 

@@ -1,5 +1,6 @@
 //! Application state for the TUI.
 
+use crate::config::Theme;
 use crate::text_input::TextInput;
 use ratatui::style::Color;
 use regex::Regex;
@@ -195,16 +196,6 @@ pub struct FieldFilterState {
     pub logic_or: bool,
 }
 
-/// Colors used for highlight rules, in rotation order.
-pub const HIGHLIGHT_COLORS: [Color; 6] = [
-    Color::Red,
-    Color::Green,
-    Color::Blue,
-    Color::Yellow,
-    Color::Magenta,
-    Color::Cyan,
-];
-
 /// A single highlight rule: regex pattern + assigned color.
 #[derive(Debug, Clone)]
 pub struct HighlightRule {
@@ -289,6 +280,8 @@ pub struct App {
     pub bookmarks: std::collections::HashSet<u64>,
     /// Bookmark manager cursor.
     pub bookmark_manager_cursor: usize,
+    /// Theme for UI colors.
+    pub theme: Theme,
 }
 
 /// Cached density chart — avoids O(N) recomputation on every frame.
@@ -401,6 +394,7 @@ impl App {
             cached_stats: None,
             bookmarks: std::collections::HashSet::new(),
             bookmark_manager_cursor: 0,
+            theme: Theme::default(),
         })
     }
 
@@ -1307,8 +1301,9 @@ impl App {
         }
         match Regex::new(pattern) {
             Ok(regex) => {
-                let color_idx = self.highlight_rules.len() % HIGHLIGHT_COLORS.len();
-                let color = HIGHLIGHT_COLORS[color_idx];
+                let palette = &self.theme.highlight_palette;
+                let color_idx = self.highlight_rules.len() % palette.len().max(1);
+                let color = palette.get(color_idx).map(|c| c.0).unwrap_or(Color::Red);
                 self.highlight_rules.push(HighlightRule {
                     pattern: pattern.to_string(),
                     regex,
@@ -1443,6 +1438,7 @@ mod tests {
             cached_stats: None,
             bookmarks: std::collections::HashSet::new(),
             bookmark_manager_cursor: 0,
+            theme: Theme::default(),
         }
     }
 
@@ -1494,6 +1490,7 @@ mod tests {
             cached_stats: None,
             bookmarks: std::collections::HashSet::new(),
             bookmark_manager_cursor: 0,
+            theme: Theme::default(),
         }
     }
 
@@ -1542,6 +1539,7 @@ mod tests {
             cached_stats: None,
             bookmarks: std::collections::HashSet::new(),
             bookmark_manager_cursor: 0,
+            theme: Theme::default(),
         }
     }
 
@@ -1986,6 +1984,7 @@ mod field_filter_v2_tests {
             cached_stats: None,
             bookmarks: std::collections::HashSet::new(),
             bookmark_manager_cursor: 0,
+            theme: Theme::default(),
         }
     }
 
@@ -2159,6 +2158,7 @@ mod column_follow_tests {
             cached_stats: None,
             bookmarks: std::collections::HashSet::new(),
             bookmark_manager_cursor: 0,
+            theme: Theme::default(),
         }
     }
 
@@ -2343,6 +2343,7 @@ mod copy_tests {
             cached_stats: None,
             bookmarks: std::collections::HashSet::new(),
             bookmark_manager_cursor: 0,
+            theme: Theme::default(),
         }
     }
 
@@ -2501,6 +2502,7 @@ mod time_jump_tests {
             cached_stats: None,
             bookmarks: std::collections::HashSet::new(),
             bookmark_manager_cursor: 0,
+            theme: Theme::default(),
         }
     }
 
@@ -2615,6 +2617,7 @@ mod command_tests {
             cached_stats: None,
             bookmarks: std::collections::HashSet::new(),
             bookmark_manager_cursor: 0,
+            theme: Theme::default(),
         }
     }
     #[test]

@@ -5,26 +5,14 @@
 mod detail_panel_widget_tests;
 
 use crate::app::App;
+use crate::config::Theme;
 use crate::ui::UiComponent;
 use ratatui::layout::{Constraint, Layout, Rect};
-use ratatui::style::{Color, Modifier, Style};
+
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, Cell, Paragraph, Row, Table, Wrap};
 use ratatui::Frame;
-use scouty::record::LogLevel;
-
-fn level_style(level: Option<LogLevel>) -> Style {
-    match level {
-        Some(LogLevel::Fatal) => Style::default().fg(Color::Red).add_modifier(Modifier::BOLD),
-        Some(LogLevel::Error) => Style::default().fg(Color::Red),
-        Some(LogLevel::Warn) => Style::default().fg(Color::Yellow),
-        Some(LogLevel::Notice) => Style::default().fg(Color::Cyan),
-        Some(LogLevel::Info) => Style::default().fg(Color::Green),
-        Some(LogLevel::Debug) => Style::default().fg(Color::Gray),
-        Some(LogLevel::Trace) => Style::default().fg(Color::DarkGray),
-        None => Style::default(),
-    }
-}
+use crate::ui::widgets::log_table_widget::level_style;
 
 /// Count the number of field rows that would be displayed for a record,
 /// without allocating the full field pairs vector.
@@ -110,8 +98,8 @@ fn build_field_pairs(record: &scouty::record::LogRecord) -> Vec<(&'static str, S
 }
 
 /// Build Line spans from field pairs (for single-column fallback).
-fn build_field_lines(record: &scouty::record::LogRecord) -> Vec<Line<'static>> {
-    let label_style = Style::default().fg(Color::Cyan);
+fn build_field_lines(record: &scouty::record::LogRecord, theme: &Theme) -> Vec<Line<'static>> {
+    let label_style = theme.detail_panel.field_name.to_style();
     build_field_pairs(record)
         .into_iter()
         .map(|(key, val)| {
@@ -128,10 +116,11 @@ const MIN_SPLIT_WIDTH: u16 = 80;
 
 impl DetailPanelWidget {
     pub fn render_with_app(&self, frame: &mut Frame, area: Rect, app: &App) {
+        let theme = &app.theme;
         let block = Block::default()
             .title(" Detail ")
             .borders(Borders::TOP)
-            .border_style(Style::default().fg(Color::DarkGray));
+            .border_style(theme.detail_panel.border.to_style());
 
         let Some(record) = app.selected_record() else {
             let empty = Paragraph::new("No record selected").block(block);
@@ -143,34 +132,31 @@ impl DetailPanelWidget {
         frame.render_widget(block, area);
 
         if inner.width < MIN_SPLIT_WIDTH {
-            // Narrow: single-column fallback (fields then raw)
-            self.render_single_column(frame, inner, record);
+            self.render_single_column(frame, inner, record, theme);
         } else {
-            self.render_split(frame, inner, record);
+            self.render_split(frame, inner, record, theme);
         }
     }
 
-    fn render_split(&self, frame: &mut Frame, area: Rect, record: &scouty::record::LogRecord) {
+    fn render_split(&self, frame: &mut Frame, area: Rect, record: &scouty::record::LogRecord, theme: &Theme) {
         let chunks = Layout::horizontal([Constraint::Percentage(70), Constraint::Percentage(30)])
             .split(area);
 
-        // Left pane: raw log content with wrap
         let left_block = Block::default()
             .borders(Borders::RIGHT)
-            .border_style(Style::default().fg(Color::DarkGray));
+            .border_style(theme.detail_panel.border.to_style());
         let raw_text = Paragraph::new(record.raw.clone())
             .block(left_block)
             .wrap(Wrap { trim: false });
         frame.render_widget(raw_text, chunks[0]);
 
-        // Right pane: field table
         let pairs = build_field_pairs(record);
-        let label_style = Style::default().fg(Color::Cyan);
+        let label_style = theme.detail_panel.field_name.to_style();
         let rows: Vec<Row> = pairs
             .into_iter()
             .map(|(key, val)| {
                 let val_cell = if key == "Level" {
-                    Cell::from(Span::styled(val, level_style(record.level)))
+                    Cell::from(Span::styled(val, level_style(record.level, theme)))
                 } else {
                     Cell::from(val)
                 };
@@ -187,11 +173,11 @@ impl DetailPanelWidget {
         frame: &mut Frame,
         area: Rect,
         record: &scouty::record::LogRecord,
+        theme: &Theme,
     ) {
-        // Same as old layout: fields then message then raw
-        let mut lines = build_field_lines(record);
+        let mut lines = build_field_lines(record, theme);
         lines.push(Line::from(""));
-        lines.push(Line::styled("Message:", Style::default().fg(Color::Cyan)));
+        lines.push(Line::styled("Message:", theme.detail_panel.section_header.to_style()));
         lines.push(Line::from(record.message.clone()));
 
         let detail = Paragraph::new(lines).wrap(Wrap { trim: false });

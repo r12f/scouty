@@ -89,7 +89,8 @@ mod tests {
     #[test]
     fn test_build_field_lines_from_pairs() {
         let record = sample_record();
-        let lines = build_field_lines(&record);
+        let theme = crate::config::Theme::default();
+        let lines = build_field_lines(&record, &theme);
         let text: Vec<String> = lines.iter().map(|l| l.to_string()).collect();
         assert!(text.iter().any(|l| l.contains("Timestamp:")));
         assert!(text.iter().any(|l| l.contains("Level:")));
