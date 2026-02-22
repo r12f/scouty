@@ -106,6 +106,8 @@ impl StatusBarWidget {
                 ("f", "Filter"),
                 ("-", "Exclude"),
                 ("=", "Include"),
+                ("_", "ExclField"),
+                ("+", "InclField"),
                 ("Enter", "Detail"),
                 ("c", "Columns"),
                 ("?", "Help"),

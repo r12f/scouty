@@ -133,15 +133,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                             KeyCode::Char(']') => {
                                 app.toggle_follow();
                             }
-                            // Ctrl+- = exclude field filter
-                            // Some terminals send Char('-'), others Char('\x1f') (ASCII 31)
-                            KeyCode::Char('-') | KeyCode::Char('\x1f') => {
-                                app.open_field_filter(true);
-                            }
-                            // Ctrl+= = include field filter
-                            KeyCode::Char('=') => {
-                                app.open_field_filter(false);
-                            }
                             _ => {}
                         }
                     } else {
@@ -176,6 +167,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                             KeyCode::Char('=') => {
                                 app.input_mode = InputMode::QuickInclude;
                                 app.quick_filter_input.clear();
+                            }
+                            KeyCode::Char('_') => {
+                                app.open_field_filter(true);
+                            }
+                            KeyCode::Char('+') => {
+                                app.open_field_filter(false);
                             }
                             KeyCode::Char('F') => {
                                 app.input_mode = InputMode::FilterManager;

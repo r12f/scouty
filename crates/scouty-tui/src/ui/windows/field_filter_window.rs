@@ -1,4 +1,4 @@
-//! Field filter dialog (Ctrl+-/Ctrl+=).
+//! Field filter dialog (_/+).
 
 #[cfg(test)]
 #[path = "field_filter_window_tests.rs"]
@@ -131,9 +131,9 @@ impl UiComponent for FieldFilterWindow {
         ));
 
         let title = if self.exclude {
-            " Exclude Fields (Ctrl+-) "
+            " Exclude Fields (_) "
         } else {
-            " Include Fields (Ctrl+=) "
+            " Include Fields (+) "
         };
 
         let dialog = Paragraph::new(lines)
