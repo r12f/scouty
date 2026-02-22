@@ -28,7 +28,7 @@ Each source gets its own loader, and a single session can combine multiple loade
   - **Extended syslog** — `2025 Nov 24 17:56:03.073872 hostname LEVEL container#process[pid]: message`
   - **ISO 8601 syslog** — `2025-11-24T17:56:03.073872-08:00 hostname process[pid]: message`
 - **SONiC SWSS Parser** — `2025-11-13.22:19:35.512358|TABLE:Key|SET|key:value|...`
-- **Sairedis Parser** — `2025-05-18 06:38:35.610696|c|SAI_OBJECT_TYPE_SWITCH|...` (4.9M rec/sec)
+- **Sairedis Parser** — `2025-05-18.06:38:35.610696|c|SAI_OBJECT_TYPE_SWITCH|...` (4.9M rec/sec)
 - **Multi-line merging** — Handles stack traces and multi-line logs (configurable per loader)
 - **Parallel parsing** — Rayon-based thread pool for maximum throughput
 
@@ -47,11 +47,10 @@ Each source gets its own loader, and a single session can combine multiple loade
 - **Regex search** with match highlighting and navigation
 - **Density graph** — Braille-character time distribution in status bar
 - **Filter dialogs** — Quick exclude/include, field-based multi-select, filter manager
-- **Bookmarks** — `m` to toggle mark, `'`/`"` to navigate between bookmarks, `M` for bookmark manager
 - **Custom highlight** — `h` to add highlight rule, `H` for highlight manager, auto color rotation
 - **Time jump** — `]` jump forward / `[` jump backward by relative time (5m, 30s, 2h)
 - **Stats overlay** — `S` shows log level distribution, top components
-- **Command mode** — `:w <file>` to export, `:q` to quit
+- **Save/export** — `Ctrl+s` opens a save file prompt for exporting filtered logs
 - **Pipe input** — `cat log | scouty-tui` with auto follow mode
 - **Copy to clipboard** — Raw, JSON, or YAML format via OSC 52
 - **Component architecture** — Unified `UiComponent` trait with standardized keyboard dispatch
@@ -139,8 +138,9 @@ journalctl -f | scouty-tui
 | `f` | Filter expression input |
 | `-` | Quick exclude (text input) |
 | `=` | Quick include (text input) |
-| `E` / `Ctrl+-` | Exclude field dialog (multi-select from current row) |
-| `I` / `Ctrl+=` | Include field dialog (multi-select from current row) |
+| `_` / `Ctrl+-` | Exclude field dialog (multi-select from current row) |
+| `+` / `Ctrl+=` | Include field dialog (multi-select from current row) |
+| `F` | Filter manager |
 
 ### Display
 
@@ -157,29 +157,19 @@ journalctl -f | scouty-tui
 | `h` | Add highlight rule |
 | `H` | Highlight manager |
 
-### Bookmarks
-
-| Key | Action |
-|-----|--------|
-| `m` | Toggle bookmark on current line |
-| `'` / `"` | Navigate between bookmarks |
-| `M` | Bookmark manager |
-
 ### Copy & Export
 
 | Key | Action |
 |-----|--------|
 | `y` | Copy selected row (raw text) |
 | `Y` | Copy with format dialog (Raw/JSON/YAML) |
-| `:` | Enter command mode |
-| `:w <file>` | Export current view to file |
-| `:q` | Quit |
+| `Ctrl+s` | Save/export current view to file |
 
 ### General
 
 | Key | Action |
 |-----|--------|
-| `F` | Toggle follow mode |
+| `Ctrl+]` | Toggle follow mode |
 | `?` | Help |
 | `q` | Quit |
 | `Esc` | Close current dialog/panel |
@@ -308,7 +298,7 @@ hostname = "BSL-0101-0101-01LT0" AND container = "restapi"
 | Extended Syslog | `2025 Nov 24 17:56:03.073872 myhost INFO docker#nginx[42]: GET /` |
 | ISO 8601 Syslog | `2025-11-24T17:56:03.073872-08:00 myhost cron[99]: running job` |
 | SONiC SWSS | `2025-11-13.22:19:35.512358\|PORT_TABLE:Ethernet248\|SET\|admin_status:up` |
-| Sairedis | `2025-05-18 06:38:35.610696\|c\|SAI_OBJECT_TYPE_SWITCH\|...` |
+| Sairedis | `2025-05-18.06:38:35.610696\|c\|SAI_OBJECT_TYPE_SWITCH\|...` |
 | Custom Regex | *(user-defined via YAML)* |
 
 ## 📄 License
