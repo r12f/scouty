@@ -216,12 +216,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 KeyCode::Down => app.page_down(),
                                 KeyCode::Up => app.page_up(),
                                 KeyCode::Char('j') => {
-                                    app.input_mode = InputMode::JumpForward;
-                                    app.time_input.clear();
+                                    app.page_down();
                                 }
                                 KeyCode::Char('k') => {
-                                    app.input_mode = InputMode::JumpBackward;
-                                    app.time_input.clear();
+                                    app.page_up();
                                 }
                                 KeyCode::Char('g') => {
                                     app.input_mode = InputMode::GotoLine;
@@ -275,6 +273,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 }
                                 KeyCode::Char('t') => {
                                     app.input_mode = InputMode::TimeJump;
+                                    app.time_input.clear();
+                                }
+                                KeyCode::Char(']') => {
+                                    app.input_mode = InputMode::JumpForward;
+                                    app.time_input.clear();
+                                }
+                                KeyCode::Char('[') => {
+                                    app.input_mode = InputMode::JumpBackward;
                                     app.time_input.clear();
                                 }
                                 KeyCode::Char('-') => {
