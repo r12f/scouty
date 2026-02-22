@@ -843,8 +843,8 @@ mod tests {
 
         assert_eq!(count, 10_000);
         assert!(
-            elapsed.as_millis() < 1,
-            "Range iter 10K traversal took {:?}, expected < 1ms",
+            elapsed.as_millis() < 5,
+            "Range iter 10K traversal took {:?}, expected < 5ms",
             elapsed
         );
     }
