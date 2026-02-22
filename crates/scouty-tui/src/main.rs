@@ -149,8 +149,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     InputMode::Normal => {
                         if ctrl {
                             match key.code {
-                                KeyCode::Char('j') | KeyCode::Down => app.page_down(),
-                                KeyCode::Char('k') | KeyCode::Up => app.page_up(),
+                                KeyCode::Char('j') | KeyCode::Down => {
+                                    app.input_mode = InputMode::JumpForward;
+                                    app.time_input.clear();
+                                }
+                                KeyCode::Char('k') | KeyCode::Up => {
+                                    app.input_mode = InputMode::JumpBackward;
+                                    app.time_input.clear();
+                                }
                                 KeyCode::Char('g') => {
                                     app.input_mode = InputMode::GotoLine;
                                     app.goto_input.clear();
@@ -278,6 +284,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     InputMode::TimeJump => match key.code {
                         KeyCode::Enter => {
                             app.jump_to_time();
+                            app.input_mode = InputMode::Normal;
+                        }
+                        KeyCode::Esc => app.input_mode = InputMode::Normal,
+                        KeyCode::Backspace => {
+                            app.time_input.pop();
+                        }
+                        KeyCode::Char(c) => app.time_input.push(c),
+                        _ => {}
+                    },
+                    InputMode::JumpForward | InputMode::JumpBackward => match key.code {
+                        KeyCode::Enter => {
+                            let forward = app.input_mode == InputMode::JumpForward;
+                            app.jump_relative(forward);
                             app.input_mode = InputMode::Normal;
                         }
                         KeyCode::Esc => app.input_mode = InputMode::Normal,
