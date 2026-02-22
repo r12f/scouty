@@ -35,7 +35,7 @@ impl StatusBarWidget {
         };
 
         let right_text = format!(" {} ", position);
-        let right_width = right_text.len() as u16 + 1; // +1 for separator
+        let right_width = right_text.len() as u16;
 
         let chart_width = area.width.saturating_sub(right_width + 2) as usize;
 
@@ -111,8 +111,8 @@ impl StatusBarWidget {
                 ("?", "Help"),
             ];
 
-            let mode_width = mode_label.len() + 2; // + spaces
-            let mut remaining = area.width.saturating_sub(mode_width as u16 + 1) as usize;
+            let mode_width = mode_label.len() + 2; // + spaces for " {} "
+            let mut remaining = area.width.saturating_sub(mode_width as u16) as usize;
 
             for (i, (key, desc)) in shortcuts.iter().enumerate() {
                 let entry = if i == 0 {

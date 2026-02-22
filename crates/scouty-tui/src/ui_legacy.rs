@@ -107,28 +107,16 @@ fn render_footer(frame: &mut Frame, app: &App, area: Rect) {
             widget.render_with_app(frame, line2_area, app);
         }
         InputMode::TimeJump => {
-            render_input_footer(frame, line2_area, "Jump to time: ", &app.time_input, None);
+            render_input_footer(frame, line2_area, "Jump to time: ", &app.time_input);
         }
         InputMode::GotoLine => {
-            render_input_footer(frame, line2_area, "Go to line: ", &app.goto_input, None);
+            render_input_footer(frame, line2_area, "Go to line: ", &app.goto_input);
         }
         InputMode::QuickExclude => {
-            render_input_footer(
-                frame,
-                line2_area,
-                "Exclude text: ",
-                &app.quick_filter_input,
-                None,
-            );
+            render_input_footer(frame, line2_area, "Exclude text: ", &app.quick_filter_input);
         }
         InputMode::QuickInclude => {
-            render_input_footer(
-                frame,
-                line2_area,
-                "Include text: ",
-                &app.quick_filter_input,
-                None,
-            );
+            render_input_footer(frame, line2_area, "Include text: ", &app.quick_filter_input);
         }
         _ => {
             use crate::ui::widgets::status_bar_widget::StatusBarWidget;
@@ -138,13 +126,7 @@ fn render_footer(frame: &mut Frame, app: &App, area: Rect) {
     }
 }
 
-fn render_input_footer(
-    frame: &mut Frame,
-    area: Rect,
-    prompt: &str,
-    input: &str,
-    _error: Option<&str>,
-) {
+fn render_input_footer(frame: &mut Frame, area: Rect, prompt: &str, input: &str) {
     let input_line = Paragraph::new(Line::from(vec![
         Span::styled(prompt, Style::default().fg(Color::Yellow)),
         Span::raw(input),
