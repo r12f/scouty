@@ -17,9 +17,17 @@ pub fn render(frame: &mut Frame, app: &App) {
 
     // Body: log table + optional detail panel
     if app.detail_open {
+        let detail_height = if let Some(record) = app.selected_record() {
+            use crate::ui::widgets::detail_panel_widget::field_count;
+            let fc = field_count(record);
+            // +2 for top border + padding, min 4
+            (fc as u16 + 2).max(4)
+        } else {
+            4 // "No record selected" + border
+        };
         let body_chunks = Layout::default()
             .direction(Direction::Vertical)
-            .constraints([Constraint::Percentage(60), Constraint::Percentage(40)])
+            .constraints([Constraint::Min(3), Constraint::Length(detail_height)])
             .split(main_chunks[0]);
         render_log_table(frame, app, body_chunks[0]);
         render_detail_panel(frame, app, body_chunks[1]);
