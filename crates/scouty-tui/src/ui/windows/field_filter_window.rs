@@ -102,7 +102,7 @@ impl UiComponent for FieldFilterWindow {
             let display = match &entry.kind {
                 FieldEntryKind::TimeBefore { .. } | FieldEntryKind::TimeAfter { .. } => {
                     // Time entries show just the name (e.g. "Before 2025-01-01 12:00:00.000")
-                    format!(" {} ⏱ {}", checkbox, entry.name)
+                    format!(" {} {}", checkbox, entry.name)
                 }
                 FieldEntryKind::Field => {
                     let max_val = (width as usize).saturating_sub(22);
