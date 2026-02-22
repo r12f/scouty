@@ -17,9 +17,20 @@ pub fn render(frame: &mut Frame, app: &App) {
 
     // Body: log table + optional detail panel
     if app.detail_open {
+        let detail_height = if let Some(record) = app.selected_record() {
+            use crate::ui::widgets::detail_panel_widget::field_count;
+            let fc = field_count(record);
+            // +1 for top border, min 4
+            let raw_height = (fc.min(u16::MAX as usize) as u16).saturating_add(1).max(4);
+            // Cap at half the available body height so the log table stays usable
+            let max_detail = main_chunks[0].height / 2;
+            raw_height.min(max_detail).max(4)
+        } else {
+            4 // "No record selected" + border
+        };
         let body_chunks = Layout::default()
             .direction(Direction::Vertical)
-            .constraints([Constraint::Percentage(60), Constraint::Percentage(40)])
+            .constraints([Constraint::Min(3), Constraint::Length(detail_height)])
             .split(main_chunks[0]);
         render_log_table(frame, app, body_chunks[0]);
         render_detail_panel(frame, app, body_chunks[1]);
