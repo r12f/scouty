@@ -2376,6 +2376,7 @@ mod time_jump_tests {
             highlight_input: String::new(),
             highlight_manager_cursor: 0,
             highlight_rules: Vec::new(),
+            cached_stats: None,
         }
     }
 

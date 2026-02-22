@@ -69,6 +69,9 @@ mod tests {
             save_file_input: String::new(),
             filter_version: 0,
             density_cache: None,
+            highlight_input: String::new(),
+            highlight_manager_cursor: 0,
+            highlight_rules: Vec::new(),
             cached_stats: None,
         }
     }
@@ -148,6 +151,9 @@ mod tests {
             save_file_input: String::new(),
             filter_version: 0,
             density_cache: None,
+            highlight_input: String::new(),
+            highlight_manager_cursor: 0,
+            highlight_rules: Vec::new(),
             cached_stats: None,
         };
         let stats = StatsData::compute(&app);
