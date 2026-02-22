@@ -121,19 +121,21 @@ pub fn compute_density_indexed(
 
 /// Map a bucket count to a braille height (0–4) using min-max scaling.
 ///
-/// Empty buckets → 0. Non-empty buckets are scaled from 1–4 based on
-/// where they fall between min_count and max_count. This stretches contrast
-/// so that even small density variations are visible.
-fn bucket_height(count: usize, min_count: usize, max_count: usize) -> usize {
+/// - Empty buckets → 0.
+/// - When all non-empty buckets have the same count → 2 (mid-height,
+///   distinguishable from empty but no variation to show).
+/// - Otherwise, non-empty buckets are scaled 1–4 between `min_nonzero`
+///   and `max_count`, stretching contrast so small variations are visible.
+fn bucket_height(count: usize, min_nonzero: usize, max_count: usize) -> usize {
     if count == 0 {
         return 0;
     }
-    if min_count == max_count {
-        // All non-empty buckets have the same count
+    if min_nonzero == max_count {
+        // All non-empty buckets have the same count — use mid-height
         return 2;
     }
     // Scale to 1–4 range
-    let ratio = (count - min_count) as f64 / (max_count - min_count) as f64;
+    let ratio = (count - min_nonzero) as f64 / (max_count - min_nonzero) as f64;
     (1.0 + ratio * 3.0).round() as usize
 }
 
@@ -150,16 +152,16 @@ pub fn render_braille(
     }
 
     let max_count = *buckets.iter().max().unwrap_or(&1).max(&1);
-    let min_count = *buckets.iter().filter(|&&c| c > 0).min().unwrap_or(&0);
+    let min_nonzero = *buckets.iter().filter(|&&c| c > 0).min().unwrap_or(&0);
     let mut result = String::new();
     let mut cursor_char_idx = None;
 
     let mut i = 0;
     let mut char_idx = 0;
     while i < buckets.len() {
-        let left = bucket_height(buckets[i], min_count, max_count);
+        let left = bucket_height(buckets[i], min_nonzero, max_count);
         let right = if i + 1 < buckets.len() {
-            bucket_height(buckets[i + 1], min_count, max_count)
+            bucket_height(buckets[i + 1], min_nonzero, max_count)
         } else {
             0
         };
