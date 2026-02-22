@@ -414,12 +414,22 @@ impl App {
         if let Some(record) = self.selected_record().cloned() {
             let mut fields = Vec::new();
 
-            // ALL fields from LogRecord
+            // Time range options at the top
+            let ts_str = record.timestamp.to_rfc3339();
+            let ts_display = record.timestamp.format("%Y-%m-%d %H:%M:%S%.3f").to_string();
             fields.push((
-                "timestamp".to_string(),
-                record.timestamp.format("%Y-%m-%d %H:%M:%S%.3f").to_string(),
+                "⏱ Before this log".to_string(),
+                format!("timestamp:{}", ts_str),
                 false,
             ));
+            fields.push((
+                "⏱ After this log".to_string(),
+                format!("timestamp:{}", ts_str),
+                false,
+            ));
+
+            // ALL fields from LogRecord
+            fields.push(("timestamp".to_string(), ts_display, false));
             if let Some(level) = record.level {
                 fields.push(("level".to_string(), format!("{}", level), false));
             }
@@ -472,24 +482,43 @@ impl App {
     /// Apply the field filter dialog selections.
     pub fn apply_field_filter(&mut self) {
         if let Some(ref state) = self.field_filter {
-            let checked: Vec<(&str, &str)> = state
-                .fields
-                .iter()
-                .filter(|(_, _, checked)| *checked)
-                .map(|(name, val, _)| (name.as_str(), val.as_str()))
-                .collect();
+            let mut parts: Vec<String> = Vec::new();
 
-            if checked.is_empty() {
+            for (name, val, checked) in &state.fields {
+                if !checked {
+                    continue;
+                }
+
+                if name.starts_with("⏱ Before") {
+                    // Extract timestamp from "timestamp:RFC3339"
+                    let ts = val.strip_prefix("timestamp:").unwrap_or(val);
+                    if state.exclude {
+                        // Exclude before = timestamp < ts (strict, current kept)
+                        parts.push(format!("timestamp < \"{}\"", ts));
+                    } else {
+                        // Include before = timestamp <= ts (inclusive)
+                        parts.push(format!("timestamp <= \"{}\"", ts));
+                    }
+                } else if name.starts_with("⏱ After") {
+                    let ts = val.strip_prefix("timestamp:").unwrap_or(val);
+                    if state.exclude {
+                        // Exclude after = timestamp > ts (strict, current kept)
+                        parts.push(format!("timestamp > \"{}\"", ts));
+                    } else {
+                        // Include after = timestamp >= ts (inclusive)
+                        parts.push(format!("timestamp >= \"{}\"", ts));
+                    }
+                } else {
+                    parts.push(format!("{} = \"{}\"", name, val.replace('"', "\\\"")));
+                }
+            }
+
+            if parts.is_empty() {
                 self.status_message = Some("No fields selected".to_string());
                 return;
             }
 
-            // Build filter expression with OR or AND
             let joiner = if state.logic_or { " OR " } else { " AND " };
-            let parts: Vec<String> = checked
-                .iter()
-                .map(|(name, val)| format!("{} = \"{}\"", name, val.replace('"', "\\\"")))
-                .collect();
             let expr_str = parts.join(joiner);
             let label = if state.exclude {
                 format!("exclude: {}", expr_str)
@@ -1248,8 +1277,8 @@ mod field_filter_v2_tests {
 
         app.open_field_filter(true);
         let ff = app.field_filter.as_ref().unwrap();
-        // Should have: timestamp, level, source, process_name, pid, tid, component, message
-        assert_eq!(ff.fields.len(), 8);
+        // Should have: 2 time options + timestamp, level, source, process_name, pid, tid, component, message
+        assert_eq!(ff.fields.len(), 10);
         assert!(ff.exclude);
         assert!(ff.logic_or);
     }
@@ -1320,8 +1349,8 @@ mod field_filter_v2_tests {
         let mut app = make_app_full(vec![record]);
         app.open_field_filter(true);
         let ff = app.field_filter.as_ref().unwrap();
-        // 8 standard fields + 2 metadata
-        assert_eq!(ff.fields.len(), 10);
+        // 2 time options + 8 standard fields + 2 metadata
+        assert_eq!(ff.fields.len(), 12);
         assert!(ff.fields.iter().any(|(n, _, _)| n == "env"));
         assert!(ff.fields.iter().any(|(n, _, _)| n == "region"));
     }
