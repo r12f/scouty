@@ -6,10 +6,10 @@ mod detail_panel_widget_tests;
 
 use crate::app::App;
 use crate::ui::UiComponent;
-use ratatui::layout::Rect;
+use ratatui::layout::{Constraint, Layout, Rect};
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, Borders, Paragraph, Wrap};
+use ratatui::widgets::{Block, Borders, Cell, Paragraph, Row, Table, Wrap};
 use ratatui::Frame;
 use scouty::record::LogLevel;
 
@@ -26,7 +26,67 @@ fn level_style(level: Option<LogLevel>) -> Style {
     }
 }
 
+/// Build field key-value pairs for the right pane.
+fn build_field_pairs(record: &scouty::record::LogRecord) -> Vec<(&'static str, String)> {
+    let mut pairs = vec![
+        (
+            "Timestamp",
+            record.timestamp.format("%Y-%m-%d %H:%M:%S%.3f").to_string(),
+        ),
+        (
+            "Level",
+            record
+                .level
+                .map(|l| l.to_string())
+                .unwrap_or_else(|| "-".to_string()),
+        ),
+        ("Source", record.source.to_string()),
+    ];
+
+    let optional_fields: Vec<(&str, Option<String>)> = vec![
+        ("Hostname", record.hostname.clone()),
+        ("Container", record.container.clone()),
+        ("Context", record.context.clone()),
+        ("Function", record.function.clone()),
+        ("Component", record.component_name.clone()),
+        ("Process", record.process_name.clone()),
+        ("PID", record.pid.map(|p| p.to_string())),
+        ("TID", record.tid.map(|t| t.to_string())),
+    ];
+
+    for (label, value) in optional_fields {
+        if let Some(val) = value {
+            pairs.push((label, val));
+        }
+    }
+
+    if record.metadata.as_ref().is_some_and(|m| !m.is_empty()) {
+        for (k, v) in record.metadata.as_ref().unwrap() {
+            // Leak is fine since these are short-lived display strings
+            // Use a static prefix instead
+            pairs.push(("Meta", format!("{} = {}", k, v)));
+        }
+    }
+
+    pairs
+}
+
+/// Build Line spans from field pairs (for single-column fallback).
+fn build_field_lines(record: &scouty::record::LogRecord) -> Vec<Line<'static>> {
+    let label_style = Style::default().fg(Color::Cyan);
+    build_field_pairs(record)
+        .into_iter()
+        .map(|(key, val)| {
+            let padded_key = format!("{:<11}", format!("{}:", key));
+            Line::from(vec![Span::styled(padded_key, label_style), Span::raw(val)])
+        })
+        .collect()
+}
+
 pub struct DetailPanelWidget;
+
+/// Minimum total width to show split layout.
+const MIN_SPLIT_WIDTH: u16 = 80;
 
 impl DetailPanelWidget {
     pub fn render_with_app(&self, frame: &mut Frame, area: Rect, app: &App) {
@@ -35,97 +95,69 @@ impl DetailPanelWidget {
             .borders(Borders::TOP)
             .border_style(Style::default().fg(Color::DarkGray));
 
-        if let Some(record) = app.selected_record() {
-            let mut lines = vec![
-                Line::from(vec![
-                    Span::styled("Timestamp: ", Style::default().fg(Color::Cyan)),
-                    Span::raw(record.timestamp.format("%Y-%m-%d %H:%M:%S%.3f").to_string()),
-                ]),
-                Line::from(vec![
-                    Span::styled("Level:     ", Style::default().fg(Color::Cyan)),
-                    Span::styled(
-                        record
-                            .level
-                            .map(|l| l.to_string())
-                            .unwrap_or_else(|| "-".to_string()),
-                        level_style(record.level),
-                    ),
-                ]),
-                Line::from(vec![
-                    Span::styled("Source:    ", Style::default().fg(Color::Cyan)),
-                    Span::raw(record.source.as_ref()),
-                ]),
-            ];
-
-            if let Some(ref host) = record.hostname {
-                lines.push(Line::from(vec![
-                    Span::styled("Hostname:  ", Style::default().fg(Color::Cyan)),
-                    Span::raw(host),
-                ]));
-            }
-            if let Some(ref ctr) = record.container {
-                lines.push(Line::from(vec![
-                    Span::styled("Container: ", Style::default().fg(Color::Cyan)),
-                    Span::raw(ctr),
-                ]));
-            }
-            if let Some(ref ctx) = record.context {
-                lines.push(Line::from(vec![
-                    Span::styled("Context:   ", Style::default().fg(Color::Cyan)),
-                    Span::raw(ctx),
-                ]));
-            }
-            if let Some(ref func) = record.function {
-                lines.push(Line::from(vec![
-                    Span::styled("Function:  ", Style::default().fg(Color::Cyan)),
-                    Span::raw(func),
-                ]));
-            }
-            if let Some(ref comp) = record.component_name {
-                lines.push(Line::from(vec![
-                    Span::styled("Component: ", Style::default().fg(Color::Cyan)),
-                    Span::raw(comp),
-                ]));
-            }
-            if let Some(ref proc_name) = record.process_name {
-                lines.push(Line::from(vec![
-                    Span::styled("Process:   ", Style::default().fg(Color::Cyan)),
-                    Span::raw(proc_name),
-                ]));
-            }
-            if let Some(pid) = record.pid {
-                lines.push(Line::from(vec![
-                    Span::styled("PID:       ", Style::default().fg(Color::Cyan)),
-                    Span::raw(pid.to_string()),
-                ]));
-            }
-            if let Some(tid) = record.tid {
-                lines.push(Line::from(vec![
-                    Span::styled("TID:       ", Style::default().fg(Color::Cyan)),
-                    Span::raw(tid.to_string()),
-                ]));
-            }
-
-            if record.metadata.as_ref().is_some_and(|m| !m.is_empty()) {
-                lines.push(Line::from(""));
-                lines.push(Line::styled("Metadata:", Style::default().fg(Color::Cyan)));
-                for (k, v) in record.metadata.as_ref().unwrap() {
-                    lines.push(Line::from(format!("  {} = {}", k, v)));
-                }
-            }
-
-            lines.push(Line::from(""));
-            lines.push(Line::styled("Message:", Style::default().fg(Color::Cyan)));
-            lines.push(Line::from(record.message.clone()));
-
-            let detail = Paragraph::new(lines)
-                .block(block)
-                .wrap(Wrap { trim: false });
-            frame.render_widget(detail, area);
-        } else {
+        let Some(record) = app.selected_record() else {
             let empty = Paragraph::new("No record selected").block(block);
             frame.render_widget(empty, area);
+            return;
+        };
+
+        let inner = block.inner(area);
+        frame.render_widget(block, area);
+
+        if inner.width < MIN_SPLIT_WIDTH {
+            // Narrow: single-column fallback (fields then raw)
+            self.render_single_column(frame, inner, record);
+        } else {
+            self.render_split(frame, inner, record);
         }
+    }
+
+    fn render_split(&self, frame: &mut Frame, area: Rect, record: &scouty::record::LogRecord) {
+        let chunks = Layout::horizontal([Constraint::Percentage(70), Constraint::Percentage(30)])
+            .split(area);
+
+        // Left pane: raw log content with wrap
+        let left_block = Block::default()
+            .borders(Borders::RIGHT)
+            .border_style(Style::default().fg(Color::DarkGray));
+        let raw_text = Paragraph::new(record.raw.clone())
+            .block(left_block)
+            .wrap(Wrap { trim: false });
+        frame.render_widget(raw_text, chunks[0]);
+
+        // Right pane: field table
+        let pairs = build_field_pairs(record);
+        let label_style = Style::default().fg(Color::Cyan);
+        let rows: Vec<Row> = pairs
+            .into_iter()
+            .map(|(key, val)| {
+                let val_cell = if key == "Level" {
+                    Cell::from(Span::styled(val, level_style(record.level)))
+                } else {
+                    Cell::from(val)
+                };
+                Row::new(vec![Cell::from(Span::styled(key, label_style)), val_cell])
+            })
+            .collect();
+        let table =
+            Table::new(rows, [Constraint::Length(11), Constraint::Fill(1)]).column_spacing(1);
+        frame.render_widget(table, chunks[1]);
+    }
+
+    fn render_single_column(
+        &self,
+        frame: &mut Frame,
+        area: Rect,
+        record: &scouty::record::LogRecord,
+    ) {
+        // Same as old layout: fields then message then raw
+        let mut lines = build_field_lines(record);
+        lines.push(Line::from(""));
+        lines.push(Line::styled("Message:", Style::default().fg(Color::Cyan)));
+        lines.push(Line::from(record.message.clone()));
+
+        let detail = Paragraph::new(lines).wrap(Wrap { trim: false });
+        frame.render_widget(detail, area);
     }
 }
 
