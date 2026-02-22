@@ -57,7 +57,12 @@ impl StatusBarWidget {
                 }
             }
 
-            spans.push(Span::styled(" │", Style::default().fg(Color::DarkGray)));
+            spans.push(Span::styled(
+                " │",
+                Style::default()
+                    .fg(Color::DarkGray)
+                    .bg(Color::Rgb(20, 20, 40)),
+            ));
         }
 
         spans.push(Span::styled(
@@ -65,7 +70,8 @@ impl StatusBarWidget {
             Style::default().fg(Color::White).bg(Color::DarkGray),
         ));
 
-        let footer = Paragraph::new(Line::from(spans)).style(Style::default().bg(Color::DarkGray));
+        let footer =
+            Paragraph::new(Line::from(spans)).style(Style::default().bg(Color::Rgb(20, 20, 40)));
         frame.render_widget(footer, area);
     }
 
