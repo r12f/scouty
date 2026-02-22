@@ -14,6 +14,20 @@ use ratatui::prelude::*;
 use std::io::stdout;
 use std::time::Duration;
 
+/// Check if stdin is a pipe (not a terminal).
+fn stdin_is_pipe() -> bool {
+    #[cfg(unix)]
+    {
+        use std::os::unix::io::AsRawFd;
+        let fd = std::io::stdin().as_raw_fd();
+        unsafe { libc::isatty(fd) == 0 }
+    }
+    #[cfg(not(unix))]
+    {
+        false
+    }
+}
+
 /// Resolve default log file paths when no arguments are provided.
 ///
 /// On Linux, tries `/var/log/syslog` (Debian/Ubuntu) then `/var/log/messages` (RHEL/CentOS).
@@ -41,10 +55,37 @@ fn resolve_default_files() -> Result<Vec<String>, Box<dyn std::error::Error>> {
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = std::env::args().collect();
-    let files: Vec<String> = if args.len() >= 2 {
+    let piped = stdin_is_pipe();
+    let file_args: Vec<String> = if args.len() >= 2 {
         args[1..].to_vec()
     } else {
+        Vec::new()
+    };
+
+    // pipe + file args are mutually exclusive
+    if piped && !file_args.is_empty() {
+        eprintln!("Error: Cannot combine piped stdin with file arguments.");
+        eprintln!("Use either: command | scouty-tui  OR  scouty-tui <files>");
+        std::process::exit(1);
+    }
+
+    let files: Vec<String> = if !piped && file_args.is_empty() {
         resolve_default_files()?
+    } else {
+        file_args
+    };
+
+    // If piped, read all stdin lines before entering TUI (stdin will be consumed)
+    let stdin_lines: Option<Vec<String>> = if piped {
+        use std::io::BufRead;
+        let stdin = std::io::stdin();
+        let lines: Vec<String> = stdin
+            .lock()
+            .lines()
+            .collect::<std::result::Result<_, _>>()?;
+        Some(lines)
+    } else {
+        None
     };
 
     let files: Vec<&str> = files.iter().map(|s| s.as_str()).collect();
@@ -62,14 +103,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
 
     // Show loading screen
+    let loading_msg = if piped {
+        "Loading from stdin...".to_string()
+    } else if files.len() == 1 {
+        format!("Loading {}...", files[0])
+    } else {
+        format!("Loading {} files...", files.len())
+    };
     if let Err(e) = terminal.draw(|frame| {
         let area = frame.area();
-        let msg = if files.len() == 1 {
-            format!("Loading {}...", files[0])
-        } else {
-            format!("Loading {} files...", files.len())
-        };
-        let text = ratatui::widgets::Paragraph::new(msg);
+        let text = ratatui::widgets::Paragraph::new(loading_msg.as_str());
         let y = area.y + area.height / 2;
         let centered = ratatui::layout::Rect::new(area.x, y, area.width, 1);
         frame.render_widget(text, centered);
@@ -79,14 +122,29 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         return Err(e.into());
     }
 
-    // Load files (may take several seconds for large files)
-    let mut app = match App::load_files(&files) {
-        Ok(app) => app,
-        Err(e) => {
-            let _ = disable_raw_mode();
-            let _ = stdout().execute(LeaveAlternateScreen);
-            eprintln!("Error: {}", e);
-            std::process::exit(1);
+    // Load data
+    let mut app = if let Some(lines) = stdin_lines {
+        match App::load_stdin(lines) {
+            Ok(mut app) => {
+                app.set_status("stdin closed \u{2014} all input loaded".to_string());
+                app
+            }
+            Err(e) => {
+                let _ = disable_raw_mode();
+                let _ = stdout().execute(LeaveAlternateScreen);
+                eprintln!("Error: {}", e);
+                std::process::exit(1);
+            }
+        }
+    } else {
+        match App::load_files(&files) {
+            Ok(app) => app,
+            Err(e) => {
+                let _ = disable_raw_mode();
+                let _ = stdout().execute(LeaveAlternateScreen);
+                eprintln!("Error: {}", e);
+                std::process::exit(1);
+            }
         }
     };
 

@@ -325,6 +325,65 @@ impl App {
         })
     }
 
+    /// Load log records from pre-read stdin lines.
+    pub fn load_stdin(lines: Vec<String>) -> Result<Self, Box<dyn std::error::Error>> {
+        use scouty::loader::stdin::StdinLoader;
+
+        let loader = StdinLoader::new();
+        let mut info = loader.info().clone();
+        info.sample_lines = lines.iter().take(10).cloned().collect();
+
+        let group = ParserFactory::create_parser_group(&info);
+
+        let mut store = scouty::store::LogStore::new();
+        let mut record_id: u64 = 0;
+
+        for line in lines.into_iter() {
+            if let Some(mut record) = group.parse(&line, &info.id, &info.id, record_id) {
+                record.raw = line;
+                store.insert(record);
+                record_id += 1;
+            }
+        }
+
+        store.compact_ooo();
+        let records: Vec<Arc<LogRecord>> = store.iter_arc().cloned().collect();
+        let total_records = records.len();
+        let filtered_indices: Vec<usize> = (0..records.len()).collect();
+        let col_widths = Self::compute_col_widths(&records, &filtered_indices);
+
+        Ok(Self {
+            records,
+            total_records,
+            filtered_indices,
+            scroll_offset: 0,
+            selected: 0,
+            visible_rows: 20,
+            detail_open: false,
+            input_mode: InputMode::Normal,
+            filter_input: String::new(),
+            filter_error: None,
+            filters: Vec::new(),
+            quick_filter_input: String::new(),
+            field_filter: None,
+            filter_manager_cursor: 0,
+            search_input: String::new(),
+            search_matches: vec![],
+            search_match_idx: None,
+            time_input: String::new(),
+            goto_input: String::new(),
+            status_message: None,
+            status_message_at: None,
+            col_widths,
+            column_config: ColumnConfig::default(),
+            follow_mode: false,
+            copy_format_cursor: 0,
+            save_file_input: String::new(),
+            filter_version: 0,
+            density_cache: None,
+        })
+    }
+
     /// Compute auto-fit column widths by sampling records.
     fn compute_col_widths(records: &[Arc<LogRecord>], indices: &[usize]) -> [u16; 6] {
         let mut widths: [u16; 6] = [4, 5, 11, 3, 3, 9];
