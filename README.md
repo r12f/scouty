@@ -4,13 +4,16 @@
 
 Scouty helps developers and SREs browse, parse, filter, and analyze logs from multiple sources — all within the terminal.
 
-![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)
+![Apache-2.0 License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)
 
 ## ✨ Features
 
 ### 📂 Multi-Source Log Loading
 - **Local files** — Plain text log files
 - **Archives** — gz, zip, 7z compressed logs
+- **Stdin/pipe input** — `cat log | scouty-tui` with auto follow mode
+- **Multi-file loading** — Multiple files merged by timestamp (merge-sort)
+- **Default syslog** — Opens `/var/log/syslog` on Linux when no file specified
 - **Live syslog** — Real-time syslog stream
 - **OpenTelemetry (OTLP)** — Receive logs via gRPC and HTTP
 
@@ -25,6 +28,7 @@ Each source gets its own loader, and a single session can combine multiple loade
   - **Extended syslog** — `2025 Nov 24 17:56:03.073872 hostname LEVEL container#process[pid]: message`
   - **ISO 8601 syslog** — `2025-11-24T17:56:03.073872-08:00 hostname process[pid]: message`
 - **SONiC SWSS Parser** — `2025-11-13.22:19:35.512358|TABLE:Key|SET|key:value|...`
+- **Sairedis Parser** — `2025-05-18 06:38:35.610696|c|SAI_OBJECT_TYPE_SWITCH|...` (4.9M rec/sec)
 - **Multi-line merging** — Handles stack traces and multi-line logs (configurable per loader)
 - **Parallel parsing** — Rayon-based thread pool for maximum throughput
 
@@ -38,10 +42,17 @@ Each source gets its own loader, and a single session can combine multiple loade
 ### 🖥️ Interactive TUI
 - **Table view** with configurable columns and auto-width
 - **Level colors** — FATAL red bold / ERROR red / WARN yellow / INFO green / DEBUG gray / TRACE dark gray / NOTICE cyan
-- **Detail panel** — Persistent bottom panel showing all structured fields
+- **Detail panel** — Split-pane view: left 70% log content, right 30% structured fields table
+- **2-line status bar** — Line 1: density chart + position; Line 2: mode + shortcuts/input/status
 - **Regex search** with match highlighting and navigation
 - **Density graph** — Braille-character time distribution in status bar
 - **Filter dialogs** — Quick exclude/include, field-based multi-select, filter manager
+- **Bookmarks** — `m` to toggle mark, `'`/`"` to navigate between bookmarks, `M` for bookmark manager
+- **Custom highlight** — `h` to add highlight rule, `H` for highlight manager, auto color rotation
+- **Time jump** — `]` jump forward / `[` jump backward by relative time (5m, 30s, 2h)
+- **Stats overlay** — `S` shows log level distribution, top components
+- **Command mode** — `:w <file>` to export, `:q` to quit
+- **Pipe input** — `cat log | scouty-tui` with auto follow mode
 - **Copy to clipboard** — Raw, JSON, or YAML format via OSC 52
 - **Component architecture** — Unified `UiComponent` trait with standardized keyboard dispatch
 
@@ -95,6 +106,13 @@ cargo install --path crates/scouty-tui
 scouty-tui /path/to/your.log
 ```
 
+### Pipe input
+
+```bash
+cat /var/log/syslog | scouty-tui
+journalctl -f | scouty-tui
+```
+
 ## ⌨️ Keyboard Shortcuts
 
 ### Navigation
@@ -103,13 +121,13 @@ scouty-tui /path/to/your.log
 |-----|--------|
 | `j` / `↓` | Move down one line |
 | `k` / `↑` | Move up one line |
-| `Ctrl+j` / `Ctrl+↓` | Page down |
-| `Ctrl+k` / `Ctrl+↑` | Page up |
+| `PageDown` / `Ctrl+j` / `Ctrl+↓` | Page down |
+| `PageUp` / `Ctrl+k` / `Ctrl+↑` | Page up |
 | `g` | Jump to first line |
 | `G` | Jump to last line |
 | `Ctrl+G` | Go to line number |
-| `Enter` | Toggle detail panel |
-| `Ctrl+]` | Toggle follow mode |
+| `]` | Time jump forward (e.g. 5m, 30s, 2h) |
+| `[` | Time jump backward |
 
 ### Search & Filter
 
@@ -121,25 +139,50 @@ scouty-tui /path/to/your.log
 | `f` | Filter expression input |
 | `-` | Quick exclude (text input) |
 | `=` | Quick include (text input) |
-| `Ctrl+-` | Exclude field dialog (multi-select from current row) |
-| `Ctrl+=` | Include field dialog (multi-select from current row) |
-| `F` | Filter manager (view/add/delete filters) |
+| `E` / `Ctrl+-` | Exclude field dialog (multi-select from current row) |
+| `I` / `Ctrl+=` | Include field dialog (multi-select from current row) |
 
-### Display & Copy
+### Display
 
 | Key | Action |
 |-----|--------|
+| `Enter` | Toggle detail panel |
 | `c` | Column selector (toggle columns) |
+| `S` | Stats overlay (level distribution, top components) |
+
+### Highlight
+
+| Key | Action |
+|-----|--------|
+| `h` | Add highlight rule |
+| `H` | Highlight manager |
+
+### Bookmarks
+
+| Key | Action |
+|-----|--------|
+| `m` | Toggle bookmark on current line |
+| `'` / `"` | Navigate between bookmarks |
+| `M` | Bookmark manager |
+
+### Copy & Export
+
+| Key | Action |
+|-----|--------|
 | `y` | Copy selected row (raw text) |
 | `Y` | Copy with format dialog (Raw/JSON/YAML) |
+| `:` | Enter command mode |
+| `:w <file>` | Export current view to file |
+| `:q` | Quit |
 
 ### General
 
 | Key | Action |
 |-----|--------|
-| `Esc` | Close current dialog/panel |
-| `q` | Quit |
+| `F` | Toggle follow mode |
 | `?` | Help |
+| `q` | Quit |
+| `Esc` | Close current dialog/panel |
 
 ### Dialog Navigation (universal)
 
@@ -265,8 +308,9 @@ hostname = "BSL-0101-0101-01LT0" AND container = "restapi"
 | Extended Syslog | `2025 Nov 24 17:56:03.073872 myhost INFO docker#nginx[42]: GET /` |
 | ISO 8601 Syslog | `2025-11-24T17:56:03.073872-08:00 myhost cron[99]: running job` |
 | SONiC SWSS | `2025-11-13.22:19:35.512358\|PORT_TABLE:Ethernet248\|SET\|admin_status:up` |
+| Sairedis | `2025-05-18 06:38:35.610696\|c\|SAI_OBJECT_TYPE_SWITCH\|...` |
 | Custom Regex | *(user-defined via YAML)* |
 
 ## 📄 License
 
-MIT
+Apache-2.0
