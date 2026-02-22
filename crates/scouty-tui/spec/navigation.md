@@ -7,7 +7,7 @@ Advanced navigation features beyond basic j/k scrolling: bookmarks, relative tim
 
 ## Design
 
-### Bookmarks (Planned)
+### Bookmarks
 
 - `m` — toggle bookmark on current row
 - `'` (single quote) — jump to next bookmark (cyclic)

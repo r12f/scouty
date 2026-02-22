@@ -76,6 +76,8 @@ mod tests {
             highlight_manager_cursor: 0,
             highlight_rules: Vec::new(),
             cached_stats: None,
+            bookmarks: std::collections::HashSet::new(),
+            bookmark_manager_cursor: 0,
         }
     }
 
@@ -160,6 +162,8 @@ mod tests {
             highlight_manager_cursor: 0,
             highlight_rules: Vec::new(),
             cached_stats: None,
+            bookmarks: std::collections::HashSet::new(),
+            bookmark_manager_cursor: 0,
         };
         let stats = StatsData::compute(&app);
         assert_eq!(stats.total_records, 0);

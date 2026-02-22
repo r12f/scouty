@@ -316,6 +316,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                     app.input_mode = InputMode::HighlightManager;
                                     app.highlight_manager_cursor = 0;
                                 }
+                                KeyCode::Char('m') => {
+                                    app.toggle_bookmark();
+                                }
+                                KeyCode::Char('\'') => {
+                                    app.jump_next_bookmark();
+                                }
+                                KeyCode::Char('"') => {
+                                    app.jump_prev_bookmark();
+                                }
+                                KeyCode::Char('M') => {
+                                    app.input_mode = InputMode::BookmarkManager;
+                                    app.bookmark_manager_cursor = 0;
+                                }
                                 KeyCode::Char('S') => {
                                     use ui::windows::stats_window::StatsData;
                                     app.cached_stats = Some(StatsData::compute(&app));
@@ -505,6 +518,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     InputMode::HighlightManager => {
                         use ui::windows::highlight_manager_window::HighlightManagerWindow;
                         let mut window = HighlightManagerWindow::from_app(&app);
+                        let result = ui::dispatch_key(&mut window, key);
+                        window.apply_to_app(&mut app);
+                        if result == ui::ComponentResult::Close {
+                            app.input_mode = InputMode::Normal;
+                        }
+                    }
+                    InputMode::BookmarkManager => {
+                        use ui::windows::bookmark_manager_window::BookmarkManagerWindow;
+                        let mut window = BookmarkManagerWindow::from_app(&app);
                         let result = ui::dispatch_key(&mut window, key);
                         window.apply_to_app(&mut app);
                         if result == ui::ComponentResult::Close {
