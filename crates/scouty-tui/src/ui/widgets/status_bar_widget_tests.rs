@@ -31,4 +31,74 @@ mod tests {
             ComponentResult::Ignored
         );
     }
+
+    #[test]
+    fn test_time_per_column_label_milliseconds() {
+        let cache = crate::app::DensityCache {
+            braille_text: String::new(),
+            num_buckets: 100,
+            min_ts: chrono::Utc::now(),
+            max_ts: chrono::Utc::now() + chrono::Duration::milliseconds(50_000),
+            filter_version: 0,
+            chart_width: 50,
+        };
+        let label = StatusBarWidget::time_per_column_label(&cache).unwrap();
+        assert_eq!(label, "[500ms/█]");
+    }
+
+    #[test]
+    fn test_time_per_column_label_seconds() {
+        let cache = crate::app::DensityCache {
+            braille_text: String::new(),
+            num_buckets: 100,
+            min_ts: chrono::Utc::now(),
+            max_ts: chrono::Utc::now() + chrono::Duration::seconds(500),
+            filter_version: 0,
+            chart_width: 50,
+        };
+        let label = StatusBarWidget::time_per_column_label(&cache).unwrap();
+        assert_eq!(label, "[5s/█]");
+    }
+
+    #[test]
+    fn test_time_per_column_label_minutes() {
+        let cache = crate::app::DensityCache {
+            braille_text: String::new(),
+            num_buckets: 100,
+            min_ts: chrono::Utc::now(),
+            max_ts: chrono::Utc::now() + chrono::Duration::minutes(200),
+            filter_version: 0,
+            chart_width: 50,
+        };
+        let label = StatusBarWidget::time_per_column_label(&cache).unwrap();
+        assert_eq!(label, "[2m/█]");
+    }
+
+    #[test]
+    fn test_time_per_column_label_hours() {
+        let cache = crate::app::DensityCache {
+            braille_text: String::new(),
+            num_buckets: 10,
+            min_ts: chrono::Utc::now(),
+            max_ts: chrono::Utc::now() + chrono::Duration::hours(20),
+            filter_version: 0,
+            chart_width: 50,
+        };
+        let label = StatusBarWidget::time_per_column_label(&cache).unwrap();
+        assert_eq!(label, "[2h/█]");
+    }
+
+    #[test]
+    fn test_time_per_column_label_same_timestamps() {
+        let now = chrono::Utc::now();
+        let cache = crate::app::DensityCache {
+            braille_text: String::new(),
+            num_buckets: 100,
+            min_ts: now,
+            max_ts: now,
+            filter_version: 0,
+            chart_width: 50,
+        };
+        assert!(StatusBarWidget::time_per_column_label(&cache).is_none());
+    }
 }
