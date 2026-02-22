@@ -27,8 +27,9 @@ pub enum InputMode {
     ColumnSelector,
     CopyFormat,
     Help,
+    Command,
     Statistics,
-    SaveFile,
+
     Highlight,
     HighlightManager,
 }
@@ -264,12 +265,13 @@ pub struct App {
     pub column_config: ColumnConfig,
     /// Follow mode: auto-scroll to bottom.
     pub follow_mode: bool,
+    pub should_quit: bool,
     /// Copy format dialog cursor (0=Raw, 1=JSON, 2=YAML).
     pub copy_format_cursor: usize,
     /// Scroll offset for help window.
     pub help_scroll: u16,
     /// Save file input buffer.
-    pub save_file_input: String,
+    pub command_input: String,
     /// Filter version counter (incremented on filter/data change, for density cache invalidation).
     pub filter_version: u64,
     /// Cached density chart data.
@@ -382,9 +384,14 @@ impl App {
             col_widths,
             column_config: ColumnConfig::default(),
             follow_mode: false,
+            should_quit: false,
             copy_format_cursor: 0,
+<<<<<<< HEAD
             help_scroll: 0,
             save_file_input: String::new(),
+=======
+            command_input: String::new(),
+>>>>>>> 0962859 (feat: replace Ctrl+S export with :w command mode)
             filter_version: 0,
             density_cache: None,
             highlight_rules: Vec::new(),
@@ -1208,20 +1215,40 @@ impl App {
         now.format("filtered_%Y%m%d_%H%M%S.log").to_string()
     }
 
-    /// Save filtered records to a file.
-    pub fn save_filtered_to_file(&mut self) {
-        let filename = self.save_file_input.trim().to_string();
-        if filename.is_empty() {
-            self.set_status("Save cancelled: empty filename".to_string());
+    /// Execute a command entered in command mode.
+    pub fn execute_command(&mut self) {
+        let input = self.command_input.trim().to_string();
+        if input.is_empty() {
             return;
         }
 
+        if input == "w" {
+            // :w with no filename → default
+            let filename = Self::default_save_filename();
+            self.save_to_file(&filename);
+        } else if let Some(filename) = input.strip_prefix("w ") {
+            let filename = filename.trim().to_string();
+            if filename.is_empty() {
+                self.save_to_file(&Self::default_save_filename());
+            } else {
+                self.save_to_file(&filename);
+            }
+        } else if input == "q" {
+            // :q — handled by caller checking should_quit
+            self.should_quit = true;
+        } else {
+            self.set_status(format!("Unknown command: :{}", input));
+        }
+    }
+
+    /// Save filtered records to a file.
+    fn save_to_file(&mut self, filename: &str) {
         let mut lines = Vec::with_capacity(self.filtered_indices.len());
         for &idx in &self.filtered_indices {
             lines.push(self.records[idx].raw.as_str());
         }
 
-        match std::fs::write(&filename, lines.join("\n") + "\n") {
+        match std::fs::write(filename, lines.join("\n") + "\n") {
             Ok(()) => {
                 let count = self.filtered_indices.len();
                 self.set_status(format!("Saved {} records to {}", count, filename));
@@ -1364,9 +1391,14 @@ mod tests {
             col_widths: [19, 5, 11, 3, 3, 9],
             column_config: ColumnConfig::default(),
             follow_mode: false,
+            should_quit: false,
             copy_format_cursor: 0,
+<<<<<<< HEAD
             help_scroll: 0,
             save_file_input: String::new(),
+=======
+            command_input: String::new(),
+>>>>>>> 0962859 (feat: replace Ctrl+S export with :w command mode)
             filter_version: 0,
             density_cache: None,
             highlight_rules: Vec::new(),
@@ -1412,9 +1444,14 @@ mod tests {
             col_widths: [19, 5, 11, 3, 3, 9],
             column_config: ColumnConfig::default(),
             follow_mode: false,
+            should_quit: false,
             copy_format_cursor: 0,
+<<<<<<< HEAD
             help_scroll: 0,
             save_file_input: String::new(),
+=======
+            command_input: String::new(),
+>>>>>>> 0962859 (feat: replace Ctrl+S export with :w command mode)
             filter_version: 0,
             density_cache: None,
             highlight_rules: Vec::new(),
@@ -1457,9 +1494,14 @@ mod tests {
             col_widths: [19, 5, 11, 3, 3, 9],
             column_config: ColumnConfig::default(),
             follow_mode: false,
+            should_quit: false,
             copy_format_cursor: 0,
+<<<<<<< HEAD
             help_scroll: 0,
             save_file_input: String::new(),
+=======
+            command_input: String::new(),
+>>>>>>> 0962859 (feat: replace Ctrl+S export with :w command mode)
             filter_version: 0,
             density_cache: None,
             highlight_rules: Vec::new(),
@@ -1898,9 +1940,14 @@ mod field_filter_v2_tests {
             col_widths: [19, 5, 11, 3, 3, 9],
             column_config: ColumnConfig::default(),
             follow_mode: false,
+            should_quit: false,
             copy_format_cursor: 0,
+<<<<<<< HEAD
             help_scroll: 0,
             save_file_input: String::new(),
+=======
+            command_input: String::new(),
+>>>>>>> 0962859 (feat: replace Ctrl+S export with :w command mode)
             filter_version: 0,
             density_cache: None,
             highlight_rules: Vec::new(),
@@ -2068,9 +2115,14 @@ mod column_follow_tests {
             col_widths: [19, 5, 11, 3, 3, 9],
             column_config: ColumnConfig::default(),
             follow_mode: false,
+            should_quit: false,
             copy_format_cursor: 0,
+<<<<<<< HEAD
             help_scroll: 0,
             save_file_input: String::new(),
+=======
+            command_input: String::new(),
+>>>>>>> 0962859 (feat: replace Ctrl+S export with :w command mode)
             filter_version: 0,
             density_cache: None,
             highlight_rules: Vec::new(),
@@ -2249,9 +2301,14 @@ mod copy_tests {
             col_widths: [19, 5, 11, 3, 3, 9],
             column_config: ColumnConfig::default(),
             follow_mode: false,
+            should_quit: false,
             copy_format_cursor: 0,
+<<<<<<< HEAD
             help_scroll: 0,
             save_file_input: String::new(),
+=======
+            command_input: String::new(),
+>>>>>>> 0962859 (feat: replace Ctrl+S export with :w command mode)
             filter_version: 0,
             density_cache: None,
             highlight_rules: Vec::new(),
@@ -2404,9 +2461,14 @@ mod time_jump_tests {
             col_widths: [0; 6],
             column_config: ColumnConfig::default(),
             follow_mode: false,
+            should_quit: false,
             copy_format_cursor: 0,
+<<<<<<< HEAD
             help_scroll: 0,
             save_file_input: String::new(),
+=======
+            command_input: String::new(),
+>>>>>>> 0962859 (feat: replace Ctrl+S export with :w command mode)
             filter_version: 0,
             density_cache: None,
             highlight_input: String::new(),

@@ -82,15 +82,15 @@ impl StatusBarWidget {
 
     /// Render line 2: mode label + shortcut hints or status message.
     pub fn render_line2(&self, frame: &mut Frame, area: Rect, app: &App) {
-        // SaveFile mode: show special input line
-        if app.input_mode == crate::app::InputMode::SaveFile {
+        // Command mode: show command input line
+        if app.input_mode == crate::app::InputMode::Command {
             let spans = vec![
                 Span::styled(
-                    " [SAVE] ",
-                    Style::default().fg(Color::Black).bg(Color::Yellow),
+                    " [CMD] ",
+                    Style::default().fg(Color::Black).bg(Color::Magenta),
                 ),
                 Span::styled(
-                    format!(" {}█", app.save_file_input),
+                    format!(" :{}█", app.command_input),
                     Style::default().fg(Color::White),
                 ),
             ];

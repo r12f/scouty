@@ -241,9 +241,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 KeyCode::Char('=') => {
                                     app.open_field_filter(false);
                                 }
-                                KeyCode::Char('s') => {
-                                    app.save_file_input = App::default_save_filename();
-                                    app.input_mode = InputMode::SaveFile;
+                                KeyCode::Char(':') => {
+                                    app.command_input = String::new();
+                                    app.input_mode = InputMode::Command;
                                 }
                                 _ => {}
                             }
@@ -507,19 +507,23 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                             app.input_mode = InputMode::Normal;
                         }
                     }
-                    InputMode::SaveFile => match key.code {
+                    InputMode::Command => match key.code {
                         KeyCode::Enter => {
-                            app.save_filtered_to_file();
+                            app.execute_command();
                             app.input_mode = InputMode::Normal;
+                            if app.should_quit {
+                                should_break = true;
+                                break;
+                            }
                         }
                         KeyCode::Esc => {
                             app.input_mode = InputMode::Normal;
                         }
                         KeyCode::Backspace => {
-                            app.save_file_input.pop();
+                            app.command_input.pop();
                         }
                         KeyCode::Char(c) => {
-                            app.save_file_input.push(c);
+                            app.command_input.push(c);
                         }
                         _ => {}
                     },
