@@ -16,7 +16,6 @@ pub enum InputMode {
     Normal,
     Filter,
     Search,
-    TimeJump,
     JumpForward,
     JumpBackward,
     GotoLine,
@@ -913,44 +912,6 @@ impl App {
     }
 
     // ── Navigation ──────────────────────────────────────────────
-
-    pub fn jump_to_time(&mut self) {
-        use chrono::NaiveTime;
-        let input = self.time_input.trim();
-        if input.is_empty() {
-            return;
-        }
-
-        if let Ok(time) = NaiveTime::parse_from_str(input, "%H:%M:%S") {
-            for (fi, &ri) in self.filtered_indices.iter().enumerate() {
-                if self.records[ri].timestamp.time() >= time {
-                    self.selected = fi;
-                    self.ensure_selected_visible();
-                    self.set_status(format!("Jumped to {}", time));
-                    return;
-                }
-            }
-            self.set_status("No record at or after that time".to_string());
-            return;
-        }
-
-        if let Ok(dt) = chrono::NaiveDateTime::parse_from_str(input, "%Y-%m-%d %H:%M:%S") {
-            let dt_utc = dt.and_utc();
-            for (fi, &ri) in self.filtered_indices.iter().enumerate() {
-                if self.records[ri].timestamp >= dt_utc {
-                    self.selected = fi;
-                    self.ensure_selected_visible();
-                    self.set_status(format!("Jumped to {}", dt_utc));
-                    return;
-                }
-            }
-            self.set_status("No record at or after that time".to_string());
-            return;
-        }
-
-        self.status_message =
-            Some("Invalid time format (use HH:MM:SS or YYYY-MM-DD HH:MM:SS)".to_string());
-    }
 
     /// Parse a relative duration string like "5m", "30s", "2h", "1d".
     /// Returns the duration in seconds, or None if invalid.

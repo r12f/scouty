@@ -258,10 +258,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 KeyCode::Char('/') => {
                                     app.input_mode = InputMode::Search;
                                 }
-                                KeyCode::Char('t') => {
-                                    app.input_mode = InputMode::TimeJump;
-                                    app.time_input.clear();
-                                }
                                 KeyCode::Char(']') => {
                                     app.input_mode = InputMode::JumpForward;
                                     app.time_input.clear();
@@ -356,18 +352,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                             app.search_input.pop();
                         }
                         KeyCode::Char(c) => app.search_input.push(c),
-                        _ => {}
-                    },
-                    InputMode::TimeJump => match key.code {
-                        KeyCode::Enter => {
-                            app.jump_to_time();
-                            app.input_mode = InputMode::Normal;
-                        }
-                        KeyCode::Esc => app.input_mode = InputMode::Normal,
-                        KeyCode::Backspace => {
-                            app.time_input.pop();
-                        }
-                        KeyCode::Char(c) => app.time_input.push(c),
                         _ => {}
                     },
                     InputMode::JumpForward | InputMode::JumpBackward => match key.code {
