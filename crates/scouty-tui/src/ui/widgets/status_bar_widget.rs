@@ -14,9 +14,18 @@ use ratatui::style::{Color, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::Paragraph;
 use ratatui::Frame;
+use unicode_width::UnicodeWidthStr;
 
 /// Persistent status bar at the bottom of the screen.
 pub struct StatusBarWidget;
+
+/// Compute the display-column width of all spans combined.
+fn spans_display_width(spans: &[Span]) -> usize {
+    spans
+        .iter()
+        .map(|s| UnicodeWidthStr::width(s.content.as_ref()))
+        .sum()
+}
 
 impl StatusBarWidget {
     /// Render line 1: density chart + position info.
@@ -59,7 +68,8 @@ impl StatusBarWidget {
         }
 
         // Pad to push position info to the right edge
-        let used_width: usize = spans.iter().map(|s| s.content.len()).sum();
+        // Use unicode_width for correct column count (braille chars are 3 bytes but 1 column)
+        let used_width = spans_display_width(&spans);
         let total_width = area.width as usize;
         let right_len = right_text.len();
         if used_width + right_len < total_width {
@@ -82,94 +92,91 @@ impl StatusBarWidget {
 
     /// Render line 2: mode label + shortcut hints or status message.
     pub fn render_line2(&self, frame: &mut Frame, area: Rect, app: &App) {
+        let mut spans: Vec<Span> = Vec::new();
+
         // Command mode: show command input line
         if app.input_mode == crate::app::InputMode::Command {
-            let spans = vec![
-                Span::styled(
-                    " [CMD] ",
-                    Style::default().fg(Color::Black).bg(Color::Magenta),
-                ),
-                Span::styled(
-                    format!(" :{}█", app.command_input),
-                    Style::default().fg(Color::White),
-                ),
-            ];
-            let footer = Paragraph::new(Line::from(spans))
-                .style(Style::default().bg(Color::Rgb(30, 30, 30)));
-            frame.render_widget(footer, area);
-            return;
-        }
-
-        // JumpForward / JumpBackward mode: show input line
-        if app.input_mode == crate::app::InputMode::JumpForward
+            spans.push(Span::styled(
+                " [CMD] ",
+                Style::default().fg(Color::Black).bg(Color::Magenta),
+            ));
+            spans.push(Span::styled(
+                format!(" :{}█", app.command_input),
+                Style::default().fg(Color::White),
+            ));
+        } else if app.input_mode == crate::app::InputMode::JumpForward
             || app.input_mode == crate::app::InputMode::JumpBackward
         {
-            let (label, color) = if app.input_mode == crate::app::InputMode::JumpForward {
-                ("[JUMP+]", Color::Magenta)
+            // JumpForward / JumpBackward mode: show input line
+            let label = if app.input_mode == crate::app::InputMode::JumpForward {
+                "[JUMP+]"
             } else {
-                ("[JUMP-]", Color::Magenta)
+                "[JUMP-]"
             };
-            let spans = vec![
-                Span::styled(
-                    format!(" {} ", label),
-                    Style::default().fg(Color::Black).bg(color),
-                ),
-                Span::styled(
-                    format!(" {}█", app.time_input),
-                    Style::default().fg(Color::White),
-                ),
-            ];
-            let footer = Paragraph::new(Line::from(spans))
-                .style(Style::default().bg(Color::Rgb(30, 30, 30)));
-            frame.render_widget(footer, area);
-            return;
-        }
-
-        let (mode_label, mode_color) = if app.follow_mode {
-            ("[FOLLOW]", Color::Green)
-        } else {
-            ("[VIEW]", Color::Cyan)
-        };
-
-        let mut spans = vec![Span::styled(
-            format!(" {} ", mode_label),
-            Style::default().fg(Color::Black).bg(mode_color),
-        )];
-
-        // Show status message if present, otherwise show shortcut hints
-        if let Some(ref msg) = app.status_message {
             spans.push(Span::styled(
-                format!(" {} ", msg),
-                Style::default().fg(Color::Yellow),
+                format!(" {} ", label),
+                Style::default().fg(Color::Black).bg(Color::Magenta),
+            ));
+            spans.push(Span::styled(
+                format!(" {}█", app.time_input),
+                Style::default().fg(Color::White),
             ));
         } else {
-            let shortcuts = [
-                ("/", "Search"),
-                ("f", "Filter"),
-                ("-", "Exclude"),
-                ("=", "Include"),
-                ("_", "ExclField"),
-                ("+", "InclField"),
-                ("Enter", "Detail"),
-                ("c", "Columns"),
-                ("?", "Help"),
-            ];
+            // Normal VIEW/FOLLOW mode
+            let (mode_label, mode_color) = if app.follow_mode {
+                ("[FOLLOW]", Color::Green)
+            } else {
+                ("[VIEW]", Color::Cyan)
+            };
 
-            let mode_width = mode_label.len() + 2; // + spaces for " {} "
-            let mut remaining = area.width.saturating_sub(mode_width as u16) as usize;
+            spans.push(Span::styled(
+                format!(" {} ", mode_label),
+                Style::default().fg(Color::Black).bg(mode_color),
+            ));
 
-            for (i, (key, desc)) in shortcuts.iter().enumerate() {
-                let entry = if i == 0 {
-                    format!(" {}: {}", key, desc)
-                } else {
-                    format!(" │ {}: {}", key, desc)
-                };
-                if entry.len() > remaining {
-                    break;
+            // Show status message if present, otherwise show shortcut hints
+            if let Some(ref msg) = app.status_message {
+                spans.push(Span::styled(
+                    format!(" {} ", msg),
+                    Style::default().fg(Color::Yellow),
+                ));
+            } else {
+                let shortcuts = [
+                    ("/", "Search"),
+                    ("f", "Filter"),
+                    ("-", "Exclude"),
+                    ("=", "Include"),
+                    ("_", "ExclField"),
+                    ("+", "InclField"),
+                    ("Enter", "Detail"),
+                    ("c", "Columns"),
+                    ("?", "Help"),
+                ];
+
+                let used = spans_display_width(&spans);
+                let mut remaining = (area.width as usize).saturating_sub(used);
+
+                for (i, (key, desc)) in shortcuts.iter().enumerate() {
+                    let entry = if i == 0 {
+                        format!(" {}: {}", key, desc)
+                    } else {
+                        format!(" │ {}: {}", key, desc)
+                    };
+                    let entry_width = UnicodeWidthStr::width(entry.as_str());
+                    if entry_width > remaining {
+                        break;
+                    }
+                    remaining -= entry_width;
+                    spans.push(Span::styled(entry, Style::default().fg(Color::DarkGray)));
                 }
-                remaining -= entry.len();
-                spans.push(Span::styled(entry, Style::default().fg(Color::DarkGray)));
             }
+        }
+
+        // Fill remaining width to prevent stale cells from previous frames
+        let current_width = spans_display_width(&spans);
+        let area_width = area.width as usize;
+        if current_width < area_width {
+            spans.push(Span::raw(" ".repeat(area_width - current_width)));
         }
 
         let footer =
