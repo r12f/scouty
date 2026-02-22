@@ -67,6 +67,8 @@ impl LogTableWidget {
                 let filtered_idx = app.scroll_offset + i;
                 let is_selected = filtered_idx == app.selected;
                 let is_match = app.is_search_match(filtered_idx);
+                let record_idx = app.filtered_indices[filtered_idx];
+                let is_bookmarked = app.is_bookmarked(record_idx);
                 let row_style = level_style(record.level);
 
                 let cells: Vec<Cell> = vis_cols
@@ -152,10 +154,14 @@ impl LogTableWidget {
                 let mut row = Row::new(cells).style(row_style);
                 if is_selected && is_match {
                     row = row.style(row_style.bg(Color::Rgb(120, 120, 0)));
+                } else if is_selected && is_bookmarked {
+                    row = row.style(row_style.bg(Color::Rgb(40, 60, 80)));
                 } else if is_selected {
                     row = row.style(row_style.bg(Color::Rgb(40, 40, 60)));
                 } else if is_match {
                     row = row.style(row_style.bg(Color::Rgb(80, 80, 0)));
+                } else if is_bookmarked {
+                    row = row.style(row_style.bg(Color::Rgb(20, 40, 60)));
                 }
                 row
             })

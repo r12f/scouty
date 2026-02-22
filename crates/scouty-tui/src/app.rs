@@ -28,6 +28,7 @@ pub enum InputMode {
     CopyFormat,
     Help,
     Command,
+    BookmarkManager,
     Statistics,
 
     Highlight,
@@ -284,6 +285,10 @@ pub struct App {
     pub highlight_manager_cursor: usize,
     /// Cached statistics data (computed once when entering Statistics mode).
     pub cached_stats: Option<crate::ui::windows::stats_window::StatsData>,
+    /// Bookmarked record IDs.
+    pub bookmarks: std::collections::HashSet<u64>,
+    /// Bookmark manager cursor.
+    pub bookmark_manager_cursor: usize,
 }
 
 /// Cached density chart — avoids O(N) recomputation on every frame.
@@ -394,6 +399,8 @@ impl App {
             highlight_input: TextInput::new(),
             highlight_manager_cursor: 0,
             cached_stats: None,
+            bookmarks: std::collections::HashSet::new(),
+            bookmark_manager_cursor: 0,
         })
     }
 
@@ -914,6 +921,81 @@ impl App {
 
     // ── Navigation ──────────────────────────────────────────────
 
+    /// Toggle bookmark on the currently selected record.
+    pub fn toggle_bookmark(&mut self) {
+        if let Some(&ri) = self.filtered_indices.get(self.selected) {
+            let id = self.records[ri].id;
+            if !self.bookmarks.remove(&id) {
+                self.bookmarks.insert(id);
+                self.set_status(format!("Bookmark added (total: {})", self.bookmarks.len()));
+            } else {
+                self.set_status(format!(
+                    "Bookmark removed (total: {})",
+                    self.bookmarks.len()
+                ));
+            }
+        }
+    }
+
+    /// Jump to the next bookmarked record (cyclic).
+    pub fn jump_next_bookmark(&mut self) {
+        if self.bookmarks.is_empty() {
+            self.set_status("No bookmarks".to_string());
+            return;
+        }
+        let start = self.selected + 1;
+        // Search forward from current position, then wrap around
+        for offset in 0..self.filtered_indices.len() {
+            let fi = (start + offset) % self.filtered_indices.len();
+            let ri = self.filtered_indices[fi];
+            if self.bookmarks.contains(&self.records[ri].id) {
+                self.selected = fi;
+                self.ensure_selected_visible();
+                self.set_status(format!("Bookmark {}", fi + 1));
+                return;
+            }
+        }
+    }
+
+    /// Jump to the previous bookmarked record (cyclic).
+    pub fn jump_prev_bookmark(&mut self) {
+        if self.bookmarks.is_empty() {
+            self.set_status("No bookmarks".to_string());
+            return;
+        }
+        let len = self.filtered_indices.len();
+        let start = if self.selected == 0 {
+            len - 1
+        } else {
+            self.selected - 1
+        };
+        for offset in 0..len {
+            let fi = (start + len - offset) % len;
+            let ri = self.filtered_indices[fi];
+            if self.bookmarks.contains(&self.records[ri].id) {
+                self.selected = fi;
+                self.ensure_selected_visible();
+                self.set_status(format!("Bookmark {}", fi + 1));
+                return;
+            }
+        }
+    }
+
+    /// Get sorted list of bookmarked filtered indices for the manager.
+    pub fn bookmarked_filtered_indices(&self) -> Vec<usize> {
+        self.filtered_indices
+            .iter()
+            .enumerate()
+            .filter(|(_, &ri)| self.bookmarks.contains(&self.records[ri].id))
+            .map(|(fi, _)| fi)
+            .collect()
+    }
+
+    /// Check if a record index is bookmarked.
+    pub fn is_bookmarked(&self, record_idx: usize) -> bool {
+        self.bookmarks.contains(&self.records[record_idx].id)
+    }
+
     /// Parse a relative duration string like "5m", "30s", "2h", "1d".
     /// Returns the duration in seconds, or None if invalid.
     fn parse_relative_duration(input: &str) -> Option<i64> {
@@ -1098,7 +1180,7 @@ impl App {
         self.follow_mode = false;
     }
 
-    fn ensure_selected_visible(&mut self) {
+    pub fn ensure_selected_visible(&mut self) {
         if self.selected < self.scroll_offset {
             self.scroll_offset = self.selected;
         } else if self.selected >= self.scroll_offset + self.visible_rows {
@@ -1359,6 +1441,8 @@ mod tests {
             highlight_input: TextInput::new(),
             highlight_manager_cursor: 0,
             cached_stats: None,
+            bookmarks: std::collections::HashSet::new(),
+            bookmark_manager_cursor: 0,
         }
     }
 
@@ -1408,6 +1492,8 @@ mod tests {
             highlight_input: TextInput::new(),
             highlight_manager_cursor: 0,
             cached_stats: None,
+            bookmarks: std::collections::HashSet::new(),
+            bookmark_manager_cursor: 0,
         }
     }
 
@@ -1454,6 +1540,8 @@ mod tests {
             highlight_input: TextInput::new(),
             highlight_manager_cursor: 0,
             cached_stats: None,
+            bookmarks: std::collections::HashSet::new(),
+            bookmark_manager_cursor: 0,
         }
     }
 
@@ -1896,6 +1984,8 @@ mod field_filter_v2_tests {
             highlight_input: TextInput::new(),
             highlight_manager_cursor: 0,
             cached_stats: None,
+            bookmarks: std::collections::HashSet::new(),
+            bookmark_manager_cursor: 0,
         }
     }
 
@@ -2067,6 +2157,8 @@ mod column_follow_tests {
             highlight_input: TextInput::new(),
             highlight_manager_cursor: 0,
             cached_stats: None,
+            bookmarks: std::collections::HashSet::new(),
+            bookmark_manager_cursor: 0,
         }
     }
 
@@ -2249,6 +2341,8 @@ mod copy_tests {
             highlight_input: TextInput::new(),
             highlight_manager_cursor: 0,
             cached_stats: None,
+            bookmarks: std::collections::HashSet::new(),
+            bookmark_manager_cursor: 0,
         }
     }
 
@@ -2405,6 +2499,8 @@ mod time_jump_tests {
             highlight_manager_cursor: 0,
             highlight_rules: Vec::new(),
             cached_stats: None,
+            bookmarks: std::collections::HashSet::new(),
+            bookmark_manager_cursor: 0,
         }
     }
 
@@ -2517,9 +2613,11 @@ mod command_tests {
             highlight_input: TextInput::new(),
             highlight_manager_cursor: 0,
             cached_stats: None,
+            bookmarks: std::collections::HashSet::new(),
+            bookmark_manager_cursor: 0,
         }
-    }
 
+    }
     #[test]
     fn test_command_w_default_filename() {
         let mut app = make_command_app();

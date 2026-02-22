@@ -96,6 +96,11 @@ pub fn render(frame: &mut Frame, app: &App) {
         let window = HighlightManagerWindow::from_app(app);
         window.render_with_app(frame, app, area);
     }
+    if app.input_mode == InputMode::BookmarkManager {
+        use crate::ui::windows::bookmark_manager_window::BookmarkManagerWindow;
+        let window = BookmarkManagerWindow::from_app(app);
+        window.render_with_app(frame, app, area);
+    }
 }
 
 fn render_log_table(frame: &mut Frame, app: &App, area: Rect) {
