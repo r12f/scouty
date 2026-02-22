@@ -119,6 +119,24 @@ pub fn compute_density_indexed(
     (buckets, min_ts, max_ts)
 }
 
+/// Map a bucket count to a braille height (0–4) using min-max scaling.
+///
+/// Empty buckets → 0. Non-empty buckets are scaled from 1–4 based on
+/// where they fall between min_count and max_count. This stretches contrast
+/// so that even small density variations are visible.
+fn bucket_height(count: usize, min_count: usize, max_count: usize) -> usize {
+    if count == 0 {
+        return 0;
+    }
+    if min_count == max_count {
+        // All non-empty buckets have the same count
+        return 2;
+    }
+    // Scale to 1–4 range
+    let ratio = (count - min_count) as f64 / (max_count - min_count) as f64;
+    (1.0 + ratio * 3.0).round() as usize
+}
+
 /// Render density buckets as a Braille string.
 ///
 /// Each character encodes 2 adjacent buckets. Returns (text, cursor_char_index).
@@ -132,15 +150,16 @@ pub fn render_braille(
     }
 
     let max_count = *buckets.iter().max().unwrap_or(&1).max(&1);
+    let min_count = *buckets.iter().filter(|&&c| c > 0).min().unwrap_or(&0);
     let mut result = String::new();
     let mut cursor_char_idx = None;
 
     let mut i = 0;
     let mut char_idx = 0;
     while i < buckets.len() {
-        let left = (buckets[i] as f64 / max_count as f64 * 4.0).round() as usize;
+        let left = bucket_height(buckets[i], min_count, max_count);
         let right = if i + 1 < buckets.len() {
-            (buckets[i + 1] as f64 / max_count as f64 * 4.0).round() as usize
+            bucket_height(buckets[i + 1], min_count, max_count)
         } else {
             0
         };
@@ -219,5 +238,38 @@ mod tests {
         // Bucket should be roughly in the middle (4 or 5)
         let idx = cb.unwrap();
         assert!(idx >= 4 && idx <= 5, "Expected ~middle bucket, got {}", idx);
+    }
+
+    #[test]
+    fn test_bucket_height_empty() {
+        assert_eq!(bucket_height(0, 5, 20), 0);
+    }
+
+    #[test]
+    fn test_bucket_height_min_equals_max() {
+        assert_eq!(bucket_height(10, 10, 10), 2);
+    }
+
+    #[test]
+    fn test_bucket_height_range() {
+        // min=5, max=20 → count=5 → 1, count=20 → 4
+        assert_eq!(bucket_height(5, 5, 20), 1);
+        assert_eq!(bucket_height(20, 5, 20), 4);
+        // mid-range: count=12 → ratio=7/15≈0.47 → 1+1.4=2.4 → 2
+        assert_eq!(bucket_height(12, 5, 20), 2);
+    }
+
+    #[test]
+    fn test_render_braille_contrast() {
+        // Buckets with small variation should still show different heights
+        let buckets = vec![10, 8, 12, 9, 11, 10, 8, 12];
+        let (text, _) = render_braille(&buckets, None);
+        let chars: Vec<char> = text.chars().collect();
+        assert_eq!(chars.len(), 4);
+        // With min-max scaling, 8→1, 12→4, so chars should differ
+        assert!(
+            chars[0] != chars[1] || chars[1] != chars[2] || chars[2] != chars[3],
+            "Expected varying braille chars, got all same"
+        );
     }
 }
