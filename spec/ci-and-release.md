@@ -4,9 +4,6 @@
 
 GitHub Actions pipelines for continuous integration (build + test on every push/PR) and manual release workflow (version bump, multi-platform build, GitHub Release, crates.io publish).
 
-## Current Status
-
-✅ Implemented
 
 ## Design
 

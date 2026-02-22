@@ -4,9 +4,6 @@
 
 Advanced navigation features beyond basic j/k scrolling: bookmarks, relative time jumps, and go-to-line.
 
-## Current Status
-
-✅ Implemented
 
 ## Design
 

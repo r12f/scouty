@@ -4,9 +4,6 @@
 
 The detail panel displays the full content of the currently selected log record in a left-right split layout: log content on the left, structured fields on the right.
 
-## Current Status
-
-✅ Implemented
 
 ## Design
 

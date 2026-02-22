@@ -4,9 +4,6 @@
 
 Scouty parsers transform raw log lines into `LogRecord` structs. The system supports multiple parser types: a unified hand-written syslog parser (zero-regex), SONiC SWSS parser, sairedis parser, and user-defined regex parsers.
 
-## Current Status
-
-✅ Implemented
 
 ## Design
 

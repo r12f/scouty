@@ -4,9 +4,6 @@
 
 Command-line interface for `scouty-tui`, handling file arguments, default syslog paths, and stdin pipe detection.
 
-## Current Status
-
-✅ Implemented
 
 ## Design
 

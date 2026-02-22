@@ -4,9 +4,6 @@
 
 A statistics overlay providing a quick overview of log data distribution: level breakdown, top components, time range, and record counts.
 
-## Current Status
-
-✅ Implemented
 
 ## Design
 

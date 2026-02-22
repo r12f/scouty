@@ -4,9 +4,6 @@
 
 End-to-end performance optimization covering the full loading pipeline (file I/O → parsing → LogStore insertion → TUI first render) and TUI navigation responsiveness.
 
-## Current Status
-
-✅ Implemented
 
 ## Design
 

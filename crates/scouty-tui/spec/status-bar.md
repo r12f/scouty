@@ -4,9 +4,6 @@
 
 The status bar occupies the bottom 2 lines, providing data overview (density chart + position) on line 1 and interactive state (mode/input/messages) on line 2.
 
-## Current Status
-
-✅ Implemented
 
 ## Design
 

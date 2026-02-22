@@ -4,9 +4,6 @@
 
 A scrollable help overlay displaying all available keybindings, version information, and project links.
 
-## Current Status
-
-✅ Implemented
 
 ## Design
 

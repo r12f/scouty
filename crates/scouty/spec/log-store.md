@@ -4,9 +4,6 @@
 
 LogStore is the central storage for all parsed `LogRecord`s, maintaining timestamp-sorted order and supporting both batch and live insertion. It uses a **Segmented Sorted Array** architecture for high performance.
 
-## Current Status
-
-✅ Implemented
 
 ## Design
 

@@ -4,9 +4,6 @@
 
 Features for copying log records to clipboard and exporting filtered results to files.
 
-## Current Status
-
-✅ Implemented
 
 ## Design
 

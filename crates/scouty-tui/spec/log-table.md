@@ -4,9 +4,6 @@
 
 The main log table widget displays parsed log records in a scrollable, column-based view with level coloring and selection tracking.
 
-## Current Status
-
-✅ Implemented
 
 ## Design
 

@@ -4,9 +4,6 @@
 
 `LogRecord` is the core data structure representing a single parsed log entry. It is the universal exchange format between all Scouty components — parsers produce it, the store holds it, filters evaluate it, and the TUI renders it.
 
-## Current Status
-
-✅ Implemented
 
 ## Design
 

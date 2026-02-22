@@ -4,9 +4,6 @@
 
 The filter engine evaluates expressions against LogRecord fields to include or exclude records. It supports a rich expression language with field comparisons, logical operators, and string matching.
 
-## Current Status
-
-✅ Implemented
 
 ## Design
 

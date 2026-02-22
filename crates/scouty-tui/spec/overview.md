@@ -4,9 +4,6 @@
 
 `scouty-tui` is an interactive terminal log viewer built on the `scouty` core library. It provides table-based log browsing, filtering, searching, and analysis through a component-based architecture using `ratatui` + `crossterm`.
 
-## Current Status
-
-✅ Implemented
 
 ## Design
 

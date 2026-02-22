@@ -4,9 +4,6 @@
 
 Loaders are responsible for reading raw log data from various sources and feeding lines into their associated Parser Groups. Each source/file gets an independent Loader instance; a session can have multiple Loaders.
 
-## Current Status
-
-✅ Implemented
 
 ## Design
 

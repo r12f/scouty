@@ -4,9 +4,6 @@
 
 `LogStoreView` encapsulates a `FilterEngine` and its cached filter results, enabling a **double-buffering** mechanism: the active view serves the TUI while a pending view filters in the background, then atomically replaces the active view.
 
-## Current Status
-
-✅ Implemented
 
 ## Design
 

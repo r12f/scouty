@@ -4,9 +4,6 @@
 
 Custom highlight rules allow users to visually mark multiple patterns simultaneously with different colors, independent of search and filtering.
 
-## Current Status
-
-✅ Implemented
 
 ## Design
 

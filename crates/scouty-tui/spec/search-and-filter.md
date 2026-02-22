@@ -4,9 +4,6 @@
 
 Interactive search and filtering in the TUI, providing regex search with match navigation and multiple filter interaction modes.
 
-## Current Status
-
-✅ Implemented
 
 ## Design
 
