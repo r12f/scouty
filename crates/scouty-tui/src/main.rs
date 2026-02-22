@@ -228,6 +228,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 }
                                 KeyCode::Char('Y') => {
                                     app.input_mode = InputMode::CopyFormat;
+                                    app.copy_format_cursor = 0;
                                 }
                                 KeyCode::Char('c') => {
                                     app.input_mode = InputMode::ColumnSelector;
@@ -361,20 +362,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     }
                     InputMode::CopyFormat => {
                         use ui::windows::copy_format_window::CopyFormatWindow;
-                        // Determine format from key before dispatching
-                        let format = match key.code {
-                            KeyCode::Enter | KeyCode::Char('r') => Some(app::CopyFormat::Raw),
-                            KeyCode::Char('j') => Some(app::CopyFormat::Json),
-                            KeyCode::Char('y') => Some(app::CopyFormat::Yaml),
-                            _ => None,
-                        };
-                        let mut window = CopyFormatWindow;
+                        let mut window = CopyFormatWindow::from_app(&app);
                         let result = ui::dispatch_key(&mut window, key);
+                        app.copy_format_cursor = window.cursor;
                         if result == ui::ComponentResult::Close {
-                            if let Some(fmt) = format {
-                                CopyFormatWindow::select_format(&mut app, fmt);
+                            if window.confirmed {
+                                CopyFormatWindow::select_format(&mut app, window.selected_format());
                             }
                             app.input_mode = InputMode::Normal;
+                            app.copy_format_cursor = 0;
                         }
                     }
                     InputMode::Help => {

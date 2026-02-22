@@ -64,7 +64,7 @@ pub fn render(frame: &mut Frame, app: &App) {
     if app.input_mode == InputMode::CopyFormat {
         use crate::ui::windows::copy_format_window::CopyFormatWindow;
         use crate::ui::UiComponent;
-        let window = CopyFormatWindow;
+        let window = CopyFormatWindow::from_app(app);
         window.render(frame, area);
     }
 }
