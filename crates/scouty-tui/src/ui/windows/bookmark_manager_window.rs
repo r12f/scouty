@@ -37,7 +37,7 @@ pub struct BookmarkManagerWindow {
 
 impl BookmarkManagerWindow {
     pub fn from_app(app: &App) -> Self {
-        let entries = app
+        let entries: Vec<BookmarkEntry> = app
             .bookmarked_filtered_indices()
             .into_iter()
             .map(|fi| {
@@ -49,10 +49,11 @@ impl BookmarkManagerWindow {
                 }
             })
             .collect();
+        let cursor = app
+            .bookmark_manager_cursor
+            .min(entries.len().saturating_sub(1));
         Self {
-            cursor: app
-                .bookmark_manager_cursor
-                .min(app.bookmarked_filtered_indices().len().saturating_sub(1)),
+            cursor,
             entries,
             action: None,
             deleted_ids: Vec::new(),
@@ -88,7 +89,7 @@ impl BookmarkManagerWindow {
         } else {
             for (i, entry) in self.entries.iter().enumerate() {
                 let is_cursor = i == self.cursor;
-                let prefix = if is_cursor { "▶ " } else { "  " };
+                let prefix = if is_cursor { "▸ " } else { "  " };
                 let style = if is_cursor {
                     Style::default()
                         .fg(Color::Yellow)
@@ -133,7 +134,6 @@ impl BookmarkManagerWindow {
         if let Some(BookmarkAction::Jump(fi)) = &self.action {
             app.selected = *fi;
             app.ensure_selected_visible();
-            app.input_mode = crate::app::InputMode::Normal;
         }
     }
 }

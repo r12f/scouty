@@ -939,14 +939,14 @@ impl App {
 
     /// Jump to the next bookmarked record (cyclic).
     pub fn jump_next_bookmark(&mut self) {
-        if self.bookmarks.is_empty() {
+        if self.bookmarks.is_empty() || self.filtered_indices.is_empty() {
             self.set_status("No bookmarks".to_string());
             return;
         }
+        let len = self.filtered_indices.len();
         let start = self.selected + 1;
-        // Search forward from current position, then wrap around
-        for offset in 0..self.filtered_indices.len() {
-            let fi = (start + offset) % self.filtered_indices.len();
+        for offset in 0..len {
+            let fi = (start + offset) % len;
             let ri = self.filtered_indices[fi];
             if self.bookmarks.contains(&self.records[ri].id) {
                 self.selected = fi;
@@ -959,7 +959,7 @@ impl App {
 
     /// Jump to the previous bookmarked record (cyclic).
     pub fn jump_prev_bookmark(&mut self) {
-        if self.bookmarks.is_empty() {
+        if self.bookmarks.is_empty() || self.filtered_indices.is_empty() {
             self.set_status("No bookmarks".to_string());
             return;
         }
