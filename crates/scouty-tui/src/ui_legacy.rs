@@ -158,6 +158,6 @@ fn render_input_line2(frame: &mut Frame, area: Rect, mode: &str, input: &str, er
         ));
     }
 
-    let input_line = Paragraph::new(Line::from(spans));
+    let input_line = Paragraph::new(Line::from(spans)).style(Style::default().bg(Color::DarkGray));
     frame.render_widget(input_line, area);
 }
