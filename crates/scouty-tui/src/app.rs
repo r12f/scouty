@@ -300,7 +300,7 @@ pub struct DensityCache {
 }
 
 impl App {
-    /// Load log records from a file.
+    /// Load log records from file paths.
     pub fn load_files(paths: &[&str]) -> Result<Self, Box<dyn std::error::Error>> {
         let mut store = scouty::store::LogStore::new();
         let mut record_id: u64 = 0;
@@ -309,24 +309,50 @@ impl App {
             let mut loader = FileLoader::new(path, false);
             let lines = loader.load()?;
             let info = loader.info().clone();
-
-            let group = ParserFactory::create_parser_group(&info);
-
-            for line in lines.into_iter() {
-                if let Some(mut record) = group.parse(&line, &info.id, &info.id, record_id) {
-                    record.raw = line;
-                    store.insert(record);
-                    record_id += 1;
-                }
-            }
+            Self::ingest_lines(&mut store, lines, &info, &mut record_id);
         }
 
-        // Ensure out-of-order records are merged before iterating
+        Self::from_store(store)
+    }
+
+    /// Load log records from pre-read stdin lines.
+    pub fn load_stdin(lines: Vec<String>) -> Result<Self, Box<dyn std::error::Error>> {
+        use scouty::loader::stdin::StdinLoader;
+
+        let loader = StdinLoader::new();
+        let mut info = loader.info().clone();
+        info.sample_lines = lines.iter().take(10).cloned().collect();
+
+        let mut store = scouty::store::LogStore::new();
+        let mut record_id: u64 = 0;
+        Self::ingest_lines(&mut store, lines, &info, &mut record_id);
+
+        Self::from_store(store)
+    }
+
+    /// Parse lines with auto-detected parser and insert into the store.
+    fn ingest_lines(
+        store: &mut scouty::store::LogStore,
+        lines: Vec<String>,
+        info: &scouty::traits::LoaderInfo,
+        record_id: &mut u64,
+    ) {
+        let group = ParserFactory::create_parser_group(info);
+        for line in lines {
+            if let Some(mut record) = group.parse(&line, &info.id, &info.id, *record_id) {
+                record.raw = line;
+                store.insert(record);
+                *record_id += 1;
+            }
+        }
+    }
+
+    /// Build an `App` from a populated `LogStore`.
+    fn from_store(mut store: scouty::store::LogStore) -> Result<Self, Box<dyn std::error::Error>> {
         store.compact_ooo();
         let records: Vec<Arc<LogRecord>> = store.iter_arc().cloned().collect();
         let total_records = records.len();
         let filtered_indices: Vec<usize> = (0..records.len()).collect();
-
         let col_widths = Self::compute_col_widths(&records, &filtered_indices);
 
         Ok(Self {
