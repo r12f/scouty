@@ -20,7 +20,7 @@ impl FilterInputWidget {
     pub fn render_with_app(&self, frame: &mut Frame, area: Rect, app: &App) {
         let mut spans = vec![
             Span::styled("Filter: ", Style::default().fg(Color::Yellow)),
-            Span::raw(&app.filter_input),
+            Span::raw(app.filter_input.value()),
             Span::styled("█", Style::default().fg(Color::White)),
         ];
 

@@ -2,6 +2,7 @@
 
 mod app;
 mod density;
+pub mod text_input;
 mod ui;
 
 use app::{App, InputMode};
@@ -304,7 +305,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                     app.help_scroll = 0;
                                 }
                                 KeyCode::Char(':') => {
-                                    app.command_input = String::new();
+                                    app.command_input.clear();
                                     app.input_mode = InputMode::Command;
                                 }
                                 KeyCode::Char('h') => {
@@ -332,15 +333,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                             }
                         }
                         KeyCode::Esc => app.input_mode = InputMode::Normal,
-                        KeyCode::Backspace => {
-                            app.filter_input.pop();
-                            app.filter_error = None;
+                        _ => {
+                            if app.filter_input.handle_key(key) {
+                                app.filter_error = None;
+                            }
                         }
-                        KeyCode::Char(c) => {
-                            app.filter_input.push(c);
-                            app.filter_error = None;
-                        }
-                        _ => {}
                     },
                     InputMode::Search => match key.code {
                         KeyCode::Enter => {
@@ -348,11 +345,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                             app.input_mode = InputMode::Normal;
                         }
                         KeyCode::Esc => app.input_mode = InputMode::Normal,
-                        KeyCode::Backspace => {
-                            app.search_input.pop();
+                        _ => {
+                            app.search_input.handle_key(key);
                         }
-                        KeyCode::Char(c) => app.search_input.push(c),
-                        _ => {}
                     },
                     InputMode::JumpForward | InputMode::JumpBackward => match key.code {
                         KeyCode::Enter => {
@@ -362,18 +357,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                             }
                         }
                         KeyCode::Esc => app.input_mode = InputMode::Normal,
-                        KeyCode::Backspace => {
-                            app.time_input.pop();
+                        _ => {
+                            app.time_input.handle_key(key);
                         }
-                        KeyCode::Char(c) => app.time_input.push(c),
-                        _ => {}
                     },
                     InputMode::GotoLine => {
                         use ui::windows::goto_line_window::GotoLineWindow;
                         let mut window = GotoLineWindow::new();
-                        window.input = app.goto_input.clone();
+                        window.input = app.goto_input.value().to_string();
                         let result = ui::dispatch_key(&mut window, key);
-                        app.goto_input = window.input;
+                        app.goto_input.set(&window.input);
                         if result == ui::ComponentResult::Close {
                             if window.confirmed {
                                 app.goto_line();
@@ -387,11 +380,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                             app.input_mode = InputMode::Normal;
                         }
                         KeyCode::Esc => app.input_mode = InputMode::Normal,
-                        KeyCode::Backspace => {
-                            app.quick_filter_input.pop();
+                        _ => {
+                            app.quick_filter_input.handle_key(key);
                         }
-                        KeyCode::Char(c) => app.quick_filter_input.push(c),
-                        _ => {}
                     },
                     InputMode::QuickInclude => match key.code {
                         KeyCode::Enter => {
@@ -399,11 +390,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                             app.input_mode = InputMode::Normal;
                         }
                         KeyCode::Esc => app.input_mode = InputMode::Normal,
-                        KeyCode::Backspace => {
-                            app.quick_filter_input.pop();
+                        _ => {
+                            app.quick_filter_input.handle_key(key);
                         }
-                        KeyCode::Char(c) => app.quick_filter_input.push(c),
-                        _ => {}
                     },
                     InputMode::FieldFilter => {
                         use ui::windows::field_filter_window::FieldFilterWindow;
@@ -494,17 +483,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         KeyCode::Esc => {
                             app.input_mode = InputMode::Normal;
                         }
-                        KeyCode::Backspace => {
-                            app.command_input.pop();
+                        _ => {
+                            app.command_input.handle_key(key);
                         }
-                        KeyCode::Char(c) => {
-                            app.command_input.push(c);
-                        }
-                        _ => {}
                     },
                     InputMode::Highlight => match key.code {
                         KeyCode::Enter => {
-                            let pattern = app.highlight_input.clone();
+                            let pattern = app.highlight_input.value().to_string();
                             if let Err(e) = app.add_highlight_rule(&pattern) {
                                 app.set_status(e);
                             }
@@ -513,13 +498,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         KeyCode::Esc => {
                             app.input_mode = InputMode::Normal;
                         }
-                        KeyCode::Backspace => {
-                            app.highlight_input.pop();
+                        _ => {
+                            app.highlight_input.handle_key(key);
                         }
-                        KeyCode::Char(c) => {
-                            app.highlight_input.push(c);
-                        }
-                        _ => {}
                     },
                     InputMode::HighlightManager => {
                         use ui::windows::highlight_manager_window::HighlightManagerWindow;

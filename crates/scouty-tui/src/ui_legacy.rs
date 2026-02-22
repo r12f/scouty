@@ -130,22 +130,28 @@ fn render_footer(frame: &mut Frame, app: &App, area: Rect) {
                 frame,
                 line2_area,
                 "[FILTER]",
-                &app.filter_input,
+                app.filter_input.value(),
                 app.filter_error.as_deref(),
             );
         }
         InputMode::Search => {
-            render_input_line2(frame, line2_area, "[SEARCH]", &app.search_input, None);
+            render_input_line2(
+                frame,
+                line2_area,
+                "[SEARCH]",
+                app.search_input.value(),
+                None,
+            );
         }
         InputMode::GotoLine => {
-            render_input_line2(frame, line2_area, "[GOTO]", &app.goto_input, None);
+            render_input_line2(frame, line2_area, "[GOTO]", app.goto_input.value(), None);
         }
         InputMode::QuickExclude => {
             render_input_line2(
                 frame,
                 line2_area,
                 "[EXCLUDE]",
-                &app.quick_filter_input,
+                app.quick_filter_input.value(),
                 None,
             );
         }
@@ -154,12 +160,18 @@ fn render_footer(frame: &mut Frame, app: &App, area: Rect) {
                 frame,
                 line2_area,
                 "[INCLUDE]",
-                &app.quick_filter_input,
+                app.quick_filter_input.value(),
                 None,
             );
         }
         InputMode::Highlight => {
-            render_input_line2(frame, line2_area, "[HIGHLIGHT]", &app.highlight_input, None);
+            render_input_line2(
+                frame,
+                line2_area,
+                "[HIGHLIGHT]",
+                app.highlight_input.value(),
+                None,
+            );
         }
         _ => {
             use crate::ui::widgets::status_bar_widget::StatusBarWidget;
