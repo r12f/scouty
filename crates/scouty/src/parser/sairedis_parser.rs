@@ -8,7 +8,7 @@
 #[path = "sairedis_parser_tests.rs"]
 mod sairedis_parser_tests;
 
-use crate::record::LogRecord;
+use crate::record::{LogLevel, LogRecord};
 use crate::traits::LogParser;
 use chrono::{DateTime, NaiveDate, NaiveDateTime, NaiveTime, Utc};
 use std::cell::RefCell;
@@ -192,10 +192,16 @@ impl SairedisParser {
             }
         };
 
+        // LogLevel: notification → NOTICE, everything else → INFO
+        let level = match op {
+            b'n' => Some(LogLevel::Notice),
+            _ => Some(LogLevel::Info),
+        };
+
         Some(LogRecord {
             id,
             timestamp,
-            level: None,
+            level,
             source: Arc::clone(source),
             pid: None,
             tid: None,

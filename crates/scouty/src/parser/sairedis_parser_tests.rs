@@ -272,6 +272,36 @@ mod tests {
         assert_eq!(r.timestamp.timestamp_micros(), 1767225599_999999);
     }
 
+    // ── LogLevel mapping tests ──────────────────────────────────────────
+
+    #[test]
+    fn test_notification_has_notice_level() {
+        let p = SairedisParser::new();
+        let r = parse(&p, r#"2025-05-17.18:41:58.563631|n|port_state_change|[{"port_id":"oid:0x1"}]|"#).unwrap();
+        assert_eq!(r.level, Some(crate::record::LogLevel::Notice));
+    }
+
+    #[test]
+    fn test_create_has_info_level() {
+        let p = SairedisParser::new();
+        let r = parse(&p, "2025-05-17.18:42:03.233241|c|SAI_OBJECT_TYPE_PORT:oid:0x1|attr=val").unwrap();
+        assert_eq!(r.level, Some(crate::record::LogLevel::Info));
+    }
+
+    #[test]
+    fn test_get_response_has_info_level() {
+        let p = SairedisParser::new();
+        let r = parse(&p, "2025-05-17.18:49:14.282097|G|SAI_STATUS_SUCCESS").unwrap();
+        assert_eq!(r.level, Some(crate::record::LogLevel::Info));
+    }
+
+    #[test]
+    fn test_unknown_op_has_info_level() {
+        let p = SairedisParser::new();
+        let r = parse(&p, "2025-05-17.18:42:03.233241|x|some content").unwrap();
+        assert_eq!(r.level, Some(crate::record::LogLevel::Info));
+    }
+
     #[test]
     fn test_performance_parse_rate() {
         let lines: Vec<String> = (0..10_000)
