@@ -58,6 +58,18 @@ impl StatusBarWidget {
             }
         }
 
+        // Pad to push position info to the right edge
+        let used_width: usize = spans.iter().map(|s| s.content.len()).sum();
+        let total_width = area.width as usize;
+        let right_len = right_text.len();
+        if used_width + right_len < total_width {
+            let pad = total_width - used_width - right_len;
+            spans.push(Span::styled(
+                " ".repeat(pad),
+                Style::default().bg(Color::Rgb(20, 20, 40)),
+            ));
+        }
+
         spans.push(Span::styled(
             right_text,
             Style::default().fg(Color::White).bg(Color::DarkGray),
