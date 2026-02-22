@@ -85,7 +85,13 @@ mod tests {
 
         let send_addr = addr.clone();
         let handle = std::thread::spawn(move || {
-            std::thread::sleep(Duration::from_millis(100));
+            // Poll until the server is listening instead of a fixed sleep.
+            for _ in 0..50 {
+                if TcpStream::connect(&send_addr).is_ok() {
+                    break;
+                }
+                std::thread::sleep(Duration::from_millis(50));
+            }
             let body = r#"{"resourceLogs":[{"scopeLogs":[{"logRecords":[{"severityText":"WARN","body":{"stringValue":"test warning"}}]}]}]}"#;
             let request = format!(
                 "POST /v1/logs HTTP/1.1\r\nHost: localhost\r\nContent-Length: {}\r\n\r\n{}",
