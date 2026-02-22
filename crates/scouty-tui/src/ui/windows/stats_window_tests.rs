@@ -162,7 +162,9 @@ mod tests {
     fn test_stats_window_closes_on_esc() {
         let mut app = make_test_app();
         app.cached_stats = Some(StatsData::compute(&app));
-        let mut window = StatsWindow::new(&app);
+        let mut window = StatsWindow {
+            stats: app.cached_stats.as_ref().unwrap(),
+        };
         let key = KeyEvent::new(KeyCode::Esc, KeyModifiers::NONE);
         let result = dispatch_key(&mut window, key);
         assert_eq!(result, ComponentResult::Close);
@@ -172,7 +174,9 @@ mod tests {
     fn test_stats_window_closes_on_any_char() {
         let mut app = make_test_app();
         app.cached_stats = Some(StatsData::compute(&app));
-        let mut window = StatsWindow::new(&app);
+        let mut window = StatsWindow {
+            stats: app.cached_stats.as_ref().unwrap(),
+        };
         let key = KeyEvent::new(KeyCode::Char('q'), KeyModifiers::NONE);
         let result = dispatch_key(&mut window, key);
         assert_eq!(result, ComponentResult::Close);

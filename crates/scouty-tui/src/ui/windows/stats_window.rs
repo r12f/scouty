@@ -91,18 +91,6 @@ pub struct StatsWindow<'a> {
     pub stats: &'a StatsData,
 }
 
-impl<'a> StatsWindow<'a> {
-    pub fn new(app: &'a App) -> Self {
-        // NOTE: Prefer using cached_stats from App to avoid recomputation.
-        Self {
-            stats: app.cached_stats.as_ref().unwrap_or_else(|| {
-                // Fallback: this shouldn't normally happen.
-                panic!("StatsWindow::new called without cached_stats")
-            }),
-        }
-    }
-}
-
 impl<'a> UiComponent for StatsWindow<'a> {
     fn render(&self, frame: &mut Frame, area: Rect) {
         let width = 64u16.min(area.width.saturating_sub(4));
