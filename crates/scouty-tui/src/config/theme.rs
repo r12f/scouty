@@ -5,7 +5,7 @@ use ratatui::style::Color;
 use serde::{Deserialize, Serialize};
 
 /// Style entry: foreground, background, bold.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(default)]
 pub struct StyleEntry {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -14,16 +14,6 @@ pub struct StyleEntry {
     pub bg: Option<ThemeColor>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub bold: Option<bool>,
-}
-
-impl Default for StyleEntry {
-    fn default() -> Self {
-        Self {
-            fg: None,
-            bg: None,
-            bold: None,
-        }
-    }
 }
 
 impl StyleEntry {
