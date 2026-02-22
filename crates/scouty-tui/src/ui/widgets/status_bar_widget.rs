@@ -81,17 +81,17 @@ impl StatusBarWidget {
         frame.render_widget(footer, area);
     }
 
-    /// Render line 2: mode label + shortcut hints.
+    /// Render line 2: mode label + shortcut hints or status message.
     pub fn render_line2(&self, frame: &mut Frame, area: Rect, app: &App) {
-        let mode_label = if app.follow_mode {
-            "[FOLLOW]"
+        let (mode_label, mode_color) = if app.follow_mode {
+            ("[FOLLOW]", Color::Green)
         } else {
-            "[VIEW]"
+            ("[VIEW]", Color::Cyan)
         };
 
         let mut spans = vec![Span::styled(
             format!(" {} ", mode_label),
-            Style::default().fg(Color::Black).bg(Color::Cyan),
+            Style::default().fg(Color::Black).bg(mode_color),
         )];
 
         // Show status message if present, otherwise show shortcut hints

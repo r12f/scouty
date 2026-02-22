@@ -104,6 +104,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         })?;
 
         if !event::poll(Duration::from_millis(250))? {
+            app.tick_status_clear();
             continue;
         }
 
@@ -112,7 +113,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 continue;
             }
 
-            app.status_message = None;
+            app.clear_status();
             let ctrl = key.modifiers.contains(KeyModifiers::CONTROL);
 
             match app.input_mode {
