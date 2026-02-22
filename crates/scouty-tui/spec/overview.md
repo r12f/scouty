@@ -55,7 +55,6 @@ crates/scouty-tui/src/ui/
 │   ├── copy_format_window.rs
 │   ├── goto_line_window.rs
 │   ├── help_window.rs
-│   ├── bookmark_manager_window.rs
 │   ├── highlight_manager_window.rs
 │   └── stats_window.rs
 └── widgets/            # Persistent components
@@ -95,18 +94,18 @@ Components notify App via return values or callbacks. App updates shared state (
 | `n`/`N` | Next/prev search match |
 | `f` | Filter expression input |
 | `-`/`=` | Quick exclude/include text |
-| `Ctrl+-`/`Ctrl+=` | Field exclude/include dialog |
+| `Ctrl+-`/`Ctrl+=` | Field exclude/include dialog (also `_`/`+`) |
 | `F` | Filter manager |
 | `c` | Column selector |
 | `y`/`Y` | Copy raw / format selection |
 | `h`/`H` | Add highlight / highlight manager |
-| `m` | Toggle bookmark |
-| `'`/`"` | Next/prev bookmark |
-| `M` | Bookmark manager |
+| `m` | Toggle bookmark *(planned)* |
+| `'`/`"` | Next/prev bookmark *(planned)* |
+| `M` | Bookmark manager *(planned)* |
 | `S` | Stats summary |
-| `Ctrl+J`/`Ctrl+K` | Relative time jump |
+| `]`/`[` | Relative time jump (forward/backward) |
 | `Ctrl+]` | Toggle follow mode |
-| `:` | Command mode |
+| `Ctrl+s` | Save/export to file |
 | `Esc` | Close current overlay |
 | `q` | Quit |
 | `?` | Help |

@@ -7,7 +7,7 @@ Advanced navigation features beyond basic j/k scrolling: bookmarks, relative tim
 
 ## Design
 
-### Bookmarks
+### Bookmarks (Planned)
 
 - `m` — toggle bookmark on current row
 - `'` (single quote) — jump to next bookmark (cyclic)
@@ -20,8 +20,8 @@ Advanced navigation features beyond basic j/k scrolling: bookmarks, relative tim
 
 ### Relative Time Jump
 
-- `Ctrl+J` — jump forward (time increases): `[JUMP+] 5m█`
-- `Ctrl+K` — jump backward (time decreases): `[JUMP-] 5m█`
+- `]` — jump forward (time increases): `[JUMP+] 5m█`
+- `[` — jump backward (time decreases): `[JUMP-] 5m█`
 - Supported formats: `Ns` (seconds), `Nm` (minutes), `Nh` (hours), `Nd` (days)
 - Combined formats (P1): `1h30m`, `2m30s`
 - Enter confirms: binary search (O(log N)) for nearest row to target timestamp
@@ -45,4 +45,4 @@ Advanced navigation features beyond basic j/k scrolling: bookmarks, relative tim
 |------|--------|
 | 2026-02-20 | Basic navigation (j/k, g/G, Ctrl+G, follow mode) |
 | 2026-02-22 | Bookmarks with manager dialog |
-| 2026-02-22 | Relative time jump (Ctrl+J/K) |
+| 2026-02-22 | Relative time jump (`]`/`[`) |
