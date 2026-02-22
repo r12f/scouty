@@ -2616,7 +2616,6 @@ mod command_tests {
             bookmarks: std::collections::HashSet::new(),
             bookmark_manager_cursor: 0,
         }
-
     }
     #[test]
     fn test_command_w_default_filename() {
