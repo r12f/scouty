@@ -1,5 +1,6 @@
 #[cfg(test)]
 mod tests {
+    use crate::app::{FieldEntry, FieldEntryKind};
     use crate::ui::windows::field_filter_window::FieldFilterWindow;
     use crate::ui::{dispatch_key, ComponentResult, UiComponent};
     use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
@@ -8,12 +9,21 @@ mod tests {
         KeyEvent::new(code, KeyModifiers::empty())
     }
 
+    fn make_field(name: &str, val: &str) -> FieldEntry {
+        FieldEntry {
+            name: name.to_string(),
+            value: val.to_string(),
+            checked: false,
+            kind: FieldEntryKind::Field,
+        }
+    }
+
     fn sample_window() -> FieldFilterWindow {
         FieldFilterWindow {
             fields: vec![
-                ("host".into(), "foo".into(), false),
-                ("level".into(), "error".into(), false),
-                ("pid".into(), "123".into(), false),
+                make_field("host", "foo"),
+                make_field("level", "error"),
+                make_field("pid", "123"),
             ],
             cursor: 0,
             exclude: true,
@@ -50,12 +60,12 @@ mod tests {
     #[test]
     fn test_toggle() {
         let mut w = sample_window();
-        assert!(!w.fields[0].2);
+        assert!(!w.fields[0].checked);
         assert_eq!(
             dispatch_key(&mut w, key(KeyCode::Char(' '))),
             ComponentResult::Consumed
         );
-        assert!(w.fields[0].2);
+        assert!(w.fields[0].checked);
     }
 
     #[test]

@@ -1,10 +1,10 @@
-//! Field filter dialog (Ctrl+-/Ctrl++).
+//! Field filter dialog (Ctrl+-/Ctrl+=).
 
 #[cfg(test)]
 #[path = "field_filter_window_tests.rs"]
 mod field_filter_window_tests;
 
-use crate::app::App;
+use crate::app::{App, FieldEntry, FieldEntryKind};
 use crate::ui::{ComponentResult, UiComponent};
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::layout::Rect;
@@ -16,7 +16,7 @@ use ratatui::Frame;
 /// Field filter overlay — lets user select fields to include/exclude.
 #[allow(dead_code)]
 pub struct FieldFilterWindow {
-    pub fields: Vec<(String, String, bool)>,
+    pub fields: Vec<FieldEntry>,
     pub cursor: usize,
     pub exclude: bool,
     pub logic_or: bool,
@@ -90,24 +90,31 @@ impl UiComponent for FieldFilterWindow {
         let visible_end = (scroll_offset + max_visible).min(self.fields.len());
 
         for i in scroll_offset..visible_end {
-            let (name, val, checked) = &self.fields[i];
-            let checkbox = if *checked { "[x]" } else { "[ ]" };
+            let entry = &self.fields[i];
+            let checkbox = if entry.checked { "[x]" } else { "[ ]" };
             let is_cursor = i == self.cursor;
             let style = if is_cursor {
                 Style::default().bg(Color::DarkGray).fg(Color::White)
             } else {
                 Style::default()
             };
-            let max_val = (width as usize).saturating_sub(22);
-            let display_val = if val.len() > max_val {
-                format!("{}…", &val[..max_val.saturating_sub(1)])
-            } else {
-                val.clone()
+
+            let display = match &entry.kind {
+                FieldEntryKind::TimeBefore { .. } | FieldEntryKind::TimeAfter { .. } => {
+                    // Time entries show just the name (e.g. "Before 2025-01-01 12:00:00.000")
+                    format!(" {} ⏱ {}", checkbox, entry.name)
+                }
+                FieldEntryKind::Field => {
+                    let max_val = (width as usize).saturating_sub(22);
+                    let display_val = if entry.value.len() > max_val {
+                        format!("{}…", &entry.value[..max_val.saturating_sub(1)])
+                    } else {
+                        entry.value.clone()
+                    };
+                    format!(" {} {:<14} = {}", checkbox, entry.name, display_val)
+                }
             };
-            lines.push(Line::styled(
-                format!(" {} {:<14} = {}", checkbox, name, display_val),
-                style,
-            ));
+            lines.push(Line::styled(display, style));
         }
 
         if self.fields.len() > max_visible {
@@ -126,7 +133,7 @@ impl UiComponent for FieldFilterWindow {
         let title = if self.exclude {
             " Exclude Fields (Ctrl+-) "
         } else {
-            " Include Fields (Ctrl++) "
+            " Include Fields (Ctrl+=) "
         };
 
         let dialog = Paragraph::new(lines)
@@ -169,7 +176,7 @@ impl UiComponent for FieldFilterWindow {
     fn on_toggle(&mut self) -> ComponentResult {
         let cur = self.cursor;
         if cur < self.fields.len() {
-            self.fields[cur].2 = !self.fields[cur].2;
+            self.fields[cur].checked = !self.fields[cur].checked;
         }
         ComponentResult::Consumed
     }
