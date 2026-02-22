@@ -17,9 +17,11 @@ use std::time::Duration;
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = std::env::args().collect();
     if args.len() < 2 {
-        eprintln!("Usage: scouty-tui <logfile>");
+        eprintln!("Usage: scouty-tui <logfile> [logfile2 ...]");
         std::process::exit(1);
     }
+
+    let files: Vec<&str> = args[1..].iter().map(|s| s.as_str()).collect();
 
     // Enter TUI mode first so the user sees a loading screen immediately
     enable_raw_mode()?;
@@ -36,7 +38,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Show loading screen
     if let Err(e) = terminal.draw(|frame| {
         let area = frame.area();
-        let msg = format!("Loading {}...", &args[1]);
+        let msg = if files.len() == 1 {
+            format!("Loading {}...", files[0])
+        } else {
+            format!("Loading {} files...", files.len())
+        };
         let text = ratatui::widgets::Paragraph::new(msg);
         let y = area.y + area.height / 2;
         let centered = ratatui::layout::Rect::new(area.x, y, area.width, 1);
@@ -47,8 +53,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         return Err(e.into());
     }
 
-    // Load file (may take several seconds for large files)
-    let mut app = match App::load_file(&args[1]) {
+    // Load files (may take several seconds for large files)
+    let mut app = match App::load_files(&files) {
         Ok(app) => app,
         Err(e) => {
             let _ = disable_raw_mode();

@@ -214,21 +214,23 @@ pub struct App {
 
 impl App {
     /// Load log records from a file.
-    pub fn load_file(path: &str) -> Result<Self, Box<dyn std::error::Error>> {
-        // Load file once, reuse lines for detection and parsing
-        let mut loader = FileLoader::new(path, false);
-        let lines = loader.load()?;
-        let info = loader.info().clone();
-
-        let group = ParserFactory::create_parser_group(&info);
-
-        // Parse directly without re-loading, passing ownership of line strings
+    pub fn load_files(paths: &[&str]) -> Result<Self, Box<dyn std::error::Error>> {
         let mut store = scouty::store::LogStore::new();
-        for (i, line) in lines.into_iter().enumerate() {
-            if let Some(mut record) = group.parse(&line, &info.id, &info.id, i as u64) {
-                // Reuse the owned line string instead of the clone made by the parser
-                record.raw = line;
-                store.insert(record);
+        let mut record_id: u64 = 0;
+
+        for path in paths {
+            let mut loader = FileLoader::new(path, false);
+            let lines = loader.load()?;
+            let info = loader.info().clone();
+
+            let group = ParserFactory::create_parser_group(&info);
+
+            for line in lines.into_iter() {
+                if let Some(mut record) = group.parse(&line, &info.id, &info.id, record_id) {
+                    record.raw = line;
+                    store.insert(record);
+                    record_id += 1;
+                }
             }
         }
 
