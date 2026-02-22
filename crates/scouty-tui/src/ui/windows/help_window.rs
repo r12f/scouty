@@ -67,6 +67,7 @@ impl UiComponent for HelpWindow {
             Line::from(""),
             section("General"),
             Line::from("  ?                Show this help"),
+            Line::from("  S                Statistics summary"),
             Line::from("  Esc              Close dialog / panel"),
             Line::from("  q                Quit"),
         ];

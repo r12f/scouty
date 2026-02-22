@@ -27,6 +27,7 @@ pub enum InputMode {
     ColumnSelector,
     CopyFormat,
     Help,
+    Statistics,
     SaveFile,
     Highlight,
     HighlightManager,
@@ -277,6 +278,8 @@ pub struct App {
     pub highlight_input: String,
     /// Highlight manager cursor.
     pub highlight_manager_cursor: usize,
+    /// Cached statistics data (computed once when entering Statistics mode).
+    pub cached_stats: Option<crate::ui::windows::stats_window::StatsData>,
 }
 
 /// Cached density chart — avoids O(N) recomputation on every frame.
@@ -358,6 +361,7 @@ impl App {
             highlight_rules: Vec::new(),
             highlight_input: String::new(),
             highlight_manager_cursor: 0,
+            cached_stats: None,
         })
     }
 
@@ -1338,6 +1342,7 @@ mod tests {
             highlight_rules: Vec::new(),
             highlight_input: String::new(),
             highlight_manager_cursor: 0,
+            cached_stats: None,
         }
     }
 
@@ -1384,6 +1389,7 @@ mod tests {
             highlight_rules: Vec::new(),
             highlight_input: String::new(),
             highlight_manager_cursor: 0,
+            cached_stats: None,
         }
     }
 
@@ -1427,6 +1433,7 @@ mod tests {
             highlight_rules: Vec::new(),
             highlight_input: String::new(),
             highlight_manager_cursor: 0,
+            cached_stats: None,
         }
     }
 
@@ -1866,6 +1873,7 @@ mod field_filter_v2_tests {
             highlight_rules: Vec::new(),
             highlight_input: String::new(),
             highlight_manager_cursor: 0,
+            cached_stats: None,
         }
     }
 
@@ -2034,6 +2042,7 @@ mod column_follow_tests {
             highlight_rules: Vec::new(),
             highlight_input: String::new(),
             highlight_manager_cursor: 0,
+            cached_stats: None,
         }
     }
 
@@ -2213,6 +2222,7 @@ mod copy_tests {
             highlight_rules: Vec::new(),
             highlight_input: String::new(),
             highlight_manager_cursor: 0,
+            cached_stats: None,
         }
     }
 
@@ -2366,6 +2376,7 @@ mod time_jump_tests {
             highlight_input: String::new(),
             highlight_manager_cursor: 0,
             highlight_rules: Vec::new(),
+            cached_stats: None,
         }
     }
 
