@@ -26,12 +26,45 @@ fn level_style(level: Option<LogLevel>) -> Style {
     }
 }
 
-/// Build field key-value pairs for the right pane.
-/// Count the number of field rows that would be displayed for a record.
-pub fn field_count(record: &scouty::record::LogRecord) -> usize {
-    build_field_pairs(record).len()
+/// Count the number of field rows that would be displayed for a record,
+/// without allocating the full field pairs vector.
+pub(crate) fn field_count(record: &scouty::record::LogRecord) -> usize {
+    // Always-present: Timestamp, Level, Source
+    let mut count: usize = 3;
+
+    if record.hostname.is_some() {
+        count += 1;
+    }
+    if record.container.is_some() {
+        count += 1;
+    }
+    if record.context.is_some() {
+        count += 1;
+    }
+    if record.function.is_some() {
+        count += 1;
+    }
+    if record.component_name.is_some() {
+        count += 1;
+    }
+    if record.process_name.is_some() {
+        count += 1;
+    }
+    if record.pid.is_some() {
+        count += 1;
+    }
+    if record.tid.is_some() {
+        count += 1;
+    }
+
+    if let Some(meta) = record.metadata.as_ref() {
+        count += meta.len();
+    }
+
+    count
 }
 
+/// Build field key-value pairs for the right pane.
 fn build_field_pairs(record: &scouty::record::LogRecord) -> Vec<(&'static str, String)> {
     let mut pairs = vec![
         (
