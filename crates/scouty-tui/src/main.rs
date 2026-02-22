@@ -149,11 +149,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     InputMode::Normal => {
                         if ctrl {
                             match key.code {
-                                KeyCode::Char('j') | KeyCode::Down => {
+                                KeyCode::Down => app.page_down(),
+                                KeyCode::Up => app.page_up(),
+                                KeyCode::Char('j') => {
                                     app.input_mode = InputMode::JumpForward;
                                     app.time_input.clear();
                                 }
-                                KeyCode::Char('k') | KeyCode::Up => {
+                                KeyCode::Char('k') => {
                                     app.input_mode = InputMode::JumpBackward;
                                     app.time_input.clear();
                                 }
@@ -296,8 +298,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     InputMode::JumpForward | InputMode::JumpBackward => match key.code {
                         KeyCode::Enter => {
                             let forward = app.input_mode == InputMode::JumpForward;
-                            app.jump_relative(forward);
-                            app.input_mode = InputMode::Normal;
+                            if app.jump_relative(forward) {
+                                app.input_mode = InputMode::Normal;
+                            }
                         }
                         KeyCode::Esc => app.input_mode = InputMode::Normal,
                         KeyCode::Backspace => {

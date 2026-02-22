@@ -896,9 +896,9 @@ impl App {
         }
         match suffix {
             "s" => Some(value),
-            "m" => Some(value * 60),
-            "h" => Some(value * 3600),
-            "d" => Some(value * 86400),
+            "m" => value.checked_mul(60),
+            "h" => value.checked_mul(3600),
+            "d" => value.checked_mul(86400),
             _ => None,
         }
     }
@@ -917,24 +917,25 @@ impl App {
         }
     }
 
-    /// Jump forward (positive=true) or backward (positive=false) by relative duration.
-    pub fn jump_relative(&mut self, forward: bool) {
+    /// Jump forward (`forward=true`) or backward (`forward=false`) by relative duration.
+    /// Returns `true` if the jump succeeded, `false` on invalid input.
+    pub fn jump_relative(&mut self, forward: bool) -> bool {
         let input = self.time_input.trim().to_string();
         if input.is_empty() {
-            return;
+            return false;
         }
 
         let secs = match Self::parse_relative_duration(&input) {
             Some(s) => s,
             None => {
                 self.set_status("Invalid duration (use Ns, Nm, Nh, Nd)".to_string());
-                return;
+                return false;
             }
         };
 
         if self.filtered_indices.is_empty() {
             self.set_status("No records".to_string());
-            return;
+            return false;
         }
 
         let current_ri = self.filtered_indices[self.selected];
@@ -990,6 +991,7 @@ impl App {
             "Jumped {} (actual {}{})",
             input, direction, actual_str
         ));
+        true
     }
 
     pub fn goto_line(&mut self) {
