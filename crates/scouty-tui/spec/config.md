@@ -11,7 +11,7 @@ Centralized configuration for scouty-tui: keybindings, theme selection, and gene
 ```
 ~/.scouty/
 ├── config.yaml          # Main configuration file
-└── themes/              # Custom theme files
+└── themes/              # Custom theme files (see theme spec)
     ├── my-theme.yaml
     └── solarized.yaml
 ```
@@ -19,7 +19,7 @@ Centralized configuration for scouty-tui: keybindings, theme selection, and gene
 ### Configuration File (`config.yaml`)
 
 ```yaml
-# Theme selection
+# Theme selection (see theme.md for theme file format)
 theme: "default"            # Built-in: "default", "dark", "light", "solarized"
                             # Or custom: name of a file in ~/.scouty/themes/ (without .yaml)
 
@@ -30,7 +30,7 @@ general:
 
 # Keybindings (normal mode)
 # Format: "<key>" or "<modifier>+<key>"
-# Supported modifiers: ctrl, shift, alt
+# Supported modifiers: ctrl, alt
 # Special keys: enter, esc, backspace, delete, home, end, pageup, pagedown, up, down, left, right, tab
 keybindings:
   # Navigation
@@ -74,104 +74,27 @@ keybindings:
   # Copy & Export
   copy_raw: "y"
   copy_format: "Y"
-  save_file: "ctrl+s"      # Or ":w" in command mode
+  save_file: "ctrl+s"
 
   # General
   help: "?"
   quit: "q"
 ```
 
-### Theme File Format (`~/.scouty/themes/<name>.yaml`)
-
-```yaml
-# Log level colors
-log_levels:
-  fatal: { fg: "red", bold: true }
-  error: { fg: "red" }
-  warn: { fg: "#FFD700" }           # Gold
-  notice: { fg: "cyan" }
-  info: { fg: "#00CC66" }           # Rich green
-  debug: { fg: "gray" }
-  trace: { fg: "dark_gray" }
-
-# Table
-table:
-  header: { fg: "white", bg: "#1A1A2E" }
-  selected: { bg: "#16213E" }
-  alternating: { bg: "#0F0F1A" }
-
-# Status bar
-status_bar:
-  line1: { bg: "#1A1A2E" }
-  line2: { bg: "#16213E" }
-  mode_label: { fg: "black", bg: "cyan" }
-  density_chart: { fg: "cyan" }
-  position: { fg: "white" }
-
-# Search
-search:
-  match: { fg: "black", bg: "yellow" }
-  current_match: { fg: "black", bg: "#FF6600" }
-
-# Dialogs & Windows
-dialog:
-  border: { fg: "cyan" }
-  title: { fg: "white", bold: true }
-  selected: { fg: "white", bg: "#16213E" }
-  text: { fg: "white" }
-  muted: { fg: "dark_gray" }
-
-# Detail panel
-detail_panel:
-  field_name: { fg: "cyan" }
-  field_value: { fg: "white" }
-  separator: { fg: "dark_gray" }
-
-# Input fields
-input:
-  prompt: { fg: "yellow" }
-  text: { fg: "white" }
-  cursor: { fg: "white" }
-  error: { fg: "red" }
-  bg: { bg: "#1A1A2E" }
-
-# Highlight palette (auto-rotation for user highlight rules)
-highlight_palette:
-  - "red"
-  - "#00CC66"
-  - "#3399FF"
-  - "yellow"
-  - "magenta"
-  - "cyan"
-
-# General
-general:
-  border: { fg: "#333366" }
-  accent: { fg: "cyan" }
-  muted: { fg: "dark_gray" }
-```
-
-### Color Value Formats
-
-- **Named colors**: `black`, `red`, `green`, `yellow`, `blue`, `magenta`, `cyan`, `white`, `gray`, `dark_gray`
-- **Hex RGB**: `"#RRGGBB"` (e.g., `"#FF6600"`)
-- **256-color index**: `color(123)` (terminal 256-color palette)
-
 ### Loading Order
 
 1. Load built-in default config (compiled into binary)
 2. If `~/.scouty/config.yaml` exists, merge user config over defaults (partial overrides OK)
-3. Resolve theme:
-   - If `theme` is a built-in name → use built-in theme
-   - If `~/.scouty/themes/<name>.yaml` exists → load and merge over built-in default theme
+3. Resolve theme (see theme spec for theme file format and built-in presets):
+   - Built-in name → use built-in theme
+   - `~/.scouty/themes/<name>.yaml` exists → load and merge over default theme
    - Otherwise → warn and fall back to default
-4. CLI flags override config file values:
+4. CLI flags override config:
    - `--theme <name>` overrides `theme` in config
-   - Future: `--bind key=action` for one-off overrides
 
 ### Keybinding Resolution
 
-- Config defines a map of `action → key`
+- Config defines `action → key` mapping
 - At startup, invert to `key → action` lookup table
 - Duplicate key detection: warn if same key maps to multiple actions
 - Unknown action names: warn and skip
@@ -179,17 +102,16 @@ general:
 
 ### Implementation Notes
 
-- Use `serde` + `serde_yaml` for config parsing (already a dependency for parser config)
-- `Config` struct with `#[serde(default)]` for all fields — partial configs just work
-- `Theme` struct loaded from config, passed by `&Theme` to all render functions
+- `serde` + `serde_yaml` for config parsing (already a dependency)
+- `Config` struct with `#[serde(default)]` — partial configs just work
 - Keybinding table built once at startup, used in main event loop dispatch
+- Invalid config: warn to stderr and continue with defaults
 
 ## Acceptance Criteria
 
 - [ ] `~/.scouty/config.yaml` loaded at startup if present
 - [ ] All keybindings configurable via config file
 - [ ] Theme selected by name from config or `--theme` CLI flag
-- [ ] Custom themes loadable from `~/.scouty/themes/`
 - [ ] Partial config files work (missing fields use defaults)
 - [ ] Invalid config: warn to stderr and continue with defaults
 - [ ] All existing tests pass
@@ -199,3 +121,4 @@ general:
 | Date | Change |
 |------|--------|
 | 2026-02-22 | Initial configuration system design |
+| 2026-02-22 | Moved theme details to theme.md, kept references |

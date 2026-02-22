@@ -2,7 +2,7 @@
 
 ## Overview
 
-Centralized color and style management for the TUI. All UI colors are defined in a single `Theme` struct, enabling consistent styling and future theme customization.
+Centralized color and style management for the TUI. All UI colors are defined in a single `Theme` struct, enabling consistent styling and customization via `~/.scouty/themes/` YAML files.
 
 ## Design
 
@@ -24,17 +24,72 @@ Theme
 └── general           # primary accent, secondary accent, muted, border
 ```
 
-### Color Categories
+### Theme File Format (`~/.scouty/themes/<name>.yaml`)
 
-| Category | Elements | Current Problem |
-|----------|----------|-----------------|
-| Log levels | Row text color by severity | OK but could be richer |
-| Table | Header, selection, alternation | Header is plain DarkGray |
-| Status bar | Background, mode labels, density | Dull Rgb(20,20,40) |
-| Dialogs | Borders, titles, selection | Gray borders, black bg |
-| Detail panel | Field names vs values | No differentiation |
-| Input fields | Prompt, cursor, error | Inconsistent across modes |
-| General | Accents, borders, muted text | Everything defaults to gray |
+```yaml
+log_levels:
+  fatal: { fg: "red", bold: true }
+  error: { fg: "red" }
+  warn: { fg: "#FFD700" }           # Gold
+  notice: { fg: "cyan" }
+  info: { fg: "#00CC66" }           # Rich green
+  debug: { fg: "gray" }
+  trace: { fg: "dark_gray" }
+
+table:
+  header: { fg: "white", bg: "#1A1A2E" }
+  selected: { bg: "#16213E" }
+  alternating: { bg: "#0F0F1A" }
+
+status_bar:
+  line1: { bg: "#1A1A2E" }
+  line2: { bg: "#16213E" }
+  mode_label: { fg: "black", bg: "cyan" }
+  density_chart: { fg: "cyan" }
+  position: { fg: "white" }
+
+search:
+  match: { fg: "black", bg: "yellow" }
+  current_match: { fg: "black", bg: "#FF6600" }
+
+dialog:
+  border: { fg: "cyan" }
+  title: { fg: "white", bold: true }
+  selected: { fg: "white", bg: "#16213E" }
+  text: { fg: "white" }
+  muted: { fg: "dark_gray" }
+
+detail_panel:
+  field_name: { fg: "cyan" }
+  field_value: { fg: "white" }
+  separator: { fg: "dark_gray" }
+
+input:
+  prompt: { fg: "yellow" }
+  text: { fg: "white" }
+  cursor: { fg: "white" }
+  error: { fg: "red" }
+  bg: { bg: "#1A1A2E" }
+
+highlight_palette:
+  - "red"
+  - "#00CC66"
+  - "#3399FF"
+  - "yellow"
+  - "magenta"
+  - "cyan"
+
+general:
+  border: { fg: "#333366" }
+  accent: { fg: "cyan" }
+  muted: { fg: "dark_gray" }
+```
+
+### Color Value Formats
+
+- **Named colors**: `black`, `red`, `green`, `yellow`, `blue`, `magenta`, `cyan`, `white`, `gray`, `dark_gray`
+- **Hex RGB**: `"#RRGGBB"` (e.g., `"#FF6600"`)
+- **256-color index**: `color(123)` (terminal 256-color palette)
 
 ### Default Theme
 
@@ -48,21 +103,23 @@ Vibrant dark theme with blue/cyan accents:
 - **Dialogs**: Cyan borders, blue title, clear selection highlight
 - **Input prompts**: Yellow labels, white text
 
+### Built-in Presets
+
+- `default` — vibrant dark (described above)
+- `dark` — muted dark
+- `light` — light background
+- `solarized` — solarized color scheme
+
 ### Integration
 
 - `Theme` is created once at startup and passed by reference to all render functions
 - All `Color::*` literals replaced with `theme.field` access
 - Widgets accept `&Theme` parameter in their render methods
-
-### Future Extensibility
-
-- Built-in presets: `default`, `dark`, `light`, `solarized`
-- CLI flag: `--theme <name>`
-- Custom theme file: YAML/TOML with color overrides
-- Auto-detect terminal color depth (16 / 256 / true color)
+- Theme selected via `config.yaml` or `--theme` CLI flag (see config spec)
 
 ## Change Log
 
 | Date | Change |
 |------|--------|
 | 2026-02-22 | Initial theme system design |
+| 2026-02-22 | Moved theme file format and color details from config spec |
