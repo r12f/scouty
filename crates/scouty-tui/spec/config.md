@@ -2,7 +2,7 @@
 
 ## Overview
 
-Centralized configuration for scouty-tui: keybindings, theme selection, and general settings. Configuration is loaded at startup from `~/.scouty/config.yaml`, with sensible defaults when no config exists.
+Centralized configuration for scouty-tui: keybindings, theme selection, and general settings. Configuration will be loaded at startup from `~/.scouty/config.yaml`, with sensible defaults when no config exists.
 
 ## Design
 
@@ -26,16 +26,17 @@ theme: "default"            # Built-in: "default", "dark", "light", "solarized"
 # General settings
 general:
   follow_on_pipe: true      # Auto-enable follow mode for stdin/pipe input
-  detail_panel_ratio: 0.3   # Detail panel width ratio (0.0 - 1.0)
+  detail_panel_ratio: 0.3   # Detail panel height ratio (0.0 - 1.0)
 
 # Keybindings (normal mode)
 # Format: "<key>" or "<modifier>+<key>"
+# Multiple keys per action: use a list ["j", "down"]
 # Supported modifiers: ctrl, alt
 # Special keys: enter, esc, backspace, delete, home, end, pageup, pagedown, up, down, left, right, tab
 keybindings:
   # Navigation
-  move_down: "j"
-  move_up: "k"
+  move_down: ["j", "down"]
+  move_up: ["k", "up"]
   page_down: "pagedown"
   page_up: "pageup"
   scroll_to_top: "g"
@@ -68,13 +69,12 @@ keybindings:
   # Bookmarks
   toggle_bookmark: "m"
   next_bookmark: "'"
-  prev_bookmark: "\""
+  prev_bookmark: '"'
   bookmark_manager: "M"
 
-  # Copy & Export
+  # Copy & Export (saving via ":w" in command mode)
   copy_raw: "y"
   copy_format: "Y"
-  save_file: "ctrl+s"
 
   # General
   help: "?"
@@ -94,7 +94,7 @@ keybindings:
 
 ### Keybinding Resolution
 
-- Config defines `action → key` mapping
+- Config defines `action → key` or `action → [keys]` mapping
 - At startup, invert to `key → action` lookup table
 - Duplicate key detection: warn if same key maps to multiple actions
 - Unknown action names: warn and skip

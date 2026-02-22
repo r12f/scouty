@@ -69,7 +69,7 @@ input:
   text: { fg: "white" }
   cursor: { fg: "white" }
   error: { fg: "red" }
-  bg: { bg: "#1A1A2E" }
+  background: { bg: "#1A1A2E" }
 
 highlight_palette:
   - "red"
