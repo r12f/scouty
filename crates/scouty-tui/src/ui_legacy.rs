@@ -4,7 +4,7 @@ use crate::app::{App, InputMode};
 use ratatui::{prelude::*, widgets::Paragraph};
 
 /// Render the full UI.
-pub fn render(frame: &mut Frame, app: &App) {
+pub fn render(frame: &mut Frame, app: &mut App) {
     let area = frame.area();
 
     // Footer is always 2 lines: line 1 = density/position, line 2 = mode/shortcuts or input
@@ -16,6 +16,7 @@ pub fn render(frame: &mut Frame, app: &App) {
         .split(area);
 
     // Body: log table + optional detail panel
+    let table_area;
     if app.detail_open {
         let detail_height = if let Some(record) = app.selected_record() {
             use crate::ui::widgets::detail_panel_widget::field_count;
@@ -32,11 +33,16 @@ pub fn render(frame: &mut Frame, app: &App) {
             .direction(Direction::Vertical)
             .constraints([Constraint::Min(3), Constraint::Length(detail_height)])
             .split(main_chunks[0]);
+        table_area = body_chunks[0];
         render_log_table(frame, app, body_chunks[0]);
         render_detail_panel(frame, app, body_chunks[1]);
     } else {
+        table_area = main_chunks[0];
         render_log_table(frame, app, main_chunks[0]);
     }
+
+    // Compute visible_rows once from the actual table area (height - 1 for header row)
+    app.visible_rows = table_area.height.saturating_sub(1).max(1) as usize;
 
     render_footer(frame, app, main_chunks[1]);
 
