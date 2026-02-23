@@ -84,6 +84,14 @@ pub fn resolve_theme(config: &Config, cli_theme: Option<&str>) -> Theme {
         return Theme::default();
     }
 
+    // Built-in theme presets
+    match theme_name {
+        "dark" => return Theme::dark(),
+        "light" => return Theme::light(),
+        "solarized" => return Theme::solarized(),
+        _ => {}
+    }
+
     // Check built-in presets first
     if let Some(theme) = Theme::builtin(theme_name) {
         return theme;
