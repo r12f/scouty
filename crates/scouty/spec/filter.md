@@ -17,7 +17,7 @@ The filter engine evaluates expressions against LogRecord fields to include or e
 
 | Category | Operators |
 |----------|-----------|
-| Comparison | `=`, `!=`, `>`, `>=`, `<`, `<=` |
+| Comparison | `==`, `!=`, `>`, `>=`, `<`, `<=` |
 | Logical | `AND`, `OR`, `NOT` |
 | String matching | `contains`, `starts_with`, `ends_with`, `regex` |
 | Grouping | Parentheses `()` for precedence control |
@@ -25,11 +25,11 @@ The filter engine evaluates expressions against LogRecord fields to include or e
 ### Examples
 
 ```
-level = "Error"
-(level = "Error" OR level = "Fatal") AND component = "auth"
+level == "Error"
+(level == "Error" OR level == "Fatal") AND component == "auth"
 message contains "timeout" AND source starts_with "/var/log"
 timestamp > "2025-05-17T18:42:00" AND timestamp < "2025-05-17T19:00:00"
-hostname = "BSL-0101" AND container = "pmon"
+hostname == "BSL-0101" AND container == "pmon"
 ```
 
 ### Addressable Fields
@@ -64,3 +64,4 @@ Quick time-based filtering via `_` / `+` dialogs:
 |------|--------|
 | 2026-02-18 | Initial filter expression design |
 | 2026-02-22 | Time range filter via Exclude/Include field dialog |
+| 2026-02-23 | Equality operator changed from `=` to `==` |

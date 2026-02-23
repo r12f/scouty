@@ -58,7 +58,7 @@ The number of buckets should be adjusted accordingly so that the chart covers th
 
 **Mode B — Input mode:**
 ```
-[SEARCH] pattern█    [FILTER] level = "Error"█    [GOTO] 1234█
+[SEARCH] pattern█    [FILTER] level == "Error"█    [GOTO] 1234█
 ```
 Triggered by `/`, `f`, `-`, `=`, `Ctrl+G`, `h`, `:`. Esc/Enter exits input.
 
