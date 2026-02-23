@@ -9,3 +9,6 @@ rust-version = "1.70"
 license = "Apache-2.0"
 repository = "https://github.com/r12f/scouty"
 description = "A log viewing and analysis tool"
+
+[workspace.dependencies]
+scouty = { path = "crates/scouty", version = "0.1.2" }
