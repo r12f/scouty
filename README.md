@@ -14,6 +14,7 @@ Scouty helps developers and SREs browse, parse, filter, and analyze logs from mu
 - **Stdin/pipe input** — `cat log | scouty-tui` with auto follow mode
 - **Multi-file loading** — Multiple files merged by timestamp (merge-sort)
 - **Default syslog** — Opens `/var/log/syslog` on Linux when no file specified
+- **Configurable default paths** — `default_paths` in `~/.scouty/config.yaml` with glob support
 - **Live syslog** — Real-time syslog stream
 - **OpenTelemetry (OTLP)** — Receive logs via gRPC and HTTP
 
@@ -40,17 +41,18 @@ Each source gets its own loader, and a single session can combine multiple loade
 - **Any field** — Filter on timestamp, level, pid, tid, component, hostname, container, context, function, message, or custom metadata
 
 ### 🖥️ Interactive TUI
-- **Table view** with configurable columns and auto-width
+- **Table view** with configurable columns and auto-width (default: Time + Log; toggle more via `c`)
+- **Column separators** — vertical lines between columns for clarity
 - **Level colors** — FATAL red bold / ERROR red / WARN yellow / INFO green / DEBUG gray / TRACE dark gray / NOTICE cyan
 - **Detail panel** — Split-pane view: left 70% log content, right 30% structured fields table
 - **2-line status bar** — Line 1: density chart + position; Line 2: mode + shortcuts/input/status
 - **Regex search** with match highlighting and navigation
-- **Density graph** — Braille-character time distribution in status bar
-- **Filter dialogs** — Quick exclude/include, field-based multi-select, filter manager
-- **Custom highlight** — `h` to add highlight rule, `H` for highlight manager, auto color rotation
+- **Density graph** — Braille-character time distribution in status bar with `[█=Xs]` time-per-column label
+- **Filter dialogs** — Quick exclude/include, field-based multi-select, filter manager, cursor preserved after filter
+- **Custom highlight** — `h` to add highlight rule, `H` for highlight manager, full-row background coloring, auto color rotation
 - **Time jump** — `]` jump forward / `[` jump backward by relative time (5m, 30s, 2h)
 - **Stats overlay** — `S` shows log level distribution, top components
-- **Save/export** — `Ctrl+s` opens a save file prompt for exporting filtered logs
+- **Save/export** — `Ctrl+s` quick export filtered logs to auto-named file; `:w <filename>` for custom filename
 - **Pipe input** — `cat log | scouty-tui` with auto follow mode
 - **Copy to clipboard** — Raw, JSON, or YAML format via OSC 52
 - **Component architecture** — Unified `UiComponent` trait with standardized keyboard dispatch

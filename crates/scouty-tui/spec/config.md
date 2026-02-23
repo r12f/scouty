@@ -84,6 +84,7 @@ keybindings:
   # Copy & Export (saving via ":w" in command mode)
   copy_raw: "y"
   copy_format: "Y"
+  quick_export: "ctrl+s"
 
   # General
   help: "?"
@@ -104,7 +105,7 @@ keybindings:
    - Built-in name → use built-in theme
    - `~/.scouty/themes/<name>.yaml` exists → load and merge over default theme
    - Otherwise → warn and fall back to default
-4. CLI flags override config:
+5. CLI flags override config:
    - `--theme <name>` overrides `theme` in config
 
 ### Keybinding Resolution
