@@ -149,6 +149,7 @@ impl DetailPanelWidget {
             .split(area);
 
         let left_block = Block::default()
+            .title(" Log Content ")
             .borders(Borders::RIGHT)
             .border_style(theme.detail_panel.border.to_style());
         let raw_text = Paragraph::new(record.raw.clone())
