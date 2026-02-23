@@ -28,6 +28,36 @@ fn spans_display_width(spans: &[Span]) -> usize {
 }
 
 impl StatusBarWidget {
+    /// Snap a raw ms-per-bucket value up to the nearest standard interval.
+    /// Standard intervals: 5s, 15s, 30s, 5m, 15m, 30m, 1h, 2h, 6h, 12h, 24h.
+    /// Values below 5s are returned as-is (milliseconds).
+    fn snap_to_standard(ms: f64) -> f64 {
+        // Only snap values >= 5s; below that show raw milliseconds
+        if ms < 5_000.0 {
+            return ms;
+        }
+        const INTERVALS_MS: &[f64] = &[
+            5_000.0,      // 5s
+            15_000.0,     // 15s
+            30_000.0,     // 30s
+            300_000.0,    // 5m
+            900_000.0,    // 15m
+            1_800_000.0,  // 30m
+            3_600_000.0,  // 1h
+            7_200_000.0,  // 2h
+            21_600_000.0, // 6h
+            43_200_000.0, // 12h
+            86_400_000.0, // 24h
+        ];
+        for &iv in INTERVALS_MS {
+            if ms <= iv {
+                return iv;
+            }
+        }
+        // Beyond 24h, return as-is
+        ms
+    }
+
     /// Format the time-per-column label for the density chart.
     /// Returns the label string (e.g. "[█=5s]") or None if not applicable.
     fn time_per_column_label(cache: &crate::app::DensityCache) -> Option<String> {
@@ -35,7 +65,8 @@ impl StatusBarWidget {
             return None;
         }
         let range_ms = (cache.max_ts - cache.min_ts).num_milliseconds() as f64;
-        let ms_per_bucket = range_ms / cache.num_buckets as f64;
+        let raw_ms = range_ms / cache.num_buckets as f64;
+        let ms_per_bucket = Self::snap_to_standard(raw_ms);
 
         let label = if ms_per_bucket < 1000.0 {
             format!("[█={}ms]", ms_per_bucket.round() as u64)
