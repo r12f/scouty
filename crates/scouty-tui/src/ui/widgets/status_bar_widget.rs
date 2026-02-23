@@ -29,7 +29,7 @@ fn spans_display_width(spans: &[Span]) -> usize {
 
 impl StatusBarWidget {
     /// Format the time-per-column label for the density chart.
-    /// Returns the label string (e.g. "[5s/█]") or None if not applicable.
+    /// Returns the label string (e.g. "[█=5s]") or None if not applicable.
     fn time_per_column_label(cache: &crate::app::DensityCache) -> Option<String> {
         if cache.num_buckets == 0 || cache.min_ts == cache.max_ts {
             return None;
@@ -38,28 +38,28 @@ impl StatusBarWidget {
         let ms_per_bucket = range_ms / cache.num_buckets as f64;
 
         let label = if ms_per_bucket < 1000.0 {
-            format!("[{}ms/█]", ms_per_bucket.round() as u64)
+            format!("[█={}ms]", ms_per_bucket.round() as u64)
         } else if ms_per_bucket < 60_000.0 {
             let secs = ms_per_bucket / 1000.0;
             // Show integer if close to whole number (e.g. 5.02→5, 5.97→6), else show 1 decimal (e.g. 5.5)
             if secs.fract() < 0.05 || secs.fract() > 0.95 {
-                format!("[{}s/█]", secs.round() as u64)
+                format!("[█={}s]", secs.round() as u64)
             } else {
-                format!("[{:.1}s/█]", secs)
+                format!("[█={:.1}s]", secs)
             }
         } else if ms_per_bucket < 3_600_000.0 {
             let mins = ms_per_bucket / 60_000.0;
             if mins.fract() < 0.05 || mins.fract() > 0.95 {
-                format!("[{}m/█]", mins.round() as u64)
+                format!("[█={}m]", mins.round() as u64)
             } else {
-                format!("[{:.1}m/█]", mins)
+                format!("[█={:.1}m]", mins)
             }
         } else {
             let hours = ms_per_bucket / 3_600_000.0;
             if hours.fract() < 0.05 || hours.fract() > 0.95 {
-                format!("[{}h/█]", hours.round() as u64)
+                format!("[█={}h]", hours.round() as u64)
             } else {
-                format!("[{:.1}h/█]", hours)
+                format!("[█={:.1}h]", hours)
             }
         };
         Some(label)

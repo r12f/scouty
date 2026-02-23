@@ -43,7 +43,7 @@ mod tests {
             chart_width: 50,
         };
         let label = StatusBarWidget::time_per_column_label(&cache).unwrap();
-        assert_eq!(label, "[500ms/█]");
+        assert_eq!(label, "[█=500ms]");
     }
 
     #[test]
@@ -57,7 +57,7 @@ mod tests {
             chart_width: 50,
         };
         let label = StatusBarWidget::time_per_column_label(&cache).unwrap();
-        assert_eq!(label, "[5s/█]");
+        assert_eq!(label, "[█=5s]");
     }
 
     #[test]
@@ -71,7 +71,7 @@ mod tests {
             chart_width: 50,
         };
         let label = StatusBarWidget::time_per_column_label(&cache).unwrap();
-        assert_eq!(label, "[2m/█]");
+        assert_eq!(label, "[█=2m]");
     }
 
     #[test]
@@ -85,7 +85,7 @@ mod tests {
             chart_width: 50,
         };
         let label = StatusBarWidget::time_per_column_label(&cache).unwrap();
-        assert_eq!(label, "[2h/█]");
+        assert_eq!(label, "[█=2h]");
     }
 
     #[test]
@@ -114,7 +114,7 @@ mod tests {
             chart_width: 50,
         };
         let label = StatusBarWidget::time_per_column_label(&cache).unwrap();
-        assert_eq!(label, "[5.5s/█]");
+        assert_eq!(label, "[█=5.5s]");
     }
 
     #[test]
@@ -129,7 +129,7 @@ mod tests {
             chart_width: 50,
         };
         let label = StatusBarWidget::time_per_column_label(&cache).unwrap();
-        assert_eq!(label, "[2.5m/█]");
+        assert_eq!(label, "[█=2.5m]");
     }
 
     #[test]
@@ -144,6 +144,6 @@ mod tests {
             chart_width: 50,
         };
         let label = StatusBarWidget::time_per_column_label(&cache).unwrap();
-        assert_eq!(label, "[1.5h/█]");
+        assert_eq!(label, "[█=1.5h]");
     }
 }
