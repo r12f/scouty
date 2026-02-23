@@ -22,6 +22,9 @@ pub struct Config {
     pub keybindings: crate::keybinding::KeybindingConfig,
     /// General settings.
     pub general: GeneralConfig,
+    /// Default file paths/glob patterns when no CLI arguments are provided.
+    #[serde(default)]
+    pub default_paths: Vec<String>,
 }
 
 /// General settings section.
@@ -49,8 +52,32 @@ impl Default for Config {
             theme: "default".to_string(),
             keybindings: crate::keybinding::KeybindingConfig::default(),
             general: GeneralConfig::default(),
+            default_paths: Vec::new(),
         }
     }
+}
+
+/// Expand `default_paths` glob patterns into concrete file paths.
+/// Non-matching patterns are silently skipped.
+pub fn expand_default_paths(patterns: &[String]) -> Vec<String> {
+    let mut results = Vec::new();
+    for pattern in patterns {
+        match glob::glob(pattern) {
+            Ok(paths) => {
+                for entry in paths.flatten() {
+                    if entry.is_file() {
+                        if let Some(s) = entry.to_str() {
+                            results.push(s.to_string());
+                        }
+                    }
+                }
+            }
+            Err(_) => {
+                // Invalid glob pattern — silently skip
+            }
+        }
+    }
+    results
 }
 
 /// Return the scouty config directory: `~/.scouty/`.
