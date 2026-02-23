@@ -52,7 +52,7 @@ Each source gets its own loader, and a single session can combine multiple loade
 - **Custom highlight** — `h` to add highlight rule, `H` for highlight manager, full-row background coloring, auto color rotation
 - **Time jump** — `]` jump forward / `[` jump backward by relative time (5m, 30s, 2h)
 - **Stats overlay** — `S` shows log level distribution, top components
-- **Save/export** — `Ctrl+s` quick export filtered logs to auto-named file; `:w <filename>` for custom filename
+- **Save/export** — `:w <filename>` in command mode to export filtered logs to file
 - **Pipe input** — `cat log | scouty-tui` with auto follow mode
 - **Copy to clipboard** — Raw, JSON, or YAML format via OSC 52
 - **Component architecture** — Unified `UiComponent` trait with standardized keyboard dispatch
@@ -165,7 +165,6 @@ journalctl -f | scouty-tui
 |-----|--------|
 | `y` | Copy selected row (raw text) |
 | `Y` | Copy with format dialog (Raw/JSON/YAML) |
-| `Ctrl+s` | Save/export current view to file |
 
 ### General
 
