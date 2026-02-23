@@ -528,6 +528,9 @@ impl App {
 
     /// Re-apply all active filters to compute filtered_indices.
     pub fn reapply_filters(&mut self) {
+        // Remember the record index at the current cursor position
+        let prev_record_idx = self.filtered_indices.get(self.selected).copied();
+
         self.filtered_indices = (0..self.records.len())
             .filter(|&i| {
                 let record = &self.records[i];
@@ -545,8 +548,34 @@ impl App {
             .collect();
 
         self.col_widths = Self::compute_col_widths(&self.records, &self.filtered_indices);
-        self.scroll_offset = 0;
-        self.selected = 0;
+
+        // Preserve cursor: find the previous record or nearest preceding visible record
+        let new_selected = if let Some(prev_idx) = prev_record_idx {
+            if self.filtered_indices.is_empty() {
+                0
+            } else {
+                // Use partition_point (binary search) since filtered_indices is sorted
+                let pos = self.filtered_indices.partition_point(|&ri| ri <= prev_idx);
+                if pos > 0 && self.filtered_indices[pos - 1] == prev_idx {
+                    // Exact match — record is still visible
+                    pos - 1
+                } else if pos > 0 {
+                    // Nearest preceding visible record
+                    pos - 1
+                } else {
+                    // No preceding records — fall back to first row
+                    0
+                }
+            }
+        } else {
+            0
+        };
+
+        self.selected = new_selected;
+        // Clamp scroll_offset to keep selected row visible without guessing terminal size
+        if self.scroll_offset > self.selected {
+            self.scroll_offset = self.selected;
+        }
         self.clear_search();
         self.filter_version += 1;
     }
@@ -1801,6 +1830,64 @@ mod tests {
         app.clear_filters();
         assert_eq!(app.filters.len(), 0);
         assert_eq!(app.filtered_indices.len(), 3);
+    }
+
+    #[test]
+    fn test_filter_preserves_cursor_position() {
+        let mut app = make_app_with_levels(&[
+            ("a", Some(LogLevel::Error)), // idx 0
+            ("b", Some(LogLevel::Info)),  // idx 1
+            ("c", Some(LogLevel::Warn)),  // idx 2
+            ("d", Some(LogLevel::Error)), // idx 3
+            ("e", Some(LogLevel::Info)),  // idx 4
+        ]);
+
+        // Move cursor to record "c" (filtered index 2, record index 2)
+        app.selected = 2;
+
+        // Exclude messages containing "b" and "e" → remaining: a(0), c(2), d(3)
+        app.quick_filter_input.set("b");
+        app.apply_quick_exclude();
+        app.quick_filter_input.set("e");
+        app.apply_quick_exclude();
+        // Cursor was on record "c" (idx 2), still visible → stays at filtered index 1
+        assert_eq!(app.filtered_indices, vec![0, 2, 3]);
+        assert_eq!(
+            app.selected, 1,
+            "cursor should stay on record 'c' at filtered index 1"
+        );
+
+        // Now exclude "c" too → remaining: a(0), d(3)
+        // Record "c" filtered out, nearest preceding visible is "a" → filtered index 0
+        app.quick_filter_input.set("c");
+        app.apply_quick_exclude();
+        assert_eq!(app.filtered_indices, vec![0, 3]);
+        assert_eq!(
+            app.selected, 0,
+            "cursor should move to nearest preceding record 'a'"
+        );
+    }
+
+    #[test]
+    fn test_filter_preserves_cursor_no_preceding() {
+        let mut app = make_app_with_levels(&[
+            ("a", Some(LogLevel::Error)), // idx 0
+            ("b", Some(LogLevel::Info)),  // idx 1
+            ("c", Some(LogLevel::Warn)),  // idx 2
+        ]);
+
+        // Cursor on first record "a" (idx 0)
+        app.selected = 0;
+
+        // Exclude "a" → remaining: b(1), c(2)
+        // No preceding records before idx 0 → cursor goes to first row (0)
+        app.quick_filter_input.set("a");
+        app.apply_quick_exclude();
+        assert_eq!(app.filtered_indices, vec![1, 2]);
+        assert_eq!(
+            app.selected, 0,
+            "cursor should go to first row when no preceding records exist"
+        );
     }
 
     #[test]
