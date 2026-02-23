@@ -41,6 +41,7 @@ impl StatusBarWidget {
             format!("[{}ms/█]", ms_per_bucket.round() as u64)
         } else if ms_per_bucket < 60_000.0 {
             let secs = ms_per_bucket / 1000.0;
+            // Show integer if close to whole number (e.g. 5.02→5, 5.97→6), else show 1 decimal (e.g. 5.5)
             if secs.fract() < 0.05 || secs.fract() > 0.95 {
                 format!("[{}s/█]", secs.round() as u64)
             } else {

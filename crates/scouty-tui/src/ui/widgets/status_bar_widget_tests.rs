@@ -101,4 +101,49 @@ mod tests {
         };
         assert!(StatusBarWidget::time_per_column_label(&cache).is_none());
     }
+
+    #[test]
+    fn test_time_per_column_label_decimal_seconds() {
+        let now = chrono::Utc::now();
+        let cache = crate::app::DensityCache {
+            braille_text: String::new(),
+            num_buckets: 10,
+            min_ts: now,
+            max_ts: now + chrono::Duration::milliseconds(55_000),
+            filter_version: 0,
+            chart_width: 50,
+        };
+        let label = StatusBarWidget::time_per_column_label(&cache).unwrap();
+        assert_eq!(label, "[5.5s/█]");
+    }
+
+    #[test]
+    fn test_time_per_column_label_decimal_minutes() {
+        let now = chrono::Utc::now();
+        let cache = crate::app::DensityCache {
+            braille_text: String::new(),
+            num_buckets: 10,
+            min_ts: now,
+            max_ts: now + chrono::Duration::minutes(25),
+            filter_version: 0,
+            chart_width: 50,
+        };
+        let label = StatusBarWidget::time_per_column_label(&cache).unwrap();
+        assert_eq!(label, "[2.5m/█]");
+    }
+
+    #[test]
+    fn test_time_per_column_label_decimal_hours() {
+        let now = chrono::Utc::now();
+        let cache = crate::app::DensityCache {
+            braille_text: String::new(),
+            num_buckets: 10,
+            min_ts: now,
+            max_ts: now + chrono::Duration::hours(15),
+            filter_version: 0,
+            chart_width: 50,
+        };
+        let label = StatusBarWidget::time_per_column_label(&cache).unwrap();
+        assert_eq!(label, "[1.5h/█]");
+    }
 }
