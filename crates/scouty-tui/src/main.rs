@@ -99,8 +99,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let files: Vec<&str> = files.iter().map(|s| s.as_str()).collect();
 
-    // Build keymap before entering TUI mode so any warnings are visible on stderr
-    let keymap = keybinding::Keymap::default_keymap();
+    // Load config before entering TUI mode so warnings are visible on stderr
+    let cfg = config::load_config();
+    let keymap = keybinding::Keymap::from_config(&cfg.keybindings);
 
     // Enter TUI mode first so the user sees a loading screen immediately
     enable_raw_mode()?;
@@ -160,9 +161,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     };
 
-    // Load config and resolve theme
+    // Apply theme from config
     {
-        let cfg = config::load_config();
         app.theme = config::resolve_theme(&cfg, None);
     }
 
