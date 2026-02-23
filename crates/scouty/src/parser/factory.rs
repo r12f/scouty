@@ -74,6 +74,8 @@ impl ParserFactory {
                         && is_bsd_month(&b[5..8])
                 } else if b[4] == b'-' && b[10] == b'T' {
                     // ISO 8601: "YYYY-MM-DDT..."
+                    // But reject if the token after the timestamp is a known log level,
+                    // as that indicates iso-level-msg format, not syslog.
                     b.len() >= 20
                         && b[0..4].iter().all(|c| c.is_ascii_digit())
                         && b[5].is_ascii_digit()
@@ -81,6 +83,7 @@ impl ParserFactory {
                         && b[7] == b'-'
                         && b[8].is_ascii_digit()
                         && b[9].is_ascii_digit()
+                        && !is_iso_followed_by_level(l)
                 } else {
                     false
                 }
@@ -164,6 +167,32 @@ impl ParserFactory {
         if let Ok(p) = RegexParser::new("fallback", r"(?P<message>.+)", None) {
             group.add_parser(Box::new(p));
         }
+    }
+}
+
+/// Check if an ISO 8601 timestamped line has a known log level as the next token.
+/// This distinguishes "2026-06-24T10:00:01Z INFO msg" (iso-level-msg) from syslog.
+#[inline]
+fn is_iso_followed_by_level(line: &str) -> bool {
+    // Find the first whitespace after the timestamp (skip past 'T' at index 10)
+    if let Some(ws_pos) = line[10..].find(|c: char| c.is_ascii_whitespace()) {
+        let after_ts = line[10 + ws_pos..].trim_start();
+        // Extract the next token (up to whitespace)
+        let token = after_ts.split_ascii_whitespace().next().unwrap_or("");
+        matches!(
+            token,
+            "TRACE"
+                | "DEBUG"
+                | "INFO"
+                | "NOTICE"
+                | "WARN"
+                | "WARNING"
+                | "ERROR"
+                | "FATAL"
+                | "CRITICAL"
+        )
+    } else {
+        false
     }
 }
 

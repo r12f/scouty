@@ -324,4 +324,36 @@ mod tests {
             .unwrap();
         assert_eq!(record.component_name.as_deref(), Some("SWITCH_TABLE"));
     }
+
+    #[test]
+    fn test_iso_level_not_misidentified_as_syslog() {
+        // ISO timestamp + level should NOT be parsed as syslog
+        let info = text_loader_info(vec![
+            "2026-06-24T10:00:01Z INFO Starting application".to_string(),
+            "2026-06-24T10:00:09Z WARN Slow query detected: 2.5s".to_string(),
+            "2026-06-24T10:00:10Z ERROR Timeout waiting for response".to_string(),
+        ]);
+        let group = ParserFactory::create_parser_group(&info);
+
+        let record = group
+            .parse(
+                "2026-06-24T10:00:09Z WARN Slow query detected: 2.5s",
+                "test",
+                "loader",
+                2,
+            )
+            .unwrap();
+
+        assert_eq!(record.level, Some(crate::record::LogLevel::Warn));
+        assert!(
+            record.hostname.is_none(),
+            "hostname should be None, got: {:?}",
+            record.hostname
+        );
+        assert!(
+            record.message.contains("Slow query detected: 2.5s"),
+            "message should contain full text, got: {}",
+            record.message
+        );
+    }
 }
