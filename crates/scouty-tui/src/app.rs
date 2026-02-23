@@ -1273,13 +1273,38 @@ impl App {
     /// Generate default save filename based on current time.
     pub fn default_save_filename() -> String {
         let now = chrono::Local::now();
-        now.format("filtered_%Y%m%d_%H%M%S.log").to_string()
+        now.format("filtered_%Y%m%d_%H%M%S%.3f.log").to_string()
     }
 
     /// Export filtered records to a file with an auto-generated filename (Ctrl+s).
+    /// Uses create-new semantics to avoid overwriting existing files.
     pub fn export_with_default_filename(&mut self) {
         let filename = Self::default_save_filename();
-        self.save_to_file(&filename);
+        match std::fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&filename)
+        {
+            Ok(file) => {
+                use std::io::Write;
+                let mut writer = std::io::BufWriter::new(file);
+                for &idx in &self.filtered_indices {
+                    let _ = writeln!(writer, "{}", self.records[idx].raw);
+                }
+                match writer.flush() {
+                    Ok(()) => {
+                        let count = self.filtered_indices.len();
+                        self.set_status(format!("Exported {} records to {}", count, filename));
+                    }
+                    Err(e) => {
+                        self.set_status(format!("Export failed: {}", e));
+                    }
+                }
+            }
+            Err(e) => {
+                self.set_status(format!("Export failed: {}", e));
+            }
+        }
     }
 
     /// Execute a command entered in command mode.
