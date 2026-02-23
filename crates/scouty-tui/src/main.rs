@@ -14,21 +14,12 @@ use crossterm::{
     ExecutableCommand,
 };
 use ratatui::prelude::*;
-use std::io::stdout;
+use std::io::{stdout, IsTerminal};
 use std::time::Duration;
 
 /// Check if stdin is a pipe (not a terminal).
 fn stdin_is_pipe() -> bool {
-    #[cfg(unix)]
-    {
-        use std::os::unix::io::AsRawFd;
-        let fd = std::io::stdin().as_raw_fd();
-        unsafe { libc::isatty(fd) == 0 }
-    }
-    #[cfg(not(unix))]
-    {
-        false
-    }
+    !std::io::stdin().is_terminal()
 }
 
 /// Resolve default log file paths when no arguments are provided.
