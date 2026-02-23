@@ -185,7 +185,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             };
             let right_width = position.len() as u16 + 2; // " {} " padding
                                                          // Reserve space for time-per-column label (e.g. "[500ms/█]" ~10 chars)
-            // Reserve space for time-per-column label (e.g. "[500ms/█]" ~10 chars, allow headroom)
+                                                         // Reserve space for time-per-column label (e.g. "[500ms/█]" ~10 chars, allow headroom)
             let label_reserve: u16 = 15;
             let chart_width = term_width.saturating_sub(right_width + label_reserve + 2) as usize;
             if chart_width >= 4 && app.total() > 0 {
