@@ -1000,18 +1000,42 @@ impl App {
         if input.is_empty() {
             return None;
         }
-        let (num_str, suffix) = input.split_at(input.len() - 1);
-        let value: i64 = num_str.parse().ok()?;
-        if value <= 0 {
+
+        let mut total: i64 = 0;
+        let mut num_buf = String::new();
+        let mut found_any = false;
+
+        for ch in input.chars() {
+            if ch.is_ascii_digit() {
+                num_buf.push(ch);
+            } else {
+                if num_buf.is_empty() {
+                    return None;
+                }
+                let value: i64 = num_buf.parse().ok()?;
+                num_buf.clear();
+                let secs = match ch {
+                    's' => value,
+                    'm' => value.checked_mul(60)?,
+                    'h' => value.checked_mul(3600)?,
+                    'd' => value.checked_mul(86400)?,
+                    _ => return None,
+                };
+                total = total.checked_add(secs)?;
+                found_any = true;
+            }
+        }
+
+        // Handle trailing number without suffix (not valid)
+        if !num_buf.is_empty() || !found_any {
             return None;
         }
-        match suffix {
-            "s" => Some(value),
-            "m" => value.checked_mul(60),
-            "h" => value.checked_mul(3600),
-            "d" => value.checked_mul(86400),
-            _ => None,
+
+        if total <= 0 {
+            return None;
         }
+
+        Some(total)
     }
 
     /// Format seconds as a human-readable relative duration.
@@ -2526,6 +2550,13 @@ mod time_jump_tests {
         assert_eq!(App::parse_relative_duration("abc"), None);
         assert_eq!(App::parse_relative_duration("5x"), None);
         assert_eq!(App::parse_relative_duration("0s"), None);
+        // Combined formats
+        assert_eq!(App::parse_relative_duration("1h30m"), Some(5400));
+        assert_eq!(App::parse_relative_duration("2m30s"), Some(150));
+        assert_eq!(App::parse_relative_duration("1d2h30m"), Some(95400));
+        assert_eq!(App::parse_relative_duration("1h0m"), Some(3600));
+        // Trailing number without suffix is invalid
+        assert_eq!(App::parse_relative_duration("30"), None);
     }
 
     #[test]
