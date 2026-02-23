@@ -34,8 +34,8 @@ Each source gets its own loader, and a single session can combine multiple loade
 - **Parallel parsing** — Rayon-based thread pool for maximum throughput
 
 ### 🔎 Powerful Filtering
-- **Expression-based** — `level = "Error" AND component contains "auth"`
-- **Operators** — `=`, `!=`, `>`, `>=`, `<`, `<=`, `contains`, `starts_with`, `ends_with`, `regex`
+- **Expression-based** — `level == "Error" AND component contains "auth"`
+- **Operators** — `==`, `!=`, `>`, `>=`, `<`, `<=`, `contains`, `starts_with`, `ends_with`, `regex`
 - **Logic** — `AND`, `OR`, `NOT` with parentheses for grouping
 - **Include/Exclude** — Exclude-first, then include. No include filters = include all
 - **Any field** — Filter on timestamp, level, pid, tid, component, hostname, container, context, function, message, or custom metadata
@@ -234,19 +234,19 @@ Each parser group tries its patterns in order — if the first fails, it falls b
 
 ```bash
 # Simple field comparison
-level = "Error"
+level == "Error"
 
 # Range query
 timestamp >= "2024-01-01T00:00:00Z" AND timestamp < "2024-01-02T00:00:00Z"
 
 # Compound with parentheses
-(level = "Error" OR level = "Fatal") AND component contains "database"
+(level == "Error" OR level == "Fatal") AND component contains "database"
 
 # String matching
 message regex "timeout.*retry"
 
 # Filter by hostname or container
-hostname = "BSL-0101-0101-01LT0" AND container = "restapi"
+hostname == "BSL-0101-0101-01LT0" AND container == "restapi"
 ```
 
 ## 🏗️ Architecture
