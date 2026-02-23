@@ -62,6 +62,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Parse CLI flags
     let mut theme_override: Option<String> = None;
+    let mut config_override: Option<String> = None;
     let mut file_args: Vec<String> = Vec::new();
     let mut i = 1;
     while i < args.len() {
@@ -79,14 +80,28 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 theme_override = Some(arg.trim_start_matches("--theme=").to_string());
                 i += 1;
             }
+            "--config" => {
+                if i + 1 < args.len() {
+                    config_override = Some(args[i + 1].clone());
+                    i += 2;
+                } else {
+                    eprintln!("Error: --config requires a value");
+                    std::process::exit(1);
+                }
+            }
+            arg if arg.starts_with("--config=") => {
+                config_override = Some(arg.trim_start_matches("--config=").to_string());
+                i += 1;
+            }
             "--help" | "-h" => {
                 eprintln!("Usage: scouty-tui [OPTIONS] [FILES...]");
                 eprintln!();
                 eprintln!("Options:");
                 eprintln!(
-                    "  --theme <name>  Override theme (default, dark, light, solarized, or custom)"
+                    "  --theme <name>    Override theme (default, dark, light, solarized, or custom)"
                 );
-                eprintln!("  -h, --help      Show this help");
+                eprintln!("  --config <path>   Load additional config file (overrides file-based configs)");
+                eprintln!("  -h, --help        Show this help");
                 std::process::exit(0);
             }
             _ => {
@@ -104,7 +119,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     // Load config early so default_paths is available for file resolution
-    let cfg = config::load_config();
+    let cfg = config::load_config_layered(config_override.as_deref());
 
     let files: Vec<String> = if !piped && file_args.is_empty() {
         resolve_default_files(&cfg)?
