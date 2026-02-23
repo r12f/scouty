@@ -21,6 +21,7 @@ Interactive search and filtering in the TUI, providing regex search with match n
 - Opens input with field name hints
 - Full expression syntax (see `crates/scouty/spec/filter.md`)
 - Enter → creates pending LogStoreView → replaces active view on completion
+- **Cursor position after filter**: cursor stays on the same log record if it still exists in filtered results; if that record is filtered out, cursor moves to the nearest preceding record that remains visible (i.e., the last visible record before the original cursor position). Only if no preceding records remain does the cursor go to the first row.
 - Esc cancels
 
 ### Quick Exclude (`-`) / Quick Include (`=`)
@@ -71,3 +72,4 @@ Via the field filter dialog's time options:
 |------|--------|
 | 2026-02-20 | Search, filter expression, quick exclude/include, field dialog, filter manager |
 | 2026-02-22 | Time range options in field filter dialog |
+| 2026-02-23 | Filter preserves cursor position (stay on same record or nearest preceding) |
