@@ -149,6 +149,7 @@ impl DetailPanelWidget {
             .split(area);
 
         let left_block = Block::default()
+            .title(" Log Content ")
             .borders(Borders::RIGHT)
             .border_style(theme.detail_panel.border.to_style());
         let raw_text = Paragraph::new(record.raw.clone())
@@ -169,8 +170,12 @@ impl DetailPanelWidget {
                 Row::new(vec![Cell::from(Span::styled(key, label_style)), val_cell])
             })
             .collect();
-        let table =
-            Table::new(rows, [Constraint::Length(11), Constraint::Fill(1)]).column_spacing(1);
+        let right_block = Block::default()
+            .title(" Fields ")
+            .border_style(theme.detail_panel.border.to_style());
+        let table = Table::new(rows, [Constraint::Length(11), Constraint::Fill(1)])
+            .column_spacing(1)
+            .block(right_block);
         frame.render_widget(table, chunks[1]);
     }
 
