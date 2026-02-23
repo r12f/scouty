@@ -61,4 +61,60 @@ mod tests {
         let cfg = Config::default();
         assert!(cfg.default_paths.is_empty());
     }
+
+    #[test]
+    fn test_deep_merge_scalars() {
+        let base: serde_yaml::Value = serde_yaml::from_str("theme: default").unwrap();
+        let overlay: serde_yaml::Value = serde_yaml::from_str("theme: dark").unwrap();
+        let merged = super::super::deep_merge(base, overlay);
+        let cfg: Config = serde_yaml::from_value(merged).unwrap();
+        assert_eq!(cfg.theme, "dark");
+    }
+
+    #[test]
+    fn test_deep_merge_maps() {
+        let base: serde_yaml::Value =
+            serde_yaml::from_str("general:\n  follow_on_pipe: true\n  detail_panel_ratio: 0.3")
+                .unwrap();
+        let overlay: serde_yaml::Value =
+            serde_yaml::from_str("general:\n  detail_panel_ratio: 0.5").unwrap();
+        let merged = super::super::deep_merge(base, overlay);
+        let cfg: Config = serde_yaml::from_value(merged).unwrap();
+        // Deep merge: follow_on_pipe preserved, detail_panel_ratio overridden
+        assert!(cfg.general.follow_on_pipe);
+        assert!((cfg.general.detail_panel_ratio - 0.5).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn test_deep_merge_list_replaces() {
+        let base: serde_yaml::Value =
+            serde_yaml::from_str("default_paths:\n  - /var/log/syslog").unwrap();
+        let overlay: serde_yaml::Value =
+            serde_yaml::from_str("default_paths:\n  - /tmp/a.log\n  - /tmp/b.log").unwrap();
+        let merged = super::super::deep_merge(base, overlay);
+        let cfg: Config = serde_yaml::from_value(merged).unwrap();
+        // List is fully replaced, not appended
+        assert_eq!(cfg.default_paths, vec!["/tmp/a.log", "/tmp/b.log"]);
+    }
+
+    #[test]
+    fn test_deep_merge_null_resets() {
+        let base: serde_yaml::Value = serde_yaml::from_str("theme: dark").unwrap();
+        let overlay: serde_yaml::Value = serde_yaml::from_str("theme: null").unwrap();
+        let merged = super::super::deep_merge(base, overlay);
+        // theme key removed → deserialization uses default
+        let cfg: Config = serde_yaml::from_value(merged).unwrap();
+        assert_eq!(cfg.theme, "default");
+    }
+
+    #[test]
+    fn test_load_config_layered_with_file() {
+        let dir = std::env::temp_dir().join("scouty_test_layered");
+        let _ = std::fs::create_dir_all(&dir);
+        let config_path = dir.join("override.yaml");
+        std::fs::write(&config_path, "theme: solarized\n").unwrap();
+        let cfg = super::super::load_config_layered(Some(config_path.to_str().unwrap()));
+        assert_eq!(cfg.theme, "solarized");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
 }
