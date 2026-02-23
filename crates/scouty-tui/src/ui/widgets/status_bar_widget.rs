@@ -132,7 +132,7 @@ impl StatusBarWidget {
                 if let Some(label) = Self::time_per_column_label(cache) {
                     spans.push(Span::styled(
                         label,
-                        ratatui::style::Style::default().fg(ratatui::style::Color::DarkGray),
+                        theme.status_bar.density_label.to_style(),
                     ));
                 }
 
@@ -140,7 +140,7 @@ impl StatusBarWidget {
 
                 for (i, ch) in cache.braille_text.chars().enumerate() {
                     let style = if Some(i) == cursor_char_idx {
-                        theme.status_bar.density_hot.to_style()
+                        theme.status_bar.cursor_marker.to_style()
                     } else {
                         theme.status_bar.density_normal.to_style()
                     };

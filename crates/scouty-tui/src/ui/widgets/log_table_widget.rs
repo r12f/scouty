@@ -35,7 +35,7 @@ impl LogTableWidget {
         let cw = &app.col_widths;
         let vis_cols = app.column_config.visible_columns();
 
-        let sep_style = Style::default().fg(Color::DarkGray);
+        let sep_style = theme.table.separator.to_style();
 
         let widths: Vec<Constraint> = vis_cols
             .iter()

@@ -92,12 +92,12 @@ impl Default for LogLevelTheme {
     fn default() -> Self {
         Self {
             fatal: StyleEntry::fg_bold(Color::Red),
-            error: StyleEntry::fg(Color::Red),
-            warn: StyleEntry::fg(Color::Yellow),
-            notice: StyleEntry::fg(Color::Cyan),
-            info: StyleEntry::fg(Color::Green),
-            debug: StyleEntry::fg(Color::Gray),
-            trace: StyleEntry::fg(Color::DarkGray),
+            error: StyleEntry::fg(Color::Rgb(255, 107, 107)), // soft red #FF6B6B
+            warn: StyleEntry::fg(Color::Rgb(255, 217, 61)),   // warm yellow #FFD93D
+            notice: StyleEntry::fg(Color::Rgb(107, 203, 119)), // soft green #6BCB77
+            info: StyleEntry::fg(Color::Rgb(79, 195, 247)),   // light blue #4FC3F7
+            debug: StyleEntry::fg(Color::Rgb(139, 139, 139)), // medium gray #8B8B8B
+            trace: StyleEntry::fg(Color::Rgb(92, 92, 92)),    // dark gray #5C5C5C
         }
     }
 }
@@ -112,17 +112,24 @@ pub struct TableTheme {
     pub selected_highlight: StyleEntry,
     pub search_match: StyleEntry,
     pub bookmark: StyleEntry,
+    /// Column separator style (│ between columns).
+    pub separator: StyleEntry,
 }
 
 impl Default for TableTheme {
     fn default() -> Self {
         Self {
-            header: StyleEntry::fg_bg(Color::White, Color::DarkGray),
-            selected: StyleEntry::bg(Color::Rgb(40, 40, 60)),
+            header: StyleEntry {
+                fg: Some(ThemeColor(Color::Rgb(184, 196, 206))), // light steel #B8C4CE
+                bg: Some(ThemeColor(Color::Rgb(30, 42, 56))),    // dark slate #1E2A38
+                bold: Some(true),
+            },
+            selected: StyleEntry::bg(Color::Rgb(42, 63, 85)), // steel blue #2A3F55
             selected_search: StyleEntry::bg(Color::Rgb(120, 120, 0)),
             selected_highlight: StyleEntry::bg(Color::Rgb(40, 60, 80)),
             search_match: StyleEntry::bg(Color::Rgb(80, 80, 0)),
             bookmark: StyleEntry::bg(Color::Rgb(20, 40, 60)),
+            separator: StyleEntry::fg(Color::Rgb(59, 66, 82)), // muted #3B4252
         }
     }
 }
@@ -143,23 +150,33 @@ pub struct StatusBarTheme {
     pub search_mode_label: StyleEntry,
     pub shortcut_key: StyleEntry,
     pub shortcut_sep: StyleEntry,
+    /// Density chart time label (e.g. "[█=5s]") — dimmer than chart itself.
+    pub density_label: StyleEntry,
+    /// Cursor marker in density chart.
+    pub cursor_marker: StyleEntry,
 }
 
 impl Default for StatusBarTheme {
     fn default() -> Self {
         Self {
-            line1_bg: StyleEntry::bg(Color::Rgb(20, 20, 40)),
-            line2_bg: StyleEntry::bg(Color::Rgb(30, 30, 30)),
-            density_hot: StyleEntry::fg_bg(Color::Yellow, Color::Rgb(40, 40, 60)),
-            density_normal: StyleEntry::fg(Color::Cyan),
+            line1_bg: StyleEntry::fg_bg(Color::Rgb(212, 212, 212), Color::Rgb(27, 40, 56)), // #D4D4D4 on #1B2838
+            line2_bg: StyleEntry::fg_bg(Color::Rgb(160, 160, 160), Color::Rgb(13, 17, 23)), // #A0A0A0 on #0D1117
+            density_hot: StyleEntry::fg_bg(Color::Yellow, Color::Rgb(27, 40, 56)),
+            density_normal: StyleEntry::fg(Color::Rgb(79, 195, 247)), // light blue #4FC3F7
             position: StyleEntry::fg_bg(Color::White, Color::DarkGray),
             mode_follow: StyleEntry::fg_bg(Color::Black, Color::Green),
             mode_view: StyleEntry::fg_bg(Color::Black, Color::Cyan),
-            mode_label: StyleEntry::fg_bg(Color::Black, Color::Magenta),
+            mode_label: StyleEntry {
+                fg: Some(ThemeColor(Color::Rgb(27, 40, 56))), // #1B2838
+                bg: Some(ThemeColor(Color::Rgb(79, 195, 247))), // #4FC3F7
+                bold: Some(true),
+            },
             command_mode_label: StyleEntry::fg_bg(Color::Black, Color::Magenta),
             search_mode_label: StyleEntry::fg_bg(Color::Black, Color::Magenta),
             shortcut_key: StyleEntry::fg(Color::Yellow),
             shortcut_sep: StyleEntry::fg(Color::DarkGray),
+            density_label: StyleEntry::fg(Color::Rgb(107, 123, 141)), // dimmer #6B7B8D
+            cursor_marker: StyleEntry::fg(Color::Rgb(255, 217, 61)),  // yellow #FFD93D
         }
     }
 }
@@ -264,9 +281,9 @@ pub struct GeneralTheme {
 impl Default for GeneralTheme {
     fn default() -> Self {
         Self {
-            border: StyleEntry::fg(Color::Rgb(51, 51, 102)),
-            accent: StyleEntry::fg(Color::Cyan),
-            muted: StyleEntry::fg(Color::DarkGray),
+            border: StyleEntry::fg(Color::Rgb(59, 66, 82)), // #3B4252
+            accent: StyleEntry::fg(Color::Rgb(79, 195, 247)), // light blue #4FC3F7
+            muted: StyleEntry::fg(Color::Rgb(107, 123, 141)), // #6B7B8D
         }
     }
 }
@@ -297,12 +314,12 @@ impl Default for Theme {
             detail_panel: DetailPanelTheme::default(),
             input: InputTheme::default(),
             highlight_palette: vec![
-                ThemeColor(Color::Red),
-                ThemeColor(Color::Green),
-                ThemeColor(Color::Blue),
-                ThemeColor(Color::Yellow),
-                ThemeColor(Color::Magenta),
-                ThemeColor(Color::Cyan),
+                ThemeColor(Color::Rgb(255, 107, 107)), // soft red
+                ThemeColor(Color::Rgb(107, 203, 119)), // soft green
+                ThemeColor(Color::Rgb(79, 195, 247)),  // light blue
+                ThemeColor(Color::Rgb(255, 217, 61)),  // yellow
+                ThemeColor(Color::Rgb(186, 147, 230)), // lavender
+                ThemeColor(Color::Rgb(77, 208, 225)),  // teal
             ],
             general: GeneralTheme::default(),
         }
