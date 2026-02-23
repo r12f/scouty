@@ -18,7 +18,16 @@ The status bar occupies the bottom 2 lines, providing data overview (density cha
 
 Display a time-per-column label to the left of the density chart on line 1, showing the time span each braille column represents.
 
-**Format:** `[█=Xs]` where X is dynamically computed as `(max_ts - min_ts) / num_buckets`.
+**Format:** `[█=Xs]` where X is dynamically computed as `(max_ts - min_ts) / num_buckets`, then snapped up to the nearest standard interval.
+
+**Time snapping:** The raw computed duration per column is rounded **up** to the nearest value in the following progression:
+- Seconds: 0, 5, 15, 30
+- Minutes: 0, 5, 15, 30
+- Hours: 1, 2, 6, 12, 24
+
+For example: raw 3s → snap to 5s, raw 8s → snap to 15s, raw 20s → snap to 30s, raw 40s → snap to 1m, raw 3m → snap to 5m, raw 8m → snap to 15m, raw 45m → snap to 1h.
+
+The number of buckets should be adjusted accordingly so that the chart covers the full time range with the snapped interval.
 
 **Unit auto-selection:**
 - < 1s → ms (e.g., `[█=500ms]`)
@@ -36,6 +45,7 @@ Display a time-per-column label to the left of the density chart on line 1, show
 **Acceptance criteria:**
 - [ ] Label displayed left of density chart in `[█=time]` format
 - [ ] Time unit dynamically computed and auto-selected (ms/s/m/h)
+- [ ] Time per column snapped up to nearest standard interval (5/15/30 for s and m)
 - [ ] Label width deducted from chart width, no layout overflow
 - [ ] Hidden when insufficient data
 
@@ -86,3 +96,4 @@ Navigation (j/k/PageUp/PageDown/g/G) does **not** trigger recomputation. Only th
 | 2026-02-22 | Density chart caching for navigation performance |
 | 2026-02-22 | Add time-per-column label spec for density chart |
 | 2026-02-23 | Label format changed from [Xs/█] to [█=Xs] |
+| 2026-02-23 | Time per column snaps up to standard intervals (5/15/30 for s and m) |
