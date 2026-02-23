@@ -163,7 +163,7 @@ pub struct FilterEntry {
 /// Kind of field filter entry.
 #[derive(Clone, Debug, PartialEq)]
 pub enum FieldEntryKind {
-    /// Regular field: generates `field = "value"`.
+    /// Regular field: generates `field == "value"`.
     Field,
     /// Time before: generates `timestamp < "rfc3339"` (exclude) or `<= "rfc3339"` (include).
     TimeBefore { rfc3339: String },
@@ -772,7 +772,7 @@ impl App {
                 }
                 FieldEntryKind::Field => {
                     field_parts.push(format!(
-                        "{} = \"{}\"",
+                        "{} == \"{}\"",
                         entry.name,
                         entry.value.replace('"', "\\\"")
                     ));
@@ -1898,7 +1898,7 @@ mod tests {
             ("warn msg", Some(LogLevel::Warn)),
         ]);
 
-        app.filter_input.set(r#"level = "ERROR""#);
+        app.filter_input.set(r#"level == "ERROR""#);
         app.apply_filter();
         // The filter parser requires string values in quotes
         assert_eq!(app.filters.len(), 1);

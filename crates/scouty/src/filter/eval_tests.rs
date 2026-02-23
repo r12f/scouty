@@ -31,14 +31,14 @@ mod tests {
 
     #[test]
     fn eval_eq_level() {
-        let expr = parse(r#"level = "ERROR""#).unwrap();
+        let expr = parse(r#"level == "ERROR""#).unwrap();
         let r = make_record(LogLevel::Error, "boom", None);
         assert!(eval(&expr, &r));
     }
 
     #[test]
     fn eval_eq_level_no_match() {
-        let expr = parse(r#"level = "ERROR""#).unwrap();
+        let expr = parse(r#"level == "ERROR""#).unwrap();
         let r = make_record(LogLevel::Info, "ok", None);
         assert!(!eval(&expr, &r));
     }
@@ -94,35 +94,36 @@ mod tests {
 
     #[test]
     fn eval_and() {
-        let expr = parse(r#"level = "ERROR" AND component = "auth""#).unwrap();
+        let expr = parse(r#"level == "ERROR" AND component == "auth""#).unwrap();
         let r = make_record(LogLevel::Error, "fail", Some("auth"));
         assert!(eval(&expr, &r));
     }
 
     #[test]
     fn eval_and_one_fails() {
-        let expr = parse(r#"level = "ERROR" AND component = "db""#).unwrap();
+        let expr = parse(r#"level == "ERROR" AND component == "db""#).unwrap();
         let r = make_record(LogLevel::Error, "fail", Some("auth"));
         assert!(!eval(&expr, &r));
     }
 
     #[test]
     fn eval_or() {
-        let expr = parse(r#"level = "ERROR" OR level = "FATAL""#).unwrap();
+        let expr = parse(r#"level == "ERROR" OR level == "FATAL""#).unwrap();
         let r = make_record(LogLevel::Error, "fail", None);
         assert!(eval(&expr, &r));
     }
 
     #[test]
     fn eval_not() {
-        let expr = parse(r#"NOT level = "DEBUG""#).unwrap();
+        let expr = parse(r#"NOT level == "DEBUG""#).unwrap();
         let r = make_record(LogLevel::Error, "fail", None);
         assert!(eval(&expr, &r));
     }
 
     #[test]
     fn eval_complex_nested() {
-        let expr = parse(r#"(level = "ERROR" OR level = "FATAL") AND component = "auth""#).unwrap();
+        let expr =
+            parse(r#"(level == "ERROR" OR level == "FATAL") AND component == "auth""#).unwrap();
         let r = make_record(LogLevel::Error, "fail", Some("auth"));
         assert!(eval(&expr, &r));
 
@@ -132,28 +133,28 @@ mod tests {
 
     #[test]
     fn eval_metadata_field() {
-        let expr = parse(r#"metadata.env = "prod""#).unwrap();
+        let expr = parse(r#"metadata.env == "prod""#).unwrap();
         let r = make_record(LogLevel::Info, "ok", None);
         assert!(eval(&expr, &r));
     }
 
     #[test]
     fn eval_missing_field_returns_false() {
-        let expr = parse(r#"component = "auth""#).unwrap();
+        let expr = parse(r#"component == "auth""#).unwrap();
         let r = make_record(LogLevel::Info, "ok", None); // component is None
         assert!(!eval(&expr, &r));
     }
 
     #[test]
     fn eval_pid() {
-        let expr = parse("pid = 1234").unwrap();
+        let expr = parse("pid == 1234").unwrap();
         let r = make_record(LogLevel::Info, "ok", None);
         assert!(eval(&expr, &r));
     }
 
     #[test]
     fn eval_source() {
-        let expr = parse(r#"source = "test-source""#).unwrap();
+        let expr = parse(r#"source == "test-source""#).unwrap();
         let r = make_record(LogLevel::Info, "ok", None);
         assert!(eval(&expr, &r));
     }
@@ -162,7 +163,7 @@ mod tests {
     fn eval_context() {
         let mut r = make_record(LogLevel::Info, "ok", None);
         r.context = Some("Ethernet248".to_string());
-        let expr = parse(r#"context = "Ethernet248""#).unwrap();
+        let expr = parse(r#"context == "Ethernet248""#).unwrap();
         assert!(eval(&expr, &r));
         let expr2 = parse(r#"context contains "Ethernet""#).unwrap();
         assert!(eval(&expr2, &r));
@@ -172,9 +173,9 @@ mod tests {
     fn eval_function() {
         let mut r = make_record(LogLevel::Info, "ok", None);
         r.function = Some("SET".to_string());
-        let expr = parse(r#"function = "SET""#).unwrap();
+        let expr = parse(r#"function == "SET""#).unwrap();
         assert!(eval(&expr, &r));
-        let expr2 = parse(r#"function = "DEL""#).unwrap();
+        let expr2 = parse(r#"function == "DEL""#).unwrap();
         assert!(!eval(&expr2, &r));
     }
 }

@@ -8,7 +8,7 @@
 //!   primary  = "(" expr ")" | comparison
 //!   comparison = field op value
 //!   field    = identifier (dotted allowed: "metadata.key")
-//!   op       = "=" | "!=" | ">" | ">=" | "<" | "<=" | "contains" | "starts_with" | "ends_with" | "regex"
+//!   op       = "==" | "!=" | ">" | ">=" | "<" | "<=" | "contains" | "starts_with" | "ends_with" | "regex"
 //!   value    = quoted_string | unquoted_token
 
 use std::fmt;
@@ -31,7 +31,7 @@ pub enum Op {
 impl fmt::Display for Op {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Op::Eq => write!(f, "="),
+            Op::Eq => write!(f, "=="),
             Op::Ne => write!(f, "!="),
             Op::Gt => write!(f, ">"),
             Op::Ge => write!(f, ">="),
@@ -128,12 +128,14 @@ fn tokenize(input: &str) -> Result<Vec<Token>, String> {
             continue;
         }
 
-        // Single-char operators
-        if chars[i] == '=' {
+        // == equality operator
+        if chars[i] == '=' && i + 1 < len && chars[i + 1] == '=' {
             tokens.push(Token::Op(Op::Eq));
-            i += 1;
+            i += 2;
             continue;
         }
+
+        // Single = is not supported — skip to produce a parse error
         if chars[i] == '>' {
             tokens.push(Token::Op(Op::Gt));
             i += 1;
