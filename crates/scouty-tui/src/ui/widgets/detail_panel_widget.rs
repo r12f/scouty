@@ -172,10 +172,9 @@ impl DetailPanelWidget {
         let right_block = Block::default()
             .title(" Fields ")
             .border_style(theme.detail_panel.border.to_style());
-        let table =
-            Table::new(rows, [Constraint::Length(11), Constraint::Fill(1)])
-                .column_spacing(1)
-                .block(right_block);
+        let table = Table::new(rows, [Constraint::Length(11), Constraint::Fill(1)])
+            .column_spacing(1)
+            .block(right_block);
         frame.render_widget(table, chunks[1]);
     }
 
