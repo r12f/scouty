@@ -2,16 +2,20 @@
 
 ## Overview
 
-Centralized configuration for scouty-tui: keybindings, theme selection, and general settings. Configuration will be loaded at startup from `~/.scouty/config.yaml`, with sensible defaults when no config exists.
+Centralized configuration for scouty-tui: keybindings, theme selection, and general settings. Configuration is loaded from multiple sources with layered override semantics — later sources override earlier ones, allowing system-wide defaults, per-user customization, and per-invocation CLI overrides.
 
 ## Design
 
 ### Directory Structure
 
 ```
+/etc/scouty/
+├── config.yaml          # System-wide configuration (admin-managed)
+└── themes/              # System-wide custom themes
+
 ~/.scouty/
-├── config.yaml          # Main configuration file
-└── themes/              # Custom theme files (see theme spec)
+├── config.yaml          # Per-user configuration
+└── themes/              # Per-user custom theme files (see theme spec)
     ├── my-theme.yaml
     └── solarized.yaml
 ```
@@ -92,20 +96,53 @@ keybindings:
 
 ### Loading Order
 
-1. Load built-in default config (compiled into binary)
-2. If `~/.scouty/config.yaml` exists, merge user config over defaults (partial overrides OK)
-3. Resolve file paths:
-   - If CLI arguments provided → use CLI files (ignore `default_paths`)
+Configuration is loaded in layers. Each layer merges on top of the previous one (field-level override, not full replacement). Later layers take priority:
+
+1. **Built-in defaults** (compiled into binary, lowest priority)
+2. **System config** — `/etc/scouty/config.yaml` (if exists)
+3. **User config** — `~/.scouty/config.yaml` (if exists)
+4. **CLI flags** (highest priority)
+   - `--theme <name>` overrides `theme`
+   - `--config <path>` loads an additional config file after user config (overrides all file-based configs)
+   - File arguments override `default_paths`
+
+**Merge semantics:**
+- Scalar values (string, number, bool): later layer replaces earlier
+- Maps (keybindings, general): deep merge — only specified keys are overridden, unspecified keys keep previous value
+- Lists (default_paths): later layer **replaces** the entire list (not appended)
+- A key explicitly set to `null` or empty resets it to built-in default
+
+**Example — system admin sets company defaults, user overrides theme:**
+
+`/etc/scouty/config.yaml`:
+```yaml
+theme: "corporate"
+default_paths:
+  - "/var/log/app/*.log"
+general:
+  follow_on_pipe: false
+```
+
+`~/.scouty/config.yaml`:
+```yaml
+theme: "solarized"
+keybindings:
+  quit: "ctrl+q"
+```
+
+Result: theme=solarized (user wins), default_paths=[/var/log/app/*.log] (from system), follow_on_pipe=false (from system), quit=ctrl+q (user override), all other keybindings=built-in defaults.
+
+5. Resolve file paths:
+   - If CLI file arguments provided → use CLI files (ignore `default_paths`)
    - If no CLI arguments and `default_paths` configured → expand globs and open matching files
    - If no CLI arguments and no `default_paths` → fall back to platform defaults (see cli.md)
    - Glob patterns that match no files are silently skipped
    - If all paths resolve to no files → friendly error + usage hint
-4. Resolve theme (see theme spec for theme file format and built-in presets):
+6. Resolve theme (see theme spec for theme file format and built-in presets):
+   - Theme search order: `~/.scouty/themes/` → `/etc/scouty/themes/` → built-in presets
    - Built-in name → use built-in theme
-   - `~/.scouty/themes/<name>.yaml` exists → load and merge over default theme
+   - Custom theme file found → load and merge over default theme
    - Otherwise → warn and fall back to default
-5. CLI flags override config:
-   - `--theme <name>` overrides `theme` in config
 
 ### Keybinding Resolution
 
@@ -124,15 +161,20 @@ keybindings:
 
 ## Acceptance Criteria
 
-- [ ] `~/.scouty/config.yaml` loaded at startup if present
+- [ ] Built-in defaults → `/etc/scouty/config.yaml` → `~/.scouty/config.yaml` → CLI flags, layered override
+- [ ] Each layer does field-level deep merge (not full replacement)
+- [ ] Lists (e.g., `default_paths`) are replaced entirely by later layers, not appended
+- [ ] Missing config files silently skipped (no error)
+- [ ] `--config <path>` loads additional config after user config
 - [ ] All keybindings configurable via config file
 - [ ] Theme selected by name from config or `--theme` CLI flag
+- [ ] Theme search: `~/.scouty/themes/` → `/etc/scouty/themes/` → built-in
 - [ ] Partial config files work (missing fields use defaults)
 - [ ] Invalid config: warn to stderr and continue with defaults
 - [ ] All existing tests pass
 - [ ] `default_paths` in config loaded when no CLI files specified
 - [ ] Glob patterns expanded correctly (*, **, ?)
-- [ ] CLI arguments take priority over `default_paths`
+- [ ] CLI file arguments take priority over `default_paths`
 - [ ] Non-matching globs silently skipped
 
 ## Change Log
@@ -142,3 +184,4 @@ keybindings:
 | 2026-02-22 | Initial configuration system design |
 | 2026-02-22 | Moved theme details to theme.md, kept references |
 | 2026-02-23 | Added default_paths with glob support |
+| 2026-02-23 | Multi-profile config: built-in → /etc/scouty → ~/.scouty → CLI layered override |
