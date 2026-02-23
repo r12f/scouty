@@ -84,7 +84,6 @@ keybindings:
   # Copy & Export (saving via ":w" in command mode)
   copy_raw: "y"
   copy_format: "Y"
-  quick_export: "ctrl+s"
 
   # General
   help: "?"
