@@ -18,15 +18,15 @@ The status bar occupies the bottom 2 lines, providing data overview (density cha
 
 Display a time-per-column label to the left of the density chart on line 1, showing the time span each braille column represents.
 
-**Format:** `[Xs/█]` where X is dynamically computed as `(max_ts - min_ts) / num_buckets`.
+**Format:** `[█=Xs]` where X is dynamically computed as `(max_ts - min_ts) / num_buckets`.
 
 **Unit auto-selection:**
-- < 1s → ms (e.g., `[500ms/█]`)
-- 1s to < 60s → s (e.g., `[5s/█]`)
-- 1m to < 60m → m (e.g., `[2m/█]`)
-- ≥ 60m → h (e.g., `[1h/█]`)
+- < 1s → ms (e.g., `[█=500ms]`)
+- 1s to < 60s → s (e.g., `[█=5s]`)
+- 1m to < 60m → m (e.g., `[█=2m]`)
+- ≥ 60m → h (e.g., `[█=1h]`)
 
-**Layout:** `[5s/█]⣿⣷⣶⣤⣀⣿⣷⣶  42/100 (Total: 500)`
+**Layout:** `[█=5s]⣿⣷⣶⣤⣀⣿⣷⣶  42/100 (Total: 500)`
 
 **Behavior:**
 - Label width is deducted from density chart available width
@@ -34,7 +34,7 @@ Display a time-per-column label to the left of the density chart on line 1, show
 - Visually distinguishable from chart (e.g., dimmer color)
 
 **Acceptance criteria:**
-- [ ] Label displayed left of density chart in `[time/█]` format
+- [ ] Label displayed left of density chart in `[█=time]` format
 - [ ] Time unit dynamically computed and auto-selected (ms/s/m/h)
 - [ ] Label width deducted from chart width, no layout overflow
 - [ ] Hidden when insufficient data
@@ -85,3 +85,4 @@ Navigation (j/k/PageUp/PageDown/g/G) does **not** trigger recomputation. Only th
 | 2026-02-22 | Two-line redesign with mode/input/message states |
 | 2026-02-22 | Density chart caching for navigation performance |
 | 2026-02-22 | Add time-per-column label spec for density chart |
+| 2026-02-23 | Label format changed from [Xs/█] to [█=Xs] |
