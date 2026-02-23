@@ -10,8 +10,15 @@ Command-line interface for `scouty-tui`, handling file arguments, default syslog
 ### Usage
 
 ```
-scouty-tui [file1] [file2] ...
+scouty-tui [OPTIONS] [file1] [file2] ...
 ```
+
+### Options
+
+| Flag | Description |
+|------|-------------|
+| `--theme <name>` | Override theme selection |
+| `--config <path>` | Load additional config file (overrides system and user configs) |
 
 ### Argument Handling
 
@@ -45,3 +52,4 @@ scouty-tui [file1] [file2] ...
 | Date | Change |
 |------|--------|
 | 2026-02-22 | Multi-file support, Linux default syslog, stdin pipe input |
+| 2026-02-23 | Added --theme and --config CLI flags |
