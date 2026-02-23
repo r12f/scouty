@@ -19,10 +19,12 @@ pub struct FilterInputWidget;
 impl FilterInputWidget {
     pub fn render_with_app(&self, frame: &mut Frame, area: Rect, app: &App) {
         let theme = &app.theme;
+        let (before, cursor_ch, after) = app.filter_input.render_parts();
         let mut spans = vec![
             Span::styled("Filter: ", theme.input.prompt.to_style()),
-            Span::raw(app.filter_input.value()),
-            Span::styled("█", theme.input.cursor.to_style()),
+            Span::raw(before),
+            Span::styled(cursor_ch, theme.input.cursor.to_style()),
+            Span::raw(after),
         ];
 
         if let Some(ref err) = app.filter_error {

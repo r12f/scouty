@@ -144,37 +144,23 @@ fn render_footer(frame: &mut Frame, app: &App, area: Rect) {
                 frame,
                 line2_area,
                 "[FILTER]",
-                app.filter_input.value(),
+                &app.filter_input,
                 app.filter_error.as_deref(),
                 app,
             );
         }
         InputMode::Search => {
-            render_input_line2(
-                frame,
-                line2_area,
-                "[SEARCH]",
-                app.search_input.value(),
-                None,
-                app,
-            );
+            render_input_line2(frame, line2_area, "[SEARCH]", &app.search_input, None, app);
         }
         InputMode::GotoLine => {
-            render_input_line2(
-                frame,
-                line2_area,
-                "[GOTO]",
-                app.goto_input.value(),
-                None,
-                app,
-            );
+            render_input_line2(frame, line2_area, "[GOTO]", &app.goto_input, None, app);
         }
         InputMode::QuickExclude => {
             render_input_line2(
                 frame,
                 line2_area,
                 "[EXCLUDE]",
-                app.quick_filter_input.value(),
+                &app.quick_filter_input,
                 None,
                 app,
             );
@@ -184,7 +170,7 @@ fn render_footer(frame: &mut Frame, app: &App, area: Rect) {
                 frame,
                 line2_area,
                 "[INCLUDE]",
-                app.quick_filter_input.value(),
+                &app.quick_filter_input,
                 None,
                 app,
             );
@@ -194,7 +180,7 @@ fn render_footer(frame: &mut Frame, app: &App, area: Rect) {
                 frame,
                 line2_area,
                 "[HIGHLIGHT]",
-                app.highlight_input.value(),
+                &app.highlight_input,
                 None,
                 app,
             );
@@ -211,19 +197,21 @@ fn render_input_line2(
     frame: &mut Frame,
     area: Rect,
     mode: &str,
-    input: &str,
+    text_input: &crate::text_input::TextInput,
     error: Option<&str>,
     app: &App,
 ) {
     let theme = &app.theme;
+    let (before, cursor_ch, after) = text_input.render_parts();
     let mut spans = vec![
         Span::styled(
             format!(" {} ", mode),
             theme.status_bar.search_mode_label.to_style(),
         ),
         Span::raw(" "),
-        Span::raw(input),
-        Span::styled("█", theme.input.cursor.to_style()),
+        Span::raw(before),
+        Span::styled(cursor_ch, theme.input.cursor.to_style()),
+        Span::raw(after),
     ];
 
     if let Some(err) = error {

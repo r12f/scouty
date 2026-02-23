@@ -179,10 +179,18 @@ impl StatusBarWidget {
                 " [CMD] ",
                 theme.status_bar.command_mode_label.to_style(),
             ));
+            let (before, cursor_ch, after) = app.command_input.render_parts();
             spans.push(Span::styled(
-                format!(" :{}█", app.command_input),
+                format!(" :{}", before),
                 theme.dialog.text.to_style(),
             ));
+            spans.push(Span::styled(cursor_ch, theme.input.cursor.to_style()));
+            if !after.is_empty() {
+                spans.push(Span::styled(
+                    after.to_string(),
+                    theme.dialog.text.to_style(),
+                ));
+            }
         } else if app.input_mode == crate::app::InputMode::JumpForward
             || app.input_mode == crate::app::InputMode::JumpBackward
         {
@@ -195,10 +203,18 @@ impl StatusBarWidget {
                 format!(" {} ", label),
                 theme.status_bar.mode_label.to_style(),
             ));
+            let (before, cursor_ch, after) = app.time_input.render_parts();
             spans.push(Span::styled(
-                format!(" {}█", app.time_input),
+                format!(" {}", before),
                 theme.dialog.text.to_style(),
             ));
+            spans.push(Span::styled(cursor_ch, theme.input.cursor.to_style()));
+            if !after.is_empty() {
+                spans.push(Span::styled(
+                    after.to_string(),
+                    theme.dialog.text.to_style(),
+                ));
+            }
         } else {
             let (mode_label, mode_style) = if app.follow_mode {
                 ("[FOLLOW]", theme.status_bar.mode_follow.to_style())

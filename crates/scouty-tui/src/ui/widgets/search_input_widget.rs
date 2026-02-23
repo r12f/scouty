@@ -19,10 +19,12 @@ pub struct SearchInputWidget;
 impl SearchInputWidget {
     pub fn render_with_app(&self, frame: &mut Frame, area: Rect, app: &App) {
         let theme = &app.theme;
+        let (before, cursor_ch, after) = app.search_input.render_parts();
         let input_line = Paragraph::new(Line::from(vec![
             Span::styled("/", theme.input.prompt.to_style()),
-            Span::raw(app.search_input.value()),
-            Span::styled("█", theme.input.cursor.to_style()),
+            Span::raw(before),
+            Span::styled(cursor_ch, theme.input.cursor.to_style()),
+            Span::raw(after),
         ]));
         frame.render_widget(input_line, area);
     }
