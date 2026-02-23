@@ -35,27 +35,46 @@ impl LogTableWidget {
         let cw = &app.col_widths;
         let vis_cols = app.column_config.visible_columns();
 
+        let sep_style = Style::default().fg(Color::DarkGray);
+
         let widths: Vec<Constraint> = vis_cols
             .iter()
-            .map(|col| match col {
-                Column::Time => Constraint::Length(cw[0]),
-                Column::Level => Constraint::Length(cw[1]),
-                Column::Hostname => Constraint::Length(20),
-                Column::Container => Constraint::Length(15),
-                Column::Context => Constraint::Length(25),
-                Column::Function => Constraint::Length(10),
-                Column::ProcessName => Constraint::Length(cw[2]),
-                Column::Pid => Constraint::Length(cw[3]),
-                Column::Tid => Constraint::Length(cw[4]),
-                Column::Component => Constraint::Length(cw[5]),
-                Column::Source => Constraint::Length(15),
-                Column::Log => Constraint::Fill(1),
+            .enumerate()
+            .flat_map(|(i, col)| {
+                let w = match col {
+                    Column::Time => Constraint::Length(cw[0]),
+                    Column::Level => Constraint::Length(cw[1]),
+                    Column::Hostname => Constraint::Length(20),
+                    Column::Container => Constraint::Length(15),
+                    Column::Context => Constraint::Length(25),
+                    Column::Function => Constraint::Length(10),
+                    Column::ProcessName => Constraint::Length(cw[2]),
+                    Column::Pid => Constraint::Length(cw[3]),
+                    Column::Tid => Constraint::Length(cw[4]),
+                    Column::Component => Constraint::Length(cw[5]),
+                    Column::Source => Constraint::Length(15),
+                    Column::Log => Constraint::Fill(1),
+                };
+                if i < vis_cols.len() - 1 {
+                    vec![w, Constraint::Length(1)]
+                } else {
+                    vec![w]
+                }
             })
             .collect();
 
         let header_cells: Vec<Cell> = vis_cols
             .iter()
-            .map(|col| Cell::from(col.label()).style(Style::default().add_modifier(Modifier::BOLD)))
+            .enumerate()
+            .flat_map(|(i, col)| {
+                let cell =
+                    Cell::from(col.label()).style(Style::default().add_modifier(Modifier::BOLD));
+                if i < vis_cols.len() - 1 {
+                    vec![cell, Cell::from("│").style(sep_style)]
+                } else {
+                    vec![cell]
+                }
+            })
             .collect();
 
         let header = Row::new(header_cells).style(theme.table.header.to_style());
@@ -73,39 +92,47 @@ impl LogTableWidget {
 
                 let cells: Vec<Cell> = vis_cols
                     .iter()
-                    .map(|col| match col {
-                        Column::Time => {
-                            Cell::from(record.timestamp.format("%Y-%m-%d %H:%M:%S").to_string())
+                    .enumerate()
+                    .flat_map(|(ci, col)| {
+                        let cell = match col {
+                            Column::Time => {
+                                Cell::from(record.timestamp.format("%Y-%m-%d %H:%M:%S").to_string())
+                            }
+                            Column::Level => Cell::from(
+                                record.level.map(|l| format!("{}", l)).unwrap_or_default(),
+                            ),
+                            Column::Hostname => {
+                                Cell::from(record.hostname.as_deref().unwrap_or("").to_string())
+                            }
+                            Column::Container => {
+                                Cell::from(record.container.as_deref().unwrap_or("").to_string())
+                            }
+                            Column::Context => {
+                                Cell::from(record.context.as_deref().unwrap_or("").to_string())
+                            }
+                            Column::Function => {
+                                Cell::from(record.function.as_deref().unwrap_or("").to_string())
+                            }
+                            Column::ProcessName => {
+                                Cell::from(record.process_name.as_deref().unwrap_or("").to_string())
+                            }
+                            Column::Pid => {
+                                Cell::from(record.pid.map(|p| p.to_string()).unwrap_or_default())
+                            }
+                            Column::Tid => {
+                                Cell::from(record.tid.map(|t| t.to_string()).unwrap_or_default())
+                            }
+                            Column::Component => Cell::from(
+                                record.component_name.as_deref().unwrap_or("").to_string(),
+                            ),
+                            Column::Source => Cell::from(record.source.to_string()),
+                            Column::Log => Cell::from(record.message.clone()),
+                        };
+                        if ci < vis_cols.len() - 1 {
+                            vec![cell, Cell::from("│").style(sep_style)]
+                        } else {
+                            vec![cell]
                         }
-                        Column::Level => {
-                            Cell::from(record.level.map(|l| format!("{}", l)).unwrap_or_default())
-                        }
-                        Column::Hostname => {
-                            Cell::from(record.hostname.as_deref().unwrap_or("").to_string())
-                        }
-                        Column::Container => {
-                            Cell::from(record.container.as_deref().unwrap_or("").to_string())
-                        }
-                        Column::Context => {
-                            Cell::from(record.context.as_deref().unwrap_or("").to_string())
-                        }
-                        Column::Function => {
-                            Cell::from(record.function.as_deref().unwrap_or("").to_string())
-                        }
-                        Column::ProcessName => {
-                            Cell::from(record.process_name.as_deref().unwrap_or("").to_string())
-                        }
-                        Column::Pid => {
-                            Cell::from(record.pid.map(|p| p.to_string()).unwrap_or_default())
-                        }
-                        Column::Tid => {
-                            Cell::from(record.tid.map(|t| t.to_string()).unwrap_or_default())
-                        }
-                        Column::Component => {
-                            Cell::from(record.component_name.as_deref().unwrap_or("").to_string())
-                        }
-                        Column::Source => Cell::from(record.source.to_string()),
-                        Column::Log => Cell::from(record.message.clone()),
                     })
                     .collect();
 
@@ -140,7 +167,7 @@ impl LogTableWidget {
             })
             .collect();
 
-        let table = Table::new(rows, widths).header(header).column_spacing(1);
+        let table = Table::new(rows, widths).header(header).column_spacing(0);
         frame.render_widget(table, area);
     }
 }
