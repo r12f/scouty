@@ -22,12 +22,12 @@ Time | Log
 | Level | Color |
 |-------|-------|
 | FATAL | Red bold |
-| ERROR | Red |
-| WARN | Yellow |
-| NOTICE | Cyan |
-| INFO | Green |
-| DEBUG | Gray |
-| TRACE | Dark gray |
+| ERROR | Soft red (`#FF6B6B`) |
+| WARN | Warm yellow (`#FFD93D`) |
+| NOTICE | Soft green (`#6BCB77`) |
+| INFO | Light blue (`#4FC3F7`) |
+| DEBUG | Medium gray (`#8B8B8B`) |
+| TRACE | Dark gray (`#5C5C5C`) |
 
 ### Navigation
 
@@ -50,3 +50,4 @@ The table reads from `LogStoreView.filtered_indices` via the active view — it 
 | 2026-02-21 | Added Context/Function optional columns |
 | 2026-02-23 | Default columns changed to Time + Log only; all others optional |
 | 2026-02-23 | Add vertical separator (│) between columns |
+| 2026-02-23 | Update level colors to match new theme (softer palette) |

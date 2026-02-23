@@ -13,15 +13,15 @@ A `Theme` struct in `theme.rs` holds all color definitions, grouped by UI area:
 ```
 Theme
 ├── log_levels        # Fatal, Error, Warn, Notice, Info, Debug, Trace
-├── table             # header bg/fg, selected row, alternating row bg
-├── status_bar        # line1/line2 bg, mode label, density chart
+├── table             # header bg/fg/bold, selected row, alternating row bg, separator
+├── status_bar        # line1 bg/fg, line2 bg/fg, mode label, density chart, density label, position, cursor marker
 ├── search            # match highlight, current match
 ├── filter            # active indicator, error text
-├── dialog            # border, title, selected/unselected items
+├── dialog            # border, title, selected/unselected items, muted
 ├── detail_panel      # field name, field value, separator
-├── input             # prompt, cursor, text, background
+├── input             # prompt, cursor, text, background, error
 ├── highlight_palette # color rotation for user highlight rules
-└── general           # primary accent, secondary accent, muted, border
+└── general           # accent, muted, border
 ```
 
 ### Theme File Format (`~/.scouty/themes/<name>.yaml`)
@@ -29,60 +29,63 @@ Theme
 ```yaml
 log_levels:
   fatal: { fg: "red", bold: true }
-  error: { fg: "red" }
-  warn: { fg: "#FFD700" }           # Gold
-  notice: { fg: "cyan" }
-  info: { fg: "#00CC66" }           # Rich green
-  debug: { fg: "gray" }
-  trace: { fg: "dark_gray" }
+  error: { fg: "#FF6B6B" }          # Soft red, easy on the eyes
+  warn: { fg: "#FFD93D" }           # Warm yellow
+  notice: { fg: "#6BCB77" }         # Soft green (distinct from info)
+  info: { fg: "#4FC3F7" }           # Light blue
+  debug: { fg: "#8B8B8B" }          # Medium gray
+  trace: { fg: "#5C5C5C" }          # Dark gray
 
 table:
-  header: { fg: "white", bg: "#1A1A2E" }
-  selected: { bg: "#16213E" }
-  alternating: { bg: "#0F0F1A" }
+  header: { fg: "#B8C4CE", bg: "#1E2A38", bold: true }   # Light steel text on dark slate — clearly distinct from rows
+  selected: { bg: "#2A3F55" }       # Steel blue highlight — visible but not harsh
+  alternating: { bg: "#0D1117" }    # Very subtle dark shade (GitHub dark style)
+  separator: { fg: "#3B4252" }      # Muted separator, visible but not distracting
 
 status_bar:
-  line1: { bg: "#1A1A2E" }
-  line2: { bg: "#16213E" }
-  mode_label: { fg: "black", bg: "cyan" }
-  density_chart: { fg: "cyan" }
-  position: { fg: "white" }
+  line1: { fg: "#D4D4D4", bg: "#1B2838" }    # Density chart line: dark navy, light text
+  line2: { fg: "#A0A0A0", bg: "#0D1117" }    # Mode/shortcut line: near-black, dimmer text — clearly different from line1
+  mode_label: { fg: "#1B2838", bg: "#4FC3F7", bold: true }  # Light blue badge, dark text — pops out
+  density_chart: { fg: "#4FC3F7" }            # Light blue braille, matches accent
+  density_label: { fg: "#6B7B8D" }            # Dimmer than chart — visually secondary
+  position: { fg: "#E8E8E8" }                 # Bright white for record count
+  cursor_marker: { fg: "#FFD93D" }            # Yellow cursor position in density chart
 
 search:
-  match: { fg: "black", bg: "yellow" }
-  current_match: { fg: "black", bg: "#FF6600" }
+  match: { fg: "black", bg: "#FFD93D" }       # Yellow highlight
+  current_match: { fg: "black", bg: "#FF8C42" }  # Orange for current match
 
 dialog:
-  border: { fg: "cyan" }
+  border: { fg: "#4FC3F7" }         # Light blue border
   title: { fg: "white", bold: true }
-  selected: { fg: "white", bg: "#16213E" }
-  text: { fg: "white" }
-  muted: { fg: "dark_gray" }
+  selected: { fg: "white", bg: "#2A3F55" }
+  text: { fg: "#D4D4D4" }
+  muted: { fg: "#6B7B8D" }
 
 detail_panel:
-  field_name: { fg: "cyan" }
-  field_value: { fg: "white" }
-  separator: { fg: "dark_gray" }
+  field_name: { fg: "#4FC3F7" }     # Light blue labels
+  field_value: { fg: "#D4D4D4" }
+  separator: { fg: "#3B4252" }
 
 input:
-  prompt: { fg: "yellow" }
+  prompt: { fg: "#FFD93D" }         # Yellow prompt label
   text: { fg: "white" }
   cursor: { fg: "white" }
-  error: { fg: "red" }
-  background: { bg: "#1A1A2E" }
+  error: { fg: "#FF6B6B" }
+  background: { bg: "#1B2838" }
 
 highlight_palette:
-  - "red"
-  - "#00CC66"
-  - "#3399FF"
-  - "yellow"
-  - "magenta"
-  - "cyan"
+  - "#FF6B6B"     # Soft red
+  - "#6BCB77"     # Green
+  - "#4FC3F7"     # Light blue
+  - "#FFD93D"     # Yellow
+  - "#CE93D8"     # Lavender
+  - "#4DD0E1"     # Teal
 
 general:
-  border: { fg: "#333366" }
-  accent: { fg: "cyan" }
-  muted: { fg: "dark_gray" }
+  border: { fg: "#3B4252" }         # Nord-inspired muted border
+  accent: { fg: "#4FC3F7" }         # Light blue accent
+  muted: { fg: "#6B7B8D" }          # Readable muted text
 ```
 
 ### Color Value Formats
@@ -93,15 +96,16 @@ general:
 
 ### Default Theme
 
-Vibrant dark theme with blue/cyan accents:
+Clean dark theme with blue accents and clear visual hierarchy:
 
-- **Borders & accents**: Cyan / Blue (not gray)
-- **Status bar**: Dark teal background
-- **Log levels**: FATAL red bold, ERROR red, WARN gold, NOTICE cyan, INFO green, DEBUG gray, TRACE dark gray
-- **Selected row**: Blue highlight background
-- **Alternating rows**: Subtle dark shade difference
-- **Dialogs**: Cyan borders, blue title, clear selection highlight
+- **Status bar**: Two lines with **distinct** backgrounds — line 1 (density chart) is dark navy `#1B2838`, line 2 (mode/shortcuts) is near-black `#0D1117`. Mode label is a bold light-blue badge that pops out.
+- **Table header**: Light steel text on dark slate with bold — clearly distinguishable from data rows
+- **Selected row**: Steel blue highlight `#2A3F55` — visible but not eye-straining
+- **Log levels**: Soft, pastel-leaning colors — red for errors, warm yellow for warn, light blue for info, soft green for notice
+- **Borders & accents**: Light blue `#4FC3F7` (not pure cyan — easier on the eyes)
+- **Dialogs**: Light blue borders, clear selection highlight
 - **Input prompts**: Yellow labels, white text
+- **Muted text**: `#6B7B8D` — readable, not invisible
 
 ### Built-in Presets
 
@@ -123,3 +127,4 @@ Vibrant dark theme with blue/cyan accents:
 |------|--------|
 | 2026-02-22 | Initial theme system design |
 | 2026-02-22 | Moved theme file format and color details from config spec |
+| 2026-02-23 | Redesign default theme: distinct status bar lines, softer colors, clear visual hierarchy |
