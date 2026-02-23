@@ -2415,7 +2415,7 @@ mod copy_tests {
         config.toggle(ctr_idx);
         assert!(config.is_visible(Column::Hostname));
         assert!(config.is_visible(Column::Container));
-        assert_eq!(config.visible_columns().len(), 4); // Time + Log + Hostname + Container
+        assert_eq!(config.visible_columns().len(), 4); // 2 defaults + Hostname + Container
     }
 
     #[test]
