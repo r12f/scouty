@@ -23,7 +23,7 @@ Time | Log
 | FATAL | Red bold |
 | ERROR | Red |
 | WARN | Yellow |
-| NOTICE | Yellow (dim) |
+| NOTICE | Cyan |
 | INFO | Green |
 | DEBUG | Gray |
 | TRACE | Dark gray |
