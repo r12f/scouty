@@ -108,4 +108,52 @@ mod tests {
         assert!(!handled);
         assert_eq!(ti.value(), "");
     }
+
+    #[test]
+    fn render_parts_cursor_at_end() {
+        let ti = TextInput::with_text("abc");
+        let (before, cursor, after) = ti.render_parts();
+        assert_eq!(before, "abc");
+        assert_eq!(cursor, "█");
+        assert_eq!(after, "");
+    }
+
+    #[test]
+    fn render_parts_cursor_in_middle() {
+        let mut ti = TextInput::with_text("hello");
+        ti.move_left();
+        ti.move_left();
+        let (before, cursor, after) = ti.render_parts();
+        assert_eq!(before, "hel");
+        assert_eq!(cursor, "l");
+        assert_eq!(after, "o");
+    }
+
+    #[test]
+    fn render_parts_cursor_at_start() {
+        let mut ti = TextInput::with_text("ab");
+        ti.home();
+        let (before, cursor, after) = ti.render_parts();
+        assert_eq!(before, "");
+        assert_eq!(cursor, "a");
+        assert_eq!(after, "b");
+    }
+
+    #[test]
+    fn insert_at_cursor_middle() {
+        let mut ti = TextInput::with_text("ac");
+        ti.move_left(); // cursor before 'c'
+        ti.insert('b');
+        assert_eq!(ti.value(), "abc");
+        assert_eq!(ti.cursor_position(), 2);
+    }
+
+    #[test]
+    fn backspace_at_cursor_middle() {
+        let mut ti = TextInput::with_text("abc");
+        ti.move_left(); // cursor before 'c'
+        ti.backspace(); // delete 'b'
+        assert_eq!(ti.value(), "ac");
+        assert_eq!(ti.cursor_position(), 1);
+    }
 }

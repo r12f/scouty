@@ -173,4 +173,18 @@ impl TextInput {
     fn char_count(&self) -> usize {
         self.text.chars().count()
     }
+
+    /// Split text at cursor position for rendering.
+    /// Returns (text_before_cursor, char_at_cursor_or_block, text_after_cursor).
+    pub fn render_parts(&self) -> (&str, String, &str) {
+        let byte_pos = self.byte_pos();
+        let before = &self.text[..byte_pos];
+        if byte_pos < self.text.len() {
+            let ch = self.text[byte_pos..].chars().next().unwrap();
+            let after_pos = byte_pos + ch.len_utf8();
+            (before, ch.to_string(), &self.text[after_pos..])
+        } else {
+            (before, "█".to_string(), "")
+        }
+    }
 }
