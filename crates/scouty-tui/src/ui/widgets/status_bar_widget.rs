@@ -93,7 +93,7 @@ impl StatusBarWidget {
                 if let Some(label) = Self::time_per_column_label(cache) {
                     spans.push(Span::styled(
                         label,
-                        Style::default().fg(Color::DarkGray),
+                        ratatui::style::Style::default().fg(ratatui::style::Color::DarkGray),
                     ));
                 }
 
