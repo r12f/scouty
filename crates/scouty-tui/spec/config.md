@@ -23,6 +23,15 @@ Centralized configuration for scouty-tui: keybindings, theme selection, and gene
 theme: "default"            # Built-in: "default", "dark", "light", "solarized"
                             # Or custom: name of a file in ~/.scouty/themes/ (without .yaml)
 
+# Default paths to open when no files are specified on the command line
+# Supports multiple entries and glob patterns (e.g., *.log, /var/log/*.log)
+# Entries are processed in order; globs are expanded at runtime
+# If CLI arguments are provided, this setting is ignored
+default_paths:
+  - "/var/log/syslog"
+  - "/var/log/*.log"
+  # - "/home/me/logs/**/*.log"   # recursive glob example
+
 # General settings
 general:
   follow_on_pipe: true      # Auto-enable follow mode for stdin/pipe input
@@ -85,7 +94,13 @@ keybindings:
 
 1. Load built-in default config (compiled into binary)
 2. If `~/.scouty/config.yaml` exists, merge user config over defaults (partial overrides OK)
-3. Resolve theme (see theme spec for theme file format and built-in presets):
+3. Resolve file paths:
+   - If CLI arguments provided → use CLI files (ignore `default_paths`)
+   - If no CLI arguments and `default_paths` configured → expand globs and open matching files
+   - If no CLI arguments and no `default_paths` → fall back to platform defaults (see cli.md)
+   - Glob patterns that match no files are silently skipped
+   - If all paths resolve to no files → friendly error + usage hint
+4. Resolve theme (see theme spec for theme file format and built-in presets):
    - Built-in name → use built-in theme
    - `~/.scouty/themes/<name>.yaml` exists → load and merge over default theme
    - Otherwise → warn and fall back to default
@@ -115,6 +130,10 @@ keybindings:
 - [ ] Partial config files work (missing fields use defaults)
 - [ ] Invalid config: warn to stderr and continue with defaults
 - [ ] All existing tests pass
+- [ ] `default_paths` in config loaded when no CLI files specified
+- [ ] Glob patterns expanded correctly (*, **, ?)
+- [ ] CLI arguments take priority over `default_paths`
+- [ ] Non-matching globs silently skipped
 
 ## Change Log
 
@@ -122,3 +141,4 @@ keybindings:
 |------|--------|
 | 2026-02-22 | Initial configuration system design |
 | 2026-02-22 | Moved theme details to theme.md, kept references |
+| 2026-02-23 | Added default_paths with glob support |
