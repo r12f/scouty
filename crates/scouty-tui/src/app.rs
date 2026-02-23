@@ -551,25 +551,31 @@ impl App {
 
         // Preserve cursor: find the previous record or nearest preceding visible record
         let new_selected = if let Some(prev_idx) = prev_record_idx {
-            // Try exact match first, then nearest preceding
-            let mut best = 0;
-            for (fi, &ri) in self.filtered_indices.iter().enumerate() {
-                if ri == prev_idx {
-                    best = fi;
-                    break;
-                } else if ri < prev_idx {
-                    best = fi;
+            if self.filtered_indices.is_empty() {
+                0
+            } else {
+                // Use partition_point (binary search) since filtered_indices is sorted
+                let pos = self.filtered_indices.partition_point(|&ri| ri <= prev_idx);
+                if pos > 0 && self.filtered_indices[pos - 1] == prev_idx {
+                    // Exact match — record is still visible
+                    pos - 1
+                } else if pos > 0 {
+                    // Nearest preceding visible record
+                    pos - 1
                 } else {
-                    break; // filtered_indices is sorted, no need to continue
+                    // No preceding records — fall back to first row
+                    0
                 }
             }
-            best
         } else {
             0
         };
 
         self.selected = new_selected;
-        self.scroll_offset = self.selected.saturating_sub(10); // keep cursor roughly visible
+        // Clamp scroll_offset to keep selected row visible without guessing terminal size
+        if self.scroll_offset > self.selected {
+            self.scroll_offset = self.selected;
+        }
         self.clear_search();
         self.filter_version += 1;
     }
@@ -1829,32 +1835,59 @@ mod tests {
     #[test]
     fn test_filter_preserves_cursor_position() {
         let mut app = make_app_with_levels(&[
-            ("a", Some(LogLevel::Error)),   // idx 0
-            ("b", Some(LogLevel::Info)),    // idx 1
-            ("c", Some(LogLevel::Warn)),    // idx 2
-            ("d", Some(LogLevel::Error)),   // idx 3
-            ("e", Some(LogLevel::Info)),    // idx 4
+            ("a", Some(LogLevel::Error)), // idx 0
+            ("b", Some(LogLevel::Info)),  // idx 1
+            ("c", Some(LogLevel::Warn)),  // idx 2
+            ("d", Some(LogLevel::Error)), // idx 3
+            ("e", Some(LogLevel::Info)),  // idx 4
         ]);
 
         // Move cursor to record "c" (filtered index 2, record index 2)
         app.selected = 2;
 
-        // Apply filter that keeps only Error records → "a" (0) and "d" (3)
-        // "c" (Warn) is filtered out; nearest preceding visible is "b"? No, "b" is also filtered.
-        // Nearest preceding visible record with idx < 2 is "a" (idx 0) → filtered index 0
+        // Exclude messages containing "b" and "e" → remaining: a(0), c(2), d(3)
         app.quick_filter_input.set("b");
         app.apply_quick_exclude();
         app.quick_filter_input.set("e");
         app.apply_quick_exclude();
-        // Remaining: a(0), c(2), d(3) → cursor was on c(2), should stay on c → filtered index 1
+        // Cursor was on record "c" (idx 2), still visible → stays at filtered index 1
         assert_eq!(app.filtered_indices, vec![0, 2, 3]);
-        assert_eq!(app.selected, 1, "cursor should stay on record 'c' at filtered index 1");
+        assert_eq!(
+            app.selected, 1,
+            "cursor should stay on record 'c' at filtered index 1"
+        );
 
-        // Now exclude "c" too — cursor should move to nearest preceding: "a" at filtered index 0
+        // Now exclude "c" too → remaining: a(0), d(3)
+        // Record "c" filtered out, nearest preceding visible is "a" → filtered index 0
         app.quick_filter_input.set("c");
         app.apply_quick_exclude();
         assert_eq!(app.filtered_indices, vec![0, 3]);
-        assert_eq!(app.selected, 0, "cursor should move to nearest preceding record 'a'");
+        assert_eq!(
+            app.selected, 0,
+            "cursor should move to nearest preceding record 'a'"
+        );
+    }
+
+    #[test]
+    fn test_filter_preserves_cursor_no_preceding() {
+        let mut app = make_app_with_levels(&[
+            ("a", Some(LogLevel::Error)), // idx 0
+            ("b", Some(LogLevel::Info)),  // idx 1
+            ("c", Some(LogLevel::Warn)),  // idx 2
+        ]);
+
+        // Cursor on first record "a" (idx 0)
+        app.selected = 0;
+
+        // Exclude "a" → remaining: b(1), c(2)
+        // No preceding records before idx 0 → cursor goes to first row (0)
+        app.quick_filter_input.set("a");
+        app.apply_quick_exclude();
+        assert_eq!(app.filtered_indices, vec![1, 2]);
+        assert_eq!(
+            app.selected, 0,
+            "cursor should go to first row when no preceding records exist"
+        );
     }
 
     #[test]
