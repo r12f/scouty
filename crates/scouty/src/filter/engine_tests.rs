@@ -115,7 +115,7 @@ mod tests {
     fn expr_filter_exclude() {
         let mut engine = FilterEngine::new();
         engine
-            .add_expr_filter(FilterAction::Exclude, r#"level = "ERROR""#)
+            .add_expr_filter(FilterAction::Exclude, r#"level == "ERROR""#)
             .unwrap();
 
         let records = vec![
@@ -130,7 +130,7 @@ mod tests {
     fn expr_filter_include() {
         let mut engine = FilterEngine::new();
         engine
-            .add_expr_filter(FilterAction::Include, r#"level = "WARN""#)
+            .add_expr_filter(FilterAction::Include, r#"level == "WARN""#)
             .unwrap();
 
         let records = vec![
@@ -146,7 +146,7 @@ mod tests {
         engine
             .add_expr_filter(
                 FilterAction::Include,
-                r#"level = "ERROR" OR level = "FATAL""#,
+                r#"level == "ERROR" OR level == "FATAL""#,
             )
             .unwrap();
         engine
@@ -166,7 +166,7 @@ mod tests {
     #[test]
     fn expr_filter_invalid_expression() {
         let mut engine = FilterEngine::new();
-        let result = engine.add_expr_filter(FilterAction::Include, r#"level = "#);
+        let result = engine.add_expr_filter(FilterAction::Include, r#"level == "#);
         assert!(result.is_err());
     }
 

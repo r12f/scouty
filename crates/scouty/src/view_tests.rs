@@ -61,7 +61,7 @@ mod tests {
         let store = make_store_with_records();
         let mut engine = FilterEngine::new();
         engine
-            .add_expr_filter(FilterAction::Exclude, r#"level = "ERROR""#)
+            .add_expr_filter(FilterAction::Exclude, r#"level == "ERROR""#)
             .unwrap();
 
         let mut view = LogStoreView::new(engine);
@@ -77,7 +77,7 @@ mod tests {
         let store = make_store_with_records();
         let mut engine = FilterEngine::new();
         engine
-            .add_expr_filter(FilterAction::Include, r#"level = "INFO""#)
+            .add_expr_filter(FilterAction::Include, r#"level == "INFO""#)
             .unwrap();
 
         let mut view = LogStoreView::new(engine);
@@ -93,10 +93,10 @@ mod tests {
         let mut engine = FilterEngine::new();
         // Include INFO and WARN
         engine
-            .add_expr_filter(FilterAction::Include, r#"level = "INFO""#)
+            .add_expr_filter(FilterAction::Include, r#"level == "INFO""#)
             .unwrap();
         engine
-            .add_expr_filter(FilterAction::Include, r#"level = "WARN""#)
+            .add_expr_filter(FilterAction::Include, r#"level == "WARN""#)
             .unwrap();
         // Exclude "all good"
         engine
@@ -142,7 +142,7 @@ mod tests {
         let store = make_store_with_records();
         let mut engine = FilterEngine::new();
         engine
-            .add_expr_filter(FilterAction::Include, r#"level = "FATAL""#)
+            .add_expr_filter(FilterAction::Include, r#"level == "FATAL""#)
             .unwrap();
 
         let mut view = LogStoreView::new(engine);
@@ -184,7 +184,7 @@ mod tests {
 
         let mut engine = FilterEngine::new();
         engine
-            .add_expr_filter(FilterAction::Include, r#"level = "INFO""#)
+            .add_expr_filter(FilterAction::Include, r#"level == "INFO""#)
             .unwrap();
 
         let mut view = LogStoreView::new(engine);
@@ -258,7 +258,7 @@ mod tests {
         let store = make_store_with_records();
         let mut engine = FilterEngine::new();
         engine
-            .add_expr_filter(FilterAction::Include, r#"level = "INFO""#)
+            .add_expr_filter(FilterAction::Include, r#"level == "INFO""#)
             .unwrap();
 
         let mut view = LogStoreView::new(engine);

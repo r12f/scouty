@@ -4,7 +4,7 @@ mod tests {
 
     #[test]
     fn simple_comparison() {
-        let expr = parse(r#"level = "Error""#).unwrap();
+        let expr = parse(r#"level == "Error""#).unwrap();
         assert_eq!(
             expr,
             Expr::Comparison {
@@ -17,7 +17,7 @@ mod tests {
 
     #[test]
     fn and_expression() {
-        let expr = parse(r#"level = "Error" AND component = "auth""#).unwrap();
+        let expr = parse(r#"level == "Error" AND component == "auth""#).unwrap();
         match expr {
             Expr::And(left, right) => {
                 assert_eq!(
@@ -43,7 +43,7 @@ mod tests {
 
     #[test]
     fn or_expression() {
-        let expr = parse(r#"level = "Error" OR level = "Fatal""#).unwrap();
+        let expr = parse(r#"level == "Error" OR level == "Fatal""#).unwrap();
         match expr {
             Expr::Or(left, right) => {
                 assert_eq!(
@@ -69,7 +69,8 @@ mod tests {
 
     #[test]
     fn parenthesized_expression() {
-        let expr = parse(r#"(level = "Error" OR level = "Fatal") AND component = "auth""#).unwrap();
+        let expr =
+            parse(r#"(level == "Error" OR level == "Fatal") AND component == "auth""#).unwrap();
         match expr {
             Expr::And(left, right) => {
                 assert!(matches!(*left, Expr::Or(_, _)));
@@ -88,7 +89,7 @@ mod tests {
 
     #[test]
     fn not_expression() {
-        let expr = parse(r#"NOT level = "Debug""#).unwrap();
+        let expr = parse(r#"NOT level == "Debug""#).unwrap();
         match expr {
             Expr::Not(inner) => {
                 assert_eq!(
@@ -106,7 +107,7 @@ mod tests {
 
     #[test]
     fn nested_not() {
-        let expr = parse(r#"NOT NOT level = "Info""#).unwrap();
+        let expr = parse(r#"NOT NOT level == "Info""#).unwrap();
         match expr {
             Expr::Not(inner) => assert!(matches!(*inner, Expr::Not(_))),
             _ => panic!("Expected nested Not"),
@@ -116,7 +117,7 @@ mod tests {
     #[test]
     fn all_operators() {
         for (op_str, expected_op) in &[
-            ("=", Op::Eq),
+            ("==", Op::Eq),
             ("!=", Op::Ne),
             (">", Op::Gt),
             (">=", Op::Ge),
@@ -143,7 +144,7 @@ mod tests {
     #[test]
     fn and_has_higher_precedence_than_or() {
         // "a OR b AND c" should parse as "a OR (b AND c)"
-        let expr = parse(r#"level = "A" OR level = "B" AND level = "C""#).unwrap();
+        let expr = parse(r#"level == "A" OR level == "B" AND level == "C""#).unwrap();
         match expr {
             Expr::Or(_, right) => assert!(matches!(*right, Expr::And(_, _))),
             _ => panic!("Expected OR at top level"),
@@ -165,7 +166,7 @@ mod tests {
 
     #[test]
     fn metadata_dot_field() {
-        let expr = parse(r#"metadata.env = "prod""#).unwrap();
+        let expr = parse(r#"metadata.env == "prod""#).unwrap();
         assert_eq!(
             expr,
             Expr::Comparison {
@@ -178,7 +179,7 @@ mod tests {
 
     #[test]
     fn complex_nested() {
-        let expr = parse(r#"(level = "Error" OR level = "Fatal") AND (component = "auth" OR component = "db") AND NOT source = "test""#).unwrap();
+        let expr = parse(r#"(level == "Error" OR level == "Fatal") AND (component == "auth" OR component == "db") AND NOT source == "test""#).unwrap();
         // Should parse without error
         assert!(matches!(expr, Expr::And(_, _)));
     }
@@ -195,12 +196,12 @@ mod tests {
 
     #[test]
     fn unclosed_paren_error() {
-        assert!(parse(r#"(level = "Error""#).is_err());
+        assert!(parse(r#"(level == "Error""#).is_err());
     }
 
     #[test]
     fn single_quotes() {
-        let expr = parse("level = 'Error'").unwrap();
+        let expr = parse("level == 'Error'").unwrap();
         assert_eq!(
             expr,
             Expr::Comparison {
@@ -209,5 +210,10 @@ mod tests {
                 value: "Error".into()
             }
         );
+    }
+
+    #[test]
+    fn single_equals_is_error() {
+        assert!(parse(r#"level = "Error""#).is_err());
     }
 }

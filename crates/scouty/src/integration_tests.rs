@@ -76,7 +76,7 @@ mod tests {
         session.add_loader(Box::new(FileLoader::new(path, false)), group);
         session
             .filter_engine_mut()
-            .add_expr_filter(FilterAction::Include, "level = ERROR")
+            .add_expr_filter(FilterAction::Include, "level == ERROR")
             .unwrap();
 
         let filtered = session.run().unwrap();
@@ -110,7 +110,7 @@ mod tests {
         // Include only ERROR and WARN, then exclude messages containing "Fatal"
         session
             .filter_engine_mut()
-            .add_expr_filter(FilterAction::Include, "level = ERROR OR level = WARN")
+            .add_expr_filter(FilterAction::Include, "level == ERROR OR level == WARN")
             .unwrap();
         session
             .filter_engine_mut()
@@ -195,7 +195,7 @@ random garbage
         // Now add a filter and get filtered view without re-running load
         session
             .filter_engine_mut()
-            .add_expr_filter(FilterAction::Include, "level = ERROR")
+            .add_expr_filter(FilterAction::Include, "level == ERROR")
             .unwrap();
         session.refresh_active_view();
         let view = session.filtered_view();
@@ -355,7 +355,7 @@ random garbage
         // Now filter
         session
             .filter_engine_mut()
-            .add_expr_filter(FilterAction::Include, "level = ERROR")
+            .add_expr_filter(FilterAction::Include, "level == ERROR")
             .unwrap();
 
         session.refresh_active_view();
