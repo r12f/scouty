@@ -59,8 +59,9 @@ jobs:
           echo "version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
           echo "tag=v$NEW_VERSION" >> "$GITHUB_OUTPUT"
 
-          # Update workspace Cargo.toml
-          sed -i "s/^version = \"$CURRENT\"/version = \"$NEW_VERSION\"/" Cargo.toml
+          # Update workspace Cargo.toml (package version and dependency version)
+          sed -i "0,/^version = \"$CURRENT\"/s/^version = \"$CURRENT\"/version = \"$NEW_VERSION\"/" Cargo.toml
+          sed -i "s/scouty = { path = \"crates\/scouty\", version = \"$CURRENT\" }/scouty = { path = \"crates\/scouty\", version = \"$NEW_VERSION\" }/" Cargo.toml
 
           # Update Cargo.lock
           cargo generate-lockfile
