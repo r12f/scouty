@@ -59,11 +59,42 @@ fn resolve_default_files() -> Result<Vec<String>, Box<dyn std::error::Error>> {
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = std::env::args().collect();
     let piped = stdin_is_pipe();
-    let file_args: Vec<String> = if args.len() >= 2 {
-        args[1..].to_vec()
-    } else {
-        Vec::new()
-    };
+
+    // Parse CLI flags
+    let mut theme_override: Option<String> = None;
+    let mut file_args: Vec<String> = Vec::new();
+    let mut i = 1;
+    while i < args.len() {
+        match args[i].as_str() {
+            "--theme" => {
+                if i + 1 < args.len() {
+                    theme_override = Some(args[i + 1].clone());
+                    i += 2;
+                } else {
+                    eprintln!("Error: --theme requires a value");
+                    std::process::exit(1);
+                }
+            }
+            arg if arg.starts_with("--theme=") => {
+                theme_override = Some(arg.trim_start_matches("--theme=").to_string());
+                i += 1;
+            }
+            "--help" | "-h" => {
+                eprintln!("Usage: scouty-tui [OPTIONS] [FILES...]");
+                eprintln!();
+                eprintln!("Options:");
+                eprintln!(
+                    "  --theme <name>  Override theme (default, dark, light, solarized, or custom)"
+                );
+                eprintln!("  -h, --help      Show this help");
+                std::process::exit(0);
+            }
+            _ => {
+                file_args.push(args[i].clone());
+                i += 1;
+            }
+        }
+    }
 
     // pipe + file args are mutually exclusive
     if piped && !file_args.is_empty() {
@@ -163,7 +194,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Apply theme from config
     {
-        app.theme = config::resolve_theme(&cfg, None);
+        app.theme = config::resolve_theme(&cfg, theme_override.as_deref());
     }
 
     loop {
