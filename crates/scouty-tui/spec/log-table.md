@@ -12,6 +12,7 @@ The main log table widget displays parsed log records in a scrollable, column-ba
 Time | Log
 
 - **Log** column auto-fills remaining width
+- **Column separator**: a vertical line (`│`) is displayed between adjacent columns for visual clarity
 - Column widths adapt to content
 - Empty fields display blank
 - Optional columns (via `c` selector): Level, ProcessName, Pid, Tid, Component, Hostname, Container, Context, Function, Source (all hidden by default)
@@ -48,3 +49,4 @@ The table reads from `LogStoreView.filtered_indices` via the active view — it 
 | 2026-02-20 | Added Hostname/Container optional columns |
 | 2026-02-21 | Added Context/Function optional columns |
 | 2026-02-23 | Default columns changed to Time + Log only; all others optional |
+| 2026-02-23 | Add vertical separator (│) between columns |
