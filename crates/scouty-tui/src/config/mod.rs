@@ -20,6 +20,27 @@ pub struct Config {
     /// Keybinding overrides.
     #[serde(default)]
     pub keybindings: crate::keybinding::KeybindingConfig,
+    /// General settings.
+    pub general: GeneralConfig,
+}
+
+/// General settings section.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
+pub struct GeneralConfig {
+    /// Auto-enable follow mode when reading from pipe/stdin.
+    pub follow_on_pipe: bool,
+    /// Detail panel height ratio (0.0 - 1.0).
+    pub detail_panel_ratio: f64,
+}
+
+impl Default for GeneralConfig {
+    fn default() -> Self {
+        Self {
+            follow_on_pipe: true,
+            detail_panel_ratio: 0.3,
+        }
+    }
 }
 
 impl Default for Config {
@@ -27,6 +48,7 @@ impl Default for Config {
         Self {
             theme: "default".to_string(),
             keybindings: crate::keybinding::KeybindingConfig::default(),
+            general: GeneralConfig::default(),
         }
     }
 }
