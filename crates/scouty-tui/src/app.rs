@@ -1247,6 +1247,7 @@ impl App {
         }
     }
     /// Generate default save filename based on current time.
+    #[allow(dead_code)]
     pub fn default_save_filename() -> String {
         let now = chrono::Local::now();
         now.format("filtered_%Y%m%d_%H%M%S.log").to_string()
@@ -1260,13 +1261,12 @@ impl App {
         }
 
         if input == "w" {
-            // :w with no filename → default
-            let filename = Self::default_save_filename();
-            self.save_to_file(&filename);
+            // :w with no filename → show usage error
+            self.set_status("Usage: :w <filename>".to_string());
         } else if let Some(filename) = input.strip_prefix("w ") {
             let filename = filename.trim().to_string();
             if filename.is_empty() {
-                self.save_to_file(&Self::default_save_filename());
+                self.set_status("Usage: :w <filename>".to_string());
             } else {
                 self.save_to_file(&filename);
             }
@@ -2632,14 +2632,13 @@ mod command_tests {
         }
     }
     #[test]
-    fn test_command_w_default_filename() {
+    fn test_command_w_no_filename_shows_usage() {
         let mut app = make_command_app();
         app.command_input.set("w");
         app.execute_command();
-        // Should set a status message about saving
         assert!(app.status_message.is_some());
         let msg = app.status_message.as_ref().unwrap();
-        assert!(msg.contains("Saved 2 records") || msg.contains("Save failed"));
+        assert!(msg.contains("Usage: :w <filename>"));
         assert!(!app.should_quit);
     }
 
