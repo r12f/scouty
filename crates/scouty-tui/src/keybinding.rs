@@ -57,9 +57,15 @@ pub enum Action {
     CloseDetail,
 }
 
-/// Parse a key string like "ctrl+g", "j", "enter", "pagedown" into a KeyEvent.
+/// Parse a key string like "ctrl+g", "j", "enter", "pagedown", "plus" into a KeyEvent.
 pub fn parse_key(s: &str) -> Option<KeyEvent> {
     let s = s.trim();
+
+    // Special-case: lone "+" or alias "plus"
+    if s == "+" || s.eq_ignore_ascii_case("plus") {
+        return Some(KeyEvent::new(KeyCode::Char('+'), KeyModifiers::NONE));
+    }
+
     let mut modifiers = KeyModifiers::empty();
 
     // Split on '+' but preserve case for the key part
@@ -107,8 +113,14 @@ pub fn parse_key(s: &str) -> Option<KeyEvent> {
 
 /// Normalize a KeyEvent for consistent lookup (strip release/repeat kind).
 fn normalize_key(key: &KeyEvent) -> (KeyCode, KeyModifiers) {
-    // Only keep CONTROL, ALT, SHIFT modifiers for lookup
-    let mods = key.modifiers & (KeyModifiers::CONTROL | KeyModifiers::ALT | KeyModifiers::SHIFT);
+    let mut mods = key.modifiers & (KeyModifiers::CONTROL | KeyModifiers::ALT | KeyModifiers::SHIFT);
+
+    // For character input, treat SHIFT as part of the character (e.g. 'G' vs 'g'),
+    // so normalize away the SHIFT modifier to make lookups consistent.
+    if matches!(key.code, KeyCode::Char(_)) {
+        mods.remove(KeyModifiers::SHIFT);
+    }
+
     (key.code, mods)
 }
 

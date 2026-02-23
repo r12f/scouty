@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
     use crate::keybinding::*;
-    use crossterm::event::{KeyCode, KeyModifiers};
+    use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
     #[test]
     fn test_parse_key_simple_char() {
@@ -121,5 +121,30 @@ move_down: ["j", "down"]
         assert!(config.quit.is_some());
         assert!(config.move_down.is_some());
         assert!(config.filter.is_none()); // not specified — will use default
+    }
+
+    #[test]
+    fn test_parse_key_plus() {
+        let key = parse_key("+").unwrap();
+        assert_eq!(key.code, KeyCode::Char('+'));
+        assert_eq!(key.modifiers, KeyModifiers::NONE);
+
+        let key2 = parse_key("plus").unwrap();
+        assert_eq!(key2.code, KeyCode::Char('+'));
+    }
+
+    #[test]
+    fn test_shift_normalized_for_char() {
+        let keymap = Keymap::default_keymap();
+        // Uppercase 'G' with SHIFT modifier should still match ScrollToBottom
+        let g_shifted = KeyEvent::new(KeyCode::Char('G'), KeyModifiers::SHIFT);
+        assert_eq!(keymap.action(&g_shifted), Some(Action::ScrollToBottom));
+    }
+
+    #[test]
+    fn test_field_include_plus_key() {
+        let keymap = Keymap::default_keymap();
+        let plus = KeyEvent::new(KeyCode::Char('+'), KeyModifiers::NONE);
+        assert_eq!(keymap.action(&plus), Some(Action::FieldInclude));
     }
 }
