@@ -1271,10 +1271,15 @@ impl App {
         }
     }
     /// Generate default save filename based on current time.
-    #[allow(dead_code)]
     pub fn default_save_filename() -> String {
         let now = chrono::Local::now();
         now.format("filtered_%Y%m%d_%H%M%S.log").to_string()
+    }
+
+    /// Export filtered records to a file with an auto-generated filename (Ctrl+s).
+    pub fn export_with_default_filename(&mut self) {
+        let filename = Self::default_save_filename();
+        self.save_to_file(&filename);
     }
 
     /// Execute a command entered in command mode.
