@@ -528,6 +528,9 @@ impl App {
 
     /// Re-apply all active filters to compute filtered_indices.
     pub fn reapply_filters(&mut self) {
+        // Remember the record index at the current cursor position
+        let prev_record_idx = self.filtered_indices.get(self.selected).copied();
+
         self.filtered_indices = (0..self.records.len())
             .filter(|&i| {
                 let record = &self.records[i];
@@ -545,8 +548,28 @@ impl App {
             .collect();
 
         self.col_widths = Self::compute_col_widths(&self.records, &self.filtered_indices);
-        self.scroll_offset = 0;
-        self.selected = 0;
+
+        // Preserve cursor: find the previous record or nearest preceding visible record
+        let new_selected = if let Some(prev_idx) = prev_record_idx {
+            // Try exact match first, then nearest preceding
+            let mut best = 0;
+            for (fi, &ri) in self.filtered_indices.iter().enumerate() {
+                if ri == prev_idx {
+                    best = fi;
+                    break;
+                } else if ri < prev_idx {
+                    best = fi;
+                } else {
+                    break; // filtered_indices is sorted, no need to continue
+                }
+            }
+            best
+        } else {
+            0
+        };
+
+        self.selected = new_selected;
+        self.scroll_offset = self.selected.saturating_sub(10); // keep cursor roughly visible
         self.clear_search();
         self.filter_version += 1;
     }
@@ -1801,6 +1824,37 @@ mod tests {
         app.clear_filters();
         assert_eq!(app.filters.len(), 0);
         assert_eq!(app.filtered_indices.len(), 3);
+    }
+
+    #[test]
+    fn test_filter_preserves_cursor_position() {
+        let mut app = make_app_with_levels(&[
+            ("a", Some(LogLevel::Error)),   // idx 0
+            ("b", Some(LogLevel::Info)),    // idx 1
+            ("c", Some(LogLevel::Warn)),    // idx 2
+            ("d", Some(LogLevel::Error)),   // idx 3
+            ("e", Some(LogLevel::Info)),    // idx 4
+        ]);
+
+        // Move cursor to record "c" (filtered index 2, record index 2)
+        app.selected = 2;
+
+        // Apply filter that keeps only Error records → "a" (0) and "d" (3)
+        // "c" (Warn) is filtered out; nearest preceding visible is "b"? No, "b" is also filtered.
+        // Nearest preceding visible record with idx < 2 is "a" (idx 0) → filtered index 0
+        app.quick_filter_input.set("b");
+        app.apply_quick_exclude();
+        app.quick_filter_input.set("e");
+        app.apply_quick_exclude();
+        // Remaining: a(0), c(2), d(3) → cursor was on c(2), should stay on c → filtered index 1
+        assert_eq!(app.filtered_indices, vec![0, 2, 3]);
+        assert_eq!(app.selected, 1, "cursor should stay on record 'c' at filtered index 1");
+
+        // Now exclude "c" too — cursor should move to nearest preceding: "a" at filtered index 0
+        app.quick_filter_input.set("c");
+        app.apply_quick_exclude();
+        assert_eq!(app.filtered_indices, vec![0, 3]);
+        assert_eq!(app.selected, 0, "cursor should move to nearest preceding record 'a'");
     }
 
     #[test]
