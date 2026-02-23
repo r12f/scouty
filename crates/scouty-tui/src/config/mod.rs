@@ -17,12 +17,16 @@ use std::path::PathBuf;
 pub struct Config {
     /// Theme name: "default" or a custom theme file name (without .yaml).
     pub theme: String,
+    /// Keybinding overrides.
+    #[serde(default)]
+    pub keybindings: crate::keybinding::KeybindingConfig,
 }
 
 impl Default for Config {
     fn default() -> Self {
         Self {
             theme: "default".to_string(),
+            keybindings: crate::keybinding::KeybindingConfig::default(),
         }
     }
 }
