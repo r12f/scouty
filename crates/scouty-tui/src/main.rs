@@ -192,9 +192,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     };
 
-    // Apply theme from config
+    // Apply config settings
     {
         app.theme = config::resolve_theme(&cfg, theme_override.as_deref());
+
+        // Apply general settings
+        if piped && cfg.general.follow_on_pipe {
+            app.follow_mode = true;
+            app.scroll_to_bottom();
+        }
+        app.detail_panel_ratio = cfg.general.detail_panel_ratio.clamp(0.1, 0.9);
     }
 
     loop {
