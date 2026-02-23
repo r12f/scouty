@@ -113,7 +113,8 @@ pub fn parse_key(s: &str) -> Option<KeyEvent> {
 
 /// Normalize a KeyEvent for consistent lookup (strip release/repeat kind).
 fn normalize_key(key: &KeyEvent) -> (KeyCode, KeyModifiers) {
-    let mut mods = key.modifiers & (KeyModifiers::CONTROL | KeyModifiers::ALT | KeyModifiers::SHIFT);
+    let mut mods =
+        key.modifiers & (KeyModifiers::CONTROL | KeyModifiers::ALT | KeyModifiers::SHIFT);
 
     // For character input, treat SHIFT as part of the character (e.g. 'G' vs 'g'),
     // so normalize away the SHIFT modifier to make lookups consistent.
