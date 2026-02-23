@@ -16,6 +16,7 @@ pub fn render(frame: &mut Frame, app: &mut App) {
         .split(area);
 
     // Body: log table + optional detail panel
+    let table_area;
     if app.detail_open {
         let detail_height = if let Some(record) = app.selected_record() {
             use crate::ui::widgets::detail_panel_widget::field_count;
@@ -32,15 +33,16 @@ pub fn render(frame: &mut Frame, app: &mut App) {
             .direction(Direction::Vertical)
             .constraints([Constraint::Min(3), Constraint::Length(detail_height)])
             .split(main_chunks[0]);
-        // Set visible_rows from actual table area (height - 1 for header row)
-        app.visible_rows = body_chunks[0].height.saturating_sub(1).max(1) as usize;
+        table_area = body_chunks[0];
         render_log_table(frame, app, body_chunks[0]);
         render_detail_panel(frame, app, body_chunks[1]);
     } else {
-        // Set visible_rows from actual table area (height - 1 for header row)
-        app.visible_rows = main_chunks[0].height.saturating_sub(1).max(1) as usize;
+        table_area = main_chunks[0];
         render_log_table(frame, app, main_chunks[0]);
     }
+
+    // Compute visible_rows once from the actual table area (height - 1 for header row)
+    app.visible_rows = table_area.height.saturating_sub(1).max(1) as usize;
 
     render_footer(frame, app, main_chunks[1]);
 
