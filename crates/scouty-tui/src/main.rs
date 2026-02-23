@@ -3,12 +3,13 @@
 mod app;
 pub mod config;
 mod density;
+pub mod keybinding;
 pub mod text_input;
 mod ui;
 
 use app::{App, InputMode};
 use crossterm::{
-    event::{self, Event, KeyCode, KeyEventKind, KeyModifiers},
+    event::{self, Event, KeyCode, KeyEventKind},
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
     ExecutableCommand,
 };
@@ -97,6 +98,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
 
     let files: Vec<&str> = files.iter().map(|s| s.as_str()).collect();
+
+    // Build keymap before entering TUI mode so any warnings are visible on stderr
+    let keymap = keybinding::Keymap::default_keymap();
 
     // Enter TUI mode first so the user sees a loading screen immediately
     enable_raw_mode()?;
@@ -210,133 +214,116 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
 
                 app.clear_status();
-                let ctrl = key.modifiers.contains(KeyModifiers::CONTROL);
 
                 match app.input_mode {
                     InputMode::Normal => {
-                        if ctrl {
-                            match key.code {
-                                KeyCode::Down => app.page_down(),
-                                KeyCode::Up => app.page_up(),
-                                KeyCode::Char('j') => {
-                                    app.page_down();
-                                }
-                                KeyCode::Char('k') => {
-                                    app.page_up();
-                                }
-                                KeyCode::Char('g') => {
-                                    app.input_mode = InputMode::GotoLine;
-                                    app.goto_input.clear();
-                                }
-                                KeyCode::Char('f') => {
-                                    app.input_mode = InputMode::FilterManager;
-                                    app.filter_manager_cursor = 0;
-                                }
-                                KeyCode::Char(']') => {
-                                    app.toggle_follow();
-                                }
-                                _ => {}
-                            }
-                        } else {
-                            match key.code {
-                                KeyCode::Char('q') => {
+                        use keybinding::Action;
+                        if let Some(action) = keymap.action(&key) {
+                            match action {
+                                Action::Quit => {
                                     should_break = true;
                                     break;
                                 }
-                                KeyCode::Esc => {
+                                Action::CloseDetail => {
                                     if app.detail_open {
                                         app.detail_open = false;
                                     }
                                 }
-                                KeyCode::Down | KeyCode::Char('j') => app.select_down(1),
-                                KeyCode::Up | KeyCode::Char('k') => app.select_up(1),
-                                KeyCode::PageDown => app.page_down(),
-                                KeyCode::PageUp => app.page_up(),
-                                KeyCode::Home | KeyCode::Char('g') => app.scroll_to_top(),
-                                KeyCode::End | KeyCode::Char('G') => app.scroll_to_bottom(),
-                                KeyCode::Enter => app.toggle_detail(),
-                                KeyCode::Char('f') => {
+                                Action::MoveDown => app.select_down(1),
+                                Action::MoveUp => app.select_up(1),
+                                Action::PageDown => app.page_down(),
+                                Action::PageUp => app.page_up(),
+                                Action::ScrollToTop => app.scroll_to_top(),
+                                Action::ScrollToBottom => app.scroll_to_bottom(),
+                                Action::ToggleDetail => app.toggle_detail(),
+                                Action::Filter => {
                                     app.input_mode = InputMode::Filter;
                                 }
-                                KeyCode::Char('/') => {
+                                Action::Search => {
                                     app.input_mode = InputMode::Search;
                                 }
-                                KeyCode::Char(']') => {
+                                Action::JumpForward => {
                                     app.input_mode = InputMode::JumpForward;
                                     app.time_input.clear();
                                 }
-                                KeyCode::Char('[') => {
+                                Action::JumpBackward => {
                                     app.input_mode = InputMode::JumpBackward;
                                     app.time_input.clear();
                                 }
-                                KeyCode::Char('-') => {
+                                Action::QuickExclude => {
                                     app.input_mode = InputMode::QuickExclude;
                                     app.quick_filter_input.clear();
                                 }
-                                KeyCode::Char('=') => {
+                                Action::QuickInclude => {
                                     app.input_mode = InputMode::QuickInclude;
                                     app.quick_filter_input.clear();
                                 }
-                                KeyCode::Char('_') => {
+                                Action::FieldExclude => {
                                     app.open_field_filter(true);
                                 }
-                                KeyCode::Char('+') => {
+                                Action::FieldInclude => {
                                     app.open_field_filter(false);
                                 }
-                                KeyCode::Char('F') => {
+                                Action::FilterManager => {
                                     app.input_mode = InputMode::FilterManager;
                                     app.filter_manager_cursor = 0;
                                 }
-                                KeyCode::Char('n') => app.next_search_match(),
-                                KeyCode::Char('N') => app.prev_search_match(),
-                                KeyCode::Char('y') => {
+                                Action::GotoLine => {
+                                    app.input_mode = InputMode::GotoLine;
+                                    app.goto_input.clear();
+                                }
+                                Action::ToggleFollow => {
+                                    app.toggle_follow();
+                                }
+                                Action::NextMatch => app.next_search_match(),
+                                Action::PrevMatch => app.prev_search_match(),
+                                Action::CopyRaw => {
                                     if let Some(text) = app.copy_raw() {
                                         app::osc52_copy(&text);
                                     }
                                 }
-                                KeyCode::Char('Y') => {
+                                Action::CopyFormat => {
                                     app.input_mode = InputMode::CopyFormat;
                                     app.copy_format_cursor = 0;
                                 }
-                                KeyCode::Char('c') => {
+                                Action::ColumnSelector => {
                                     app.input_mode = InputMode::ColumnSelector;
                                     app.column_config.cursor = 0;
                                 }
-                                KeyCode::Char('?') => {
+                                Action::Help => {
                                     app.input_mode = InputMode::Help;
                                     app.help_scroll = 0;
                                 }
-                                KeyCode::Char(':') => {
+                                Action::Command => {
                                     app.command_input.clear();
                                     app.input_mode = InputMode::Command;
                                 }
-                                KeyCode::Char('h') => {
+                                Action::AddHighlight => {
                                     app.input_mode = InputMode::Highlight;
                                     app.highlight_input.clear();
                                 }
-                                KeyCode::Char('H') => {
+                                Action::HighlightManager => {
                                     app.input_mode = InputMode::HighlightManager;
                                     app.highlight_manager_cursor = 0;
                                 }
-                                KeyCode::Char('m') => {
+                                Action::ToggleBookmark => {
                                     app.toggle_bookmark();
                                 }
-                                KeyCode::Char('\'') => {
+                                Action::NextBookmark => {
                                     app.jump_next_bookmark();
                                 }
-                                KeyCode::Char('"') => {
+                                Action::PrevBookmark => {
                                     app.jump_prev_bookmark();
                                 }
-                                KeyCode::Char('M') => {
+                                Action::BookmarkManager => {
                                     app.input_mode = InputMode::BookmarkManager;
                                     app.bookmark_manager_cursor = 0;
                                 }
-                                KeyCode::Char('S') => {
+                                Action::Stats => {
                                     use ui::windows::stats_window::StatsData;
                                     app.cached_stats = Some(StatsData::compute(&app));
                                     app.input_mode = InputMode::Statistics;
                                 }
-                                _ => {}
                             }
                         }
                     }
