@@ -134,7 +134,7 @@ impl ParserFactory {
         // ISO timestamp + level + message: "2024-01-15 10:30:00 INFO message"
         if let Ok(p) = RegexParser::new(
             "iso-level-msg",
-            r"^(?P<timestamp>\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})?)\s+(?P<level>TRACE|DEBUG|INFO|WARN(?:ING)?|ERROR|FATAL|CRITICAL)\s+(?P<message>.*)",
+            r"^(?P<timestamp>\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})?)\s+(?P<level>TRACE|DEBUG|INFO|NOTICE|WARN(?:ING)?|ERROR|FATAL|CRITICAL)\s+(?P<message>.*)",
             None,
         ) {
             group.add_parser(Box::new(p));
@@ -152,7 +152,7 @@ impl ParserFactory {
         // Level first: "INFO 2024-01-15 10:30:00 message"
         if let Ok(p) = RegexParser::new(
             "level-iso-msg",
-            r"^(?P<level>TRACE|DEBUG|INFO|WARN(?:ING)?|ERROR|FATAL|CRITICAL)\s+(?P<timestamp>\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})?)\s+(?P<message>.*)",
+            r"^(?P<level>TRACE|DEBUG|INFO|NOTICE|WARN(?:ING)?|ERROR|FATAL|CRITICAL)\s+(?P<timestamp>\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})?)\s+(?P<message>.*)",
             None,
         ) {
             group.add_parser(Box::new(p));
