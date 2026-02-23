@@ -2170,6 +2170,9 @@ mod column_follow_tests {
         assert!(config.is_visible(Column::Time));
         assert!(config.is_visible(Column::Level));
         assert!(config.is_visible(Column::ProcessName));
+        assert!(config.is_visible(Column::Pid));
+        assert!(config.is_visible(Column::Tid));
+        assert!(config.is_visible(Column::Component));
         assert!(config.is_visible(Column::Log));
         assert!(!config.is_visible(Column::Source)); // hidden by default
     }
