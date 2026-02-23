@@ -105,7 +105,7 @@ Components notify App via return values or callbacks. App updates shared state (
 | `S` | Stats summary |
 | `]`/`[` | Relative time jump (forward/backward) |
 | `Ctrl+]` | Toggle follow mode |
-| `Ctrl+s` | Save/export to file |
+| `Ctrl+s` | Quick export filtered records to auto-named file |
 | `Esc` | Close current overlay |
 | `q` | Quit |
 | `?` | Help |

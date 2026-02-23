@@ -324,6 +324,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                     app.input_mode = InputMode::CopyFormat;
                                     app.copy_format_cursor = 0;
                                 }
+                                Action::Export => {
+                                    app.export_with_default_filename();
+                                }
                                 Action::ColumnSelector => {
                                     app.input_mode = InputMode::ColumnSelector;
                                     app.column_config.cursor = 0;

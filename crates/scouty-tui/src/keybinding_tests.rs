@@ -147,4 +147,11 @@ move_down: ["j", "down"]
         let plus = KeyEvent::new(KeyCode::Char('+'), KeyModifiers::NONE);
         assert_eq!(keymap.action(&plus), Some(Action::FieldInclude));
     }
+
+    #[test]
+    fn test_ctrl_s_export() {
+        let keymap = Keymap::default_keymap();
+        let ctrl_s = KeyEvent::new(KeyCode::Char('s'), KeyModifiers::CONTROL);
+        assert_eq!(keymap.action(&ctrl_s), Some(Action::Export));
+    }
 }

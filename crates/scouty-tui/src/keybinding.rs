@@ -49,6 +49,7 @@ pub enum Action {
     // Copy & Export
     CopyRaw,
     CopyFormat,
+    Export,
 
     // General
     Help,
@@ -160,6 +161,7 @@ pub struct KeybindingConfig {
     pub bookmark_manager: Option<KeyOrKeys>,
     pub copy_raw: Option<KeyOrKeys>,
     pub copy_format: Option<KeyOrKeys>,
+    pub export: Option<KeyOrKeys>,
     pub help: Option<KeyOrKeys>,
     pub quit: Option<KeyOrKeys>,
     pub command: Option<KeyOrKeys>,
@@ -268,6 +270,7 @@ impl KeybindingConfig {
             Action::BookmarkManager => self.bookmark_manager.as_ref(),
             Action::CopyRaw => self.copy_raw.as_ref(),
             Action::CopyFormat => self.copy_format.as_ref(),
+            Action::Export => self.export.as_ref(),
             Action::Help => self.help.as_ref(),
             Action::Quit => self.quit.as_ref(),
             Action::Command => self.command.as_ref(),
@@ -315,6 +318,8 @@ fn default_bindings() -> Vec<(Action, Vec<&'static str>)> {
         // Copy
         (Action::CopyRaw, vec!["y"]),
         (Action::CopyFormat, vec!["Y"]),
+        // Export
+        (Action::Export, vec!["ctrl+s"]),
         // General
         (Action::Help, vec!["?"]),
         (Action::Quit, vec!["q"]),
