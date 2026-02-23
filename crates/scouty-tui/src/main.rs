@@ -35,7 +35,16 @@ fn stdin_is_pipe() -> bool {
 ///
 /// On Linux, tries `/var/log/syslog` (Debian/Ubuntu) then `/var/log/messages` (RHEL/CentOS).
 /// On other platforms (macOS, Windows), prints usage and exits.
-fn resolve_default_files() -> Result<Vec<String>, Box<dyn std::error::Error>> {
+fn resolve_default_files(cfg: &config::Config) -> Result<Vec<String>, Box<dyn std::error::Error>> {
+    // Try config default_paths first
+    if !cfg.default_paths.is_empty() {
+        let expanded = config::expand_default_paths(&cfg.default_paths);
+        if !expanded.is_empty() {
+            return Ok(expanded);
+        }
+        // All patterns matched no files — fall through to platform defaults
+    }
+
     if cfg!(target_os = "linux") {
         let candidates = ["/var/log/syslog", "/var/log/messages"];
         for path in &candidates {
@@ -103,8 +112,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         std::process::exit(1);
     }
 
+    // Load config early so default_paths is available for file resolution
+    let cfg = config::load_config();
+
     let files: Vec<String> = if !piped && file_args.is_empty() {
-        resolve_default_files()?
+        resolve_default_files(&cfg)?
     } else {
         file_args
     };
@@ -131,7 +143,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let files: Vec<&str> = files.iter().map(|s| s.as_str()).collect();
 
     // Load config before entering TUI mode so warnings are visible on stderr
-    let cfg = config::load_config();
     let keymap = keybinding::Keymap::from_config(&cfg.keybindings);
 
     // Enter TUI mode first so the user sees a loading screen immediately
