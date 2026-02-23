@@ -81,8 +81,15 @@ impl StatusBarWidget {
             }
         };
 
-        let right_text = format!(" {} ", position);
-        let right_width = right_text.len() as u16;
+        let bookmark_text = if !app.bookmarks.is_empty() {
+            format!(" Bookmarks: {} ", app.bookmarks.len())
+        } else {
+            String::new()
+        };
+
+        let position_text = format!(" {} ", position);
+        let right_text = format!("{}{}", bookmark_text, position_text);
+        let right_width = UnicodeWidthStr::width(right_text.as_str()) as u16;
 
         let chart_width = area.width.saturating_sub(right_width + 2) as usize;
 
