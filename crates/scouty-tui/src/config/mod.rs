@@ -84,6 +84,11 @@ pub fn resolve_theme(config: &Config, cli_theme: Option<&str>) -> Theme {
         return Theme::default();
     }
 
+    // Check built-in presets first
+    if let Some(theme) = Theme::builtin(theme_name) {
+        return theme;
+    }
+
     // Try loading from ~/.scouty/themes/<name>.yaml
     if let Some(dir) = config_dir() {
         let theme_path = dir.join("themes").join(format!("{theme_name}.yaml"));
