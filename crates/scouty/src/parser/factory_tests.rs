@@ -280,6 +280,34 @@ mod tests {
     }
 
     #[test]
+    fn test_iso_notice_level_parsed_correctly() {
+        let info = text_loader_info(vec![
+            "2026-06-24T10:00:01Z INFO Starting application".to_string(),
+            "2026-06-24T10:00:14Z NOTICE System maintenance scheduled".to_string(),
+            "2026-06-24T10:00:15Z FATAL Out of memory".to_string(),
+        ]);
+        let group = ParserFactory::create_parser_group(&info);
+        let record = group
+            .parse(
+                "2026-06-24T10:00:14Z NOTICE System maintenance scheduled",
+                "test",
+                "loader",
+                2,
+            )
+            .unwrap();
+        assert_eq!(record.level, Some(crate::record::LogLevel::Notice));
+        assert_eq!(
+            record.timestamp,
+            chrono::NaiveDate::from_ymd_opt(2026, 6, 24)
+                .unwrap()
+                .and_hms_opt(10, 0, 14)
+                .unwrap()
+                .and_utc()
+        );
+        assert!(record.message.contains("System maintenance scheduled"));
+    }
+
+    #[test]
     fn test_swss_not_detected_as_sairedis() {
         let info = text_loader_info(vec![
             "2025-11-13.22:19:35.512358|SWITCH_TABLE:switch|SET|k:v".to_string(),
