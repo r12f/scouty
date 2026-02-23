@@ -1,6 +1,6 @@
 //! Status bar widget — 2-line bottom bar.
 //!
-//! Line 1: density chart (left) + position info (right)
+//! Line 1: density chart (left) with time-per-column label + position info (right)
 //! Line 2: mode label + shortcut hints
 
 #[cfg(test)]
@@ -28,6 +28,43 @@ fn spans_display_width(spans: &[Span]) -> usize {
 }
 
 impl StatusBarWidget {
+    /// Format the time-per-column label for the density chart.
+    /// Returns the label string (e.g. "[5s/█]") or None if not applicable.
+    fn time_per_column_label(cache: &crate::app::DensityCache) -> Option<String> {
+        if cache.num_buckets == 0 || cache.min_ts == cache.max_ts {
+            return None;
+        }
+        let range_ms = (cache.max_ts - cache.min_ts).num_milliseconds() as f64;
+        let ms_per_bucket = range_ms / cache.num_buckets as f64;
+
+        let label = if ms_per_bucket < 1000.0 {
+            format!("[{}ms/█]", ms_per_bucket.round() as u64)
+        } else if ms_per_bucket < 60_000.0 {
+            let secs = ms_per_bucket / 1000.0;
+            // Show integer if close to whole number (e.g. 5.02→5, 5.97→6), else show 1 decimal (e.g. 5.5)
+            if secs.fract() < 0.05 || secs.fract() > 0.95 {
+                format!("[{}s/█]", secs.round() as u64)
+            } else {
+                format!("[{:.1}s/█]", secs)
+            }
+        } else if ms_per_bucket < 3_600_000.0 {
+            let mins = ms_per_bucket / 60_000.0;
+            if mins.fract() < 0.05 || mins.fract() > 0.95 {
+                format!("[{}m/█]", mins.round() as u64)
+            } else {
+                format!("[{:.1}m/█]", mins)
+            }
+        } else {
+            let hours = ms_per_bucket / 3_600_000.0;
+            if hours.fract() < 0.05 || hours.fract() > 0.95 {
+                format!("[{}h/█]", hours.round() as u64)
+            } else {
+                format!("[{:.1}h/█]", hours)
+            }
+        };
+        Some(label)
+    }
+
     /// Render line 1: density chart + position info.
     pub fn render_line1(&self, frame: &mut Frame, area: Rect, app: &App) {
         let theme = &app.theme;
@@ -53,6 +90,14 @@ impl StatusBarWidget {
 
         if chart_width >= 4 && app.total() > 0 {
             if let Some(cache) = &app.density_cache {
+                // Show time-per-column label before chart
+                if let Some(label) = Self::time_per_column_label(cache) {
+                    spans.push(Span::styled(
+                        label,
+                        ratatui::style::Style::default().fg(ratatui::style::Color::DarkGray),
+                    ));
+                }
+
                 let cursor_char_idx = app.cursor_char_in_density();
 
                 for (i, ch) in cache.braille_text.chars().enumerate() {
