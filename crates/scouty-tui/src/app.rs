@@ -102,13 +102,13 @@ impl Default for ColumnConfig {
         Self {
             columns: vec![
                 (Column::Time, true),
-                (Column::Level, false),
+                (Column::Level, true),
                 (Column::Hostname, false),
                 (Column::Container, false),
-                (Column::ProcessName, false),
-                (Column::Pid, false),
-                (Column::Tid, false),
-                (Column::Component, false),
+                (Column::ProcessName, true),
+                (Column::Pid, true),
+                (Column::Tid, true),
+                (Column::Component, true),
                 (Column::Function, false),
                 (Column::Context, false),
                 (Column::Source, false),
@@ -2200,8 +2200,11 @@ mod column_follow_tests {
     fn test_default_column_config() {
         let config = ColumnConfig::default();
         assert!(config.is_visible(Column::Time));
-        assert!(!config.is_visible(Column::Level)); // hidden by default
-        assert!(!config.is_visible(Column::ProcessName)); // hidden by default
+        assert!(config.is_visible(Column::Level));
+        assert!(config.is_visible(Column::ProcessName));
+        assert!(config.is_visible(Column::Pid));
+        assert!(config.is_visible(Column::Tid));
+        assert!(config.is_visible(Column::Component));
         assert!(config.is_visible(Column::Log));
         assert!(!config.is_visible(Column::Source)); // hidden by default
     }
@@ -2209,17 +2212,17 @@ mod column_follow_tests {
     #[test]
     fn test_toggle_column() {
         let mut config = ColumnConfig::default();
-        // Find ProcessName index — hidden by default
+        // Find Hostname index — hidden by default
         let idx = config
             .columns
             .iter()
-            .position(|(c, _)| *c == Column::ProcessName)
+            .position(|(c, _)| *c == Column::Hostname)
             .unwrap();
-        assert!(!config.is_visible(Column::ProcessName));
+        assert!(!config.is_visible(Column::Hostname));
         config.toggle(idx);
-        assert!(config.is_visible(Column::ProcessName));
+        assert!(config.is_visible(Column::Hostname));
         config.toggle(idx);
-        assert!(!config.is_visible(Column::ProcessName));
+        assert!(!config.is_visible(Column::Hostname));
     }
 
     #[test]
@@ -2239,18 +2242,18 @@ mod column_follow_tests {
     fn test_visible_columns() {
         let mut config = ColumnConfig::default();
         let default_visible = config.visible_columns();
-        assert_eq!(default_visible.len(), 2); // Time + Log only
+        assert_eq!(default_visible.len(), 7); // Time+Level+ProcessName+Pid+Tid+Component+Log
 
-        // Show Level
+        // Show Hostname (hidden by default)
         let idx = config
             .columns
             .iter()
-            .position(|(c, _)| *c == Column::Level)
+            .position(|(c, _)| *c == Column::Hostname)
             .unwrap();
         config.toggle(idx);
         let visible = config.visible_columns();
-        assert_eq!(visible.len(), 3);
-        assert!(visible.contains(&Column::Level));
+        assert_eq!(visible.len(), 8);
+        assert!(visible.contains(&Column::Hostname));
     }
 
     #[test]
@@ -2263,7 +2266,7 @@ mod column_follow_tests {
             .unwrap();
         config.toggle(idx);
         assert!(config.is_visible(Column::Source));
-        assert_eq!(config.visible_columns().len(), 3); // Time + Log + Source
+        assert_eq!(config.visible_columns().len(), 8); // 7 defaults + Source
     }
 
     // ── Follow mode tests ────────────────────────────────────
@@ -2448,7 +2451,7 @@ mod copy_tests {
         config.toggle(ctr_idx);
         assert!(config.is_visible(Column::Hostname));
         assert!(config.is_visible(Column::Container));
-        assert_eq!(config.visible_columns().len(), 4); // 2 defaults + Hostname + Container
+        assert_eq!(config.visible_columns().len(), 9); // 7 defaults + Hostname + Container
     }
 
     #[test]
