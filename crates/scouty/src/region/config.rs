@@ -37,6 +37,8 @@ pub struct CompiledMatchPoint {
     pub filter_str: String,
     /// Compiled regex for metadata extraction (applied to message field).
     pub regex: Option<Regex>,
+    /// Reason template (supports `{field}` substitution from regex groups).
+    pub reason: Option<String>,
 }
 
 // --- Raw YAML structures for deserialization ---
@@ -64,6 +66,8 @@ pub struct RawMatchPoint {
     pub filter: String,
     #[serde(default)]
     pub regex: Option<String>,
+    #[serde(default)]
+    pub reason: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -111,6 +115,7 @@ fn compile_match_point(raw: &RawMatchPoint) -> Result<CompiledMatchPoint, String
         filter,
         filter_str: raw.filter.clone(),
         regex,
+        reason: raw.reason.clone(),
     })
 }
 

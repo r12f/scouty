@@ -5,6 +5,7 @@
 mod region_tests;
 
 pub mod config;
+pub mod processor;
 
 use std::collections::HashMap;
 
@@ -17,6 +18,10 @@ pub struct Region {
     pub name: String,
     /// Rendered description from template.
     pub description: Option<String>,
+    /// Rendered start point reason (e.g., "port add requested").
+    pub start_reason: Option<String>,
+    /// Rendered end point reason (e.g., "oper up").
+    pub end_reason: Option<String>,
     /// LogStore index of the start record.
     pub start_index: usize,
     /// LogStore index of the end record.
