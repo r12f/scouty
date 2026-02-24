@@ -155,9 +155,10 @@ When an end point matches:
 3. For each pending start, check if ALL `correlate` fields have equal values between start and end metadata
 4. First match wins → region is created from that start record to the current end record
 5. The matched start is consumed (removed from pending list)
-6. All log records between start and end are tagged with the region
 
 If no correlation fields are specified or all are empty, the nearest pending start is used (LIFO).
+
+**Overlap:** Regions can overlap — a single log record may belong to multiple regions simultaneously. This is why region membership is not stored on LogRecord; instead, region lookups are index-based (see below).
 
 ### Region Data Structure
 
@@ -174,17 +175,33 @@ struct Region {
 }
 ```
 
-### LogRecord Integration
+### Region Lookup (Index-based)
 
-Log records that belong to a region get tagged:
+Regions are **not** tagged on LogRecord. Instead, region membership is determined by index range queries on the RegionStore:
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `metadata["_region"]` | String | Region name (from template) |
-| `metadata["_region_type"]` | String | Region definition name |
-| `metadata["_region_pos"]` | String | Position within region: `start`, `middle`, `end`, or `start+end` (single-record region) |
+```rust
+struct RegionStore {
+    regions: Vec<Region>,  // sorted by start_index
+}
 
-This allows filtering by region: `_region == "Port Startup Ethernet0"` or `_region_type == "port_startup"`.
+impl RegionStore {
+    /// Returns all regions that contain this log record index
+    fn regions_at(&self, index: usize) -> Vec<&Region>;
+
+    /// Returns all regions of a given type
+    fn regions_by_type(&self, definition_name: &str) -> Vec<&Region>;
+
+    /// Returns all regions overlapping a time range
+    fn regions_in_range(&self, start: usize, end: usize) -> Vec<&Region>;
+}
+```
+
+**Rationale:** A single log record can belong to multiple overlapping regions (e.g., a port startup region overlapping with a SAI bulk create region). Storing region info on LogRecord would require a variable-length list per record. Index-based lookup is simpler and handles overlaps naturally.
+
+**Filtering by region in TUI/CLI:** The filter engine supports virtual fields `_region` and `_region_type` that perform RegionStore lookups:
+- `_region == "Port Startup Ethernet0"` — matches records in the index range of that specific region
+- `_region_type == "port_startup"` — matches records in any region of that type
+- These are computed fields, not stored on LogRecord
 
 ### TUI Integration
 
@@ -193,6 +210,7 @@ This allows filtering by region: `_region == "Port Startup Ethernet0"` or `_regi
 - Start records: `▶` marker in a dedicated gutter column (left of table)
 - End records: `◀` marker
 - Middle records: `│` marker (within a region)
+- Multiple overlapping regions: show marker for the innermost (most recently started) region
 - Markers colored by region type (using highlight palette rotation)
 
 #### Region Navigation
@@ -268,11 +286,11 @@ Region density chart is a **standalone floating window** (not part of the log de
 ### CLI Integration (Pipe Mode)
 
 ```bash
-# Filter by region type
+# Filter by region type (virtual field, index-based lookup)
 scouty-tui --filter '_region_type == "port_startup"' --format json app.log
 
-# Show only region start/end records
-scouty-tui --filter '_region_pos == "start" OR _region_pos == "end"' app.log
+# Filter by specific region name
+scouty-tui --filter '_region == "Port Startup Ethernet0"' app.log
 ```
 
 ### Performance Considerations
@@ -291,3 +309,4 @@ scouty-tui --filter '_region_pos == "start" OR _region_pos == "end"' app.log
 | 2026-02-24 | Initial region parsing spec — configurable start/end matching, correlation, templates |
 | 2026-02-24 | Region density chart as floating window (95%×70%), Gantt-style timeline, separate from log density bar |
 | 2026-02-24 | Start/end point reason field — each point specifies its own reason, available as {start_reason}/{end_reason} in templates |
+| 2026-02-25 | Remove LogRecord tagging — regions can overlap, use index-based RegionStore lookup instead |
