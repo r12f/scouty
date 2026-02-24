@@ -103,6 +103,7 @@ regions:
 
     # Optional: max time window between start and end (default: unlimited)
     timeout: "30s"
+    timeout_reason: "{port} did not come up within 30s"
 
   - name: "http_request"
     description: "HTTP request lifecycle"
@@ -125,6 +126,7 @@ regions:
       description: "{start_reason} → {end_reason}"
 
     timeout: "60s"
+    timeout_reason: "request {req_id} timed out"
 ```
 
 ### Config Fields
@@ -144,7 +146,8 @@ regions:
 | `regions[].correlate` | list | yes | Metadata field names that must match between start and end |
 | `regions[].template.name` | string | yes | Template string for region name (`{field}` substitution) |
 | `regions[].template.description` | string | no | Template string for region description |
-| `regions[].timeout` | string | no | Max duration between start and end (`30s`, `5m`, `1h`). Stale pending starts are discarded. Default: no timeout. |
+| `regions[].timeout` | string | no | Max duration between start and end (`30s`, `5m`, `1h`). When exceeded, a timed-out region is created (not silently discarded). Default: no timeout. |
+| `regions[].timeout_reason` | string | no | Reason template when a region is closed by timeout. Supports `{field}` substitution from start point's extracted metadata. Default: `"timeout after {timeout}"`. |
 
 ### Correlation Logic
 
@@ -168,12 +171,21 @@ struct Region {
     name: String,                   // e.g., "Port Startup Ethernet0" (from template)
     description: Option<String>,    // e.g., "port add requested → oper up" (from template)
     start_reason: Option<String>,   // e.g., "port add requested" (rendered from start point reason)
-    end_reason: Option<String>,     // e.g., "oper up" (rendered from end point reason)
+    end_reason: Option<String>,     // e.g., "oper up" or timeout_reason (rendered)
+    timed_out: bool,                // true if region was closed by timeout, not by end point match
     start_index: usize,             // LogStore index of start record
-    end_index: usize,               // LogStore index of end record
+    end_index: usize,               // LogStore index of end record (last record before timeout, or matched end)
     metadata: HashMap<String, String>,  // merged metadata from start + end
 }
 ```
+
+**Timeout behavior:**
+- When a pending start exceeds the timeout duration without matching an end point, a region is still created
+- `timed_out` is set to `true`
+- `end_index` is the last log record index within the timeout window
+- `end_reason` is rendered from `timeout_reason` template (or default `"timeout after {timeout}"`)
+- `{end_reason}` in the region template resolves to the rendered timeout_reason
+- Timed-out regions appear in Region Manager and Density Chart with distinct styling (░ dimmed bars)
 
 ### Region Lookup (Index-based)
 
@@ -298,7 +310,7 @@ scouty-tui --filter '_region == "Port Startup Ethernet0"' app.log
 - Region processor runs as a post-parse step, after records are in LogStore
 - Filter expressions compiled once at config load time
 - Regex compiled once at config load time
-- Pending start points stored in memory; `timeout` prevents unbounded growth
+- Pending start points stored in memory; `timeout` creates timed-out regions and frees pending entries
 - Large files: region detection is incremental (processes new records as they arrive)
 
 
@@ -310,3 +322,4 @@ scouty-tui --filter '_region == "Port Startup Ethernet0"' app.log
 | 2026-02-24 | Region density chart as floating window (95%×70%), Gantt-style timeline, separate from log density bar |
 | 2026-02-24 | Start/end point reason field — each point specifies its own reason, available as {start_reason}/{end_reason} in templates |
 | 2026-02-25 | Remove LogRecord tagging — regions can overlap, use index-based RegionStore lookup instead |
+| 2026-02-25 | Timeout creates timed-out regions (not silently discarded); timeout_reason template for end_reason |
