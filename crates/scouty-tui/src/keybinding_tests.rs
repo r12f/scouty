@@ -149,9 +149,9 @@ move_down: ["j", "down"]
     }
 
     #[test]
-    fn test_ctrl_s_export() {
+    fn test_s_save_dialog() {
         let keymap = Keymap::default_keymap();
-        let ctrl_s = KeyEvent::new(KeyCode::Char('s'), KeyModifiers::CONTROL);
-        assert_eq!(keymap.action(&ctrl_s), Some(Action::Export));
+        let s = KeyEvent::new(KeyCode::Char('s'), KeyModifiers::NONE);
+        assert_eq!(keymap.action(&s), Some(Action::Save));
     }
 }

@@ -99,6 +99,13 @@ pub fn render(frame: &mut Frame, app: &mut App) {
         window.render(frame, area);
     }
 
+    if app.input_mode == InputMode::SaveDialog {
+        use crate::ui::windows::save_dialog_window::SaveDialogWindow;
+        use crate::ui::UiComponent;
+        let window = SaveDialogWindow::from_app(app);
+        window.render(frame, area);
+    }
+
     // Highlight manager overlay
     if app.input_mode == InputMode::HighlightManager {
         use crate::ui::windows::highlight_manager_window::HighlightManagerWindow;

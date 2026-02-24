@@ -65,7 +65,7 @@ impl SaveDialogWindow {
         path
     }
 
-    /// Perform the export.  Returns a status message.
+    /// Perform the export. Returns a status message.
     pub fn execute_save(app: &App, path: &str, format: ExportFormat) -> String {
         let count = app.filtered_indices.len();
 
@@ -131,7 +131,7 @@ impl UiComponent for SaveDialogWindow {
 
         let mut lines = vec![Line::from("")];
 
-        // Path label + input
+        // Path label + input with cursor rendering
         let path_style = if self.focus == Focus::Path {
             t.dialog.accent.to_style()
         } else {
@@ -220,7 +220,6 @@ impl UiComponent for SaveDialogWindow {
     }
 
     fn on_confirm(&mut self) -> ComponentResult {
-        // Validate path
         let path = self.path_input.value().trim().to_string();
         if path.is_empty() {
             self.error = Some("Path required".to_string());
@@ -248,7 +247,7 @@ impl UiComponent for SaveDialogWindow {
             }
             _ if self.focus == Focus::Path => {
                 if self.path_input.handle_key(key) {
-                    self.error = None; // Clear error on input
+                    self.error = None;
                     ComponentResult::Consumed
                 } else {
                     ComponentResult::Ignored

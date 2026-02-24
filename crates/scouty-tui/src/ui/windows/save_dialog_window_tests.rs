@@ -1,56 +1,47 @@
 //! Tests for SaveDialogWindow.
 
 mod tests {
-    use super::*;
-    use crate::app::{App, ExportFormat, InputMode};
-    use crate::ui::ComponentResult;
+    use crate::app::{App, ColumnConfig, DensitySource, ExportFormat, InputMode};
+    use crate::config::Theme;
+    use crate::text_input::TextInput;
+    use crate::ui::windows::save_dialog_window::SaveDialogWindow;
+    use crate::ui::{ComponentResult, UiComponent};
+    use chrono::Utc;
     use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+    use scouty::record::{LogLevel, LogRecord};
+    use std::sync::Arc;
 
-    fn make_test_app() -> App {
-        use scouty::record::{LogLevel, LogRecord};
-        use std::sync::Arc;
+    fn make_record(id: u64, level: Option<LogLevel>, message: &str) -> LogRecord {
+        LogRecord {
+            id,
+            timestamp: Utc::now(),
+            level,
+            source: "test".into(),
+            pid: None,
+            tid: None,
+            component_name: None,
+            process_name: None,
+            message: message.to_string(),
+            hostname: None,
+            container: None,
+            context: None,
+            function: None,
+            raw: message.to_string(),
+            metadata: None,
+            loader_id: "test".into(),
+        }
+    }
 
-        let records: Vec<Arc<LogRecord>> = vec![
-            Arc::new(LogRecord {
-                id: 0,
-                timestamp: chrono::Utc::now(),
-                level: Some(LogLevel::Info),
-                source: "test".into(),
-                process_name: None,
-                pid: None,
-                tid: None,
-                component_name: None,
-                function: None,
-                hostname: None,
-                container: None,
-                context: None,
-                metadata: None,
-                message: "hello world".to_string(),
-                raw: "2026-01-01 INFO hello world".to_string(),
-                loader_id: "test".into(),
-            }),
-            Arc::new(LogRecord {
-                id: 1,
-                timestamp: chrono::Utc::now(),
-                level: Some(LogLevel::Error),
-                source: "test".into(),
-                process_name: None,
-                pid: None,
-                tid: None,
-                component_name: None,
-                function: None,
-                hostname: None,
-                container: None,
-                context: None,
-                metadata: None,
-                message: "something failed".to_string(),
-                raw: "2026-01-01 ERROR something failed".to_string(),
-                loader_id: "test".into(),
-            }),
-        ];
-
-        // Use the same full init pattern as app.rs tests
-        let n = records.len();
+    fn make_test_app(n: usize) -> App {
+        let records: Vec<Arc<LogRecord>> = (0..n)
+            .map(|i| {
+                Arc::new(make_record(
+                    i as u64,
+                    Some(LogLevel::Info),
+                    &format!("msg {}", i),
+                ))
+            })
+            .collect();
         let filtered_indices = (0..n).collect();
         App {
             records,
@@ -62,45 +53,50 @@ mod tests {
             detail_open: false,
             detail_panel_ratio: 0.3,
             input_mode: InputMode::Normal,
-            filter_input: crate::text_input::TextInput::new(),
+            filter_input: TextInput::new(),
             filter_error: None,
             filters: Vec::new(),
-            quick_filter_input: crate::text_input::TextInput::new(),
+            quick_filter_input: TextInput::new(),
             field_filter: None,
             filter_manager_cursor: 0,
-            search_input: crate::text_input::TextInput::new(),
+            search_input: TextInput::new(),
             search_matches: vec![],
             search_match_idx: None,
-            time_input: crate::text_input::TextInput::new(),
-            goto_input: crate::text_input::TextInput::new(),
+            time_input: TextInput::new(),
+            goto_input: TextInput::new(),
             status_message: None,
             status_message_at: None,
             col_widths: [19, 5, 11, 3, 3, 9],
-            column_config: crate::app::ColumnConfig::default(),
+            column_config: ColumnConfig::default(),
             follow_mode: false,
             should_quit: false,
             copy_format_cursor: 0,
-            save_path_input: crate::text_input::TextInput::with_text("./scouty-export.log"),
+            save_path_input: TextInput::with_text("./scouty-export.log"),
             save_format_cursor: 0,
             help_scroll: 0,
-            command_input: crate::text_input::TextInput::new(),
+            command_input: TextInput::new(),
             filter_version: 0,
             density_cache: None,
             highlight_rules: Vec::new(),
-            highlight_input: crate::text_input::TextInput::new(),
+            highlight_input: TextInput::new(),
             highlight_manager_cursor: 0,
             cached_stats: None,
             bookmarks: std::collections::HashSet::new(),
             bookmark_manager_cursor: 0,
-            theme: crate::config::Theme::default(),
-            density_source: crate::app::DensitySource::All,
+            theme: Theme::default(),
+            level_filter: None,
+            level_filter_cursor: 0,
+            preset_name_input: TextInput::new(),
+            preset_list: Vec::new(),
+            preset_list_cursor: 0,
+            density_source: DensitySource::All,
             density_selector_cursor: 0,
         }
     }
 
     #[test]
-    fn test_save_dialog_opens_with_defaults() {
-        let app = make_test_app();
+    fn test_save_dialog_defaults() {
+        let app = make_test_app(2);
         let window = SaveDialogWindow::from_app(&app);
         assert_eq!(window.path_input.value(), "./scouty-export.log");
         assert_eq!(window.format_cursor, 0);
@@ -110,11 +106,10 @@ mod tests {
 
     #[test]
     fn test_format_selection() {
-        let app = make_test_app();
+        let app = make_test_app(2);
         let mut window = SaveDialogWindow::from_app(&app);
         assert_eq!(window.selected_format(), ExportFormat::Raw);
 
-        // Switch to format focus and move down
         window.on_key(KeyEvent::new(KeyCode::Tab, KeyModifiers::NONE));
         window.on_down();
         assert_eq!(window.selected_format(), ExportFormat::Json);
@@ -122,7 +117,6 @@ mod tests {
         window.on_down();
         assert_eq!(window.selected_format(), ExportFormat::Yaml);
 
-        // Can't go past end
         window.on_down();
         assert_eq!(window.selected_format(), ExportFormat::Yaml);
 
@@ -132,7 +126,7 @@ mod tests {
 
     #[test]
     fn test_empty_path_error() {
-        let app = make_test_app();
+        let app = make_test_app(2);
         let mut window = SaveDialogWindow::from_app(&app);
         window.path_input.clear();
         let result = window.on_confirm();
@@ -142,8 +136,8 @@ mod tests {
     }
 
     #[test]
-    fn test_confirm_with_valid_path() {
-        let app = make_test_app();
+    fn test_confirm_valid_path() {
+        let app = make_test_app(2);
         let mut window = SaveDialogWindow::from_app(&app);
         let result = window.on_confirm();
         assert_eq!(result, ComponentResult::Close);
@@ -152,7 +146,7 @@ mod tests {
 
     #[test]
     fn test_cancel() {
-        let app = make_test_app();
+        let app = make_test_app(2);
         let mut window = SaveDialogWindow::from_app(&app);
         let result = window.on_cancel();
         assert_eq!(result, ComponentResult::Close);
@@ -161,7 +155,7 @@ mod tests {
 
     #[test]
     fn test_tilde_expansion() {
-        let app = make_test_app();
+        let app = make_test_app(2);
         let mut window = SaveDialogWindow::from_app(&app);
         window.path_input.set("~/logs/export.log");
         let path = window.expanded_path();
@@ -172,55 +166,51 @@ mod tests {
 
     #[test]
     fn test_raw_export() {
-        let app = make_test_app();
-        let tmp = std::env::temp_dir().join("scouty_test_raw_save.log");
+        let app = make_test_app(3);
+        let tmp = std::env::temp_dir().join("scouty_save_raw.log");
         let msg = SaveDialogWindow::execute_save(&app, tmp.to_str().unwrap(), ExportFormat::Raw);
-        assert!(msg.contains("Saved 2 records"));
+        assert!(msg.contains("Saved 3 records"));
+        assert!(msg.contains("raw"));
         let content = std::fs::read_to_string(&tmp).unwrap();
-        assert!(content.contains("hello world"));
-        assert!(content.contains("something failed"));
+        assert!(content.contains("msg 0"));
+        assert!(content.contains("msg 2"));
         std::fs::remove_file(&tmp).ok();
     }
 
     #[test]
     fn test_json_export() {
-        let app = make_test_app();
-        let tmp = std::env::temp_dir().join("scouty_test_save.json");
+        let app = make_test_app(2);
+        let tmp = std::env::temp_dir().join("scouty_save.json");
         let msg = SaveDialogWindow::execute_save(&app, tmp.to_str().unwrap(), ExportFormat::Json);
         assert!(msg.contains("Saved 2 records"));
         assert!(msg.contains("json"));
         let content = std::fs::read_to_string(&tmp).unwrap();
         let parsed: serde_json::Value = serde_json::from_str(&content).unwrap();
-        assert!(parsed.is_array());
         assert_eq!(parsed.as_array().unwrap().len(), 2);
         std::fs::remove_file(&tmp).ok();
     }
 
     #[test]
     fn test_yaml_export() {
-        let app = make_test_app();
-        let tmp = std::env::temp_dir().join("scouty_test_save.yaml");
+        let app = make_test_app(2);
+        let tmp = std::env::temp_dir().join("scouty_save.yaml");
         let msg = SaveDialogWindow::execute_save(&app, tmp.to_str().unwrap(), ExportFormat::Yaml);
         assert!(msg.contains("Saved 2 records"));
         assert!(msg.contains("yaml"));
         let content = std::fs::read_to_string(&tmp).unwrap();
-        assert!(content.contains("hello world"));
+        assert!(content.contains("msg 0"));
         std::fs::remove_file(&tmp).ok();
     }
 
     #[test]
     fn test_tab_switches_focus() {
-        let app = make_test_app();
+        let app = make_test_app(2);
         let mut window = SaveDialogWindow::from_app(&app);
-
-        // Initially path focused
         assert!(!window.enable_jk_navigation());
 
-        // Tab to format
         window.on_key(KeyEvent::new(KeyCode::Tab, KeyModifiers::NONE));
         assert!(window.enable_jk_navigation());
 
-        // Tab back to path
         window.on_key(KeyEvent::new(KeyCode::Tab, KeyModifiers::NONE));
         assert!(!window.enable_jk_navigation());
     }
