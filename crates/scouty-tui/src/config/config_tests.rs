@@ -108,6 +108,51 @@ mod tests {
     }
 
     #[test]
+    fn test_local_config_path_exists() {
+        // Verify local_config_path returns ./scouty.yaml
+        let path = super::super::local_config_path();
+        assert_eq!(path, std::path::PathBuf::from("./scouty.yaml"));
+    }
+
+    #[test]
+    fn test_local_config_deep_merge_priority() {
+        // Simulate local config overriding user config via deep_merge
+        let user_yaml: serde_yaml::Value =
+            serde_yaml::from_str("theme: dark\ndefault_paths:\n  - /var/log/syslog").unwrap();
+        let local_yaml: serde_yaml::Value =
+            serde_yaml::from_str("theme: solarized\ndefault_paths:\n  - ./logs/*.log").unwrap();
+        let merged = super::super::deep_merge(user_yaml, local_yaml);
+        let cfg: Config = serde_yaml::from_value(merged).unwrap();
+        assert_eq!(cfg.theme, "solarized"); // local overrides user
+        assert_eq!(cfg.default_paths, vec!["./logs/*.log"]); // list replaced
+    }
+
+    #[test]
+    fn test_local_config_overridden_by_cli_merge() {
+        // CLI config layer should override local config layer
+        let local_yaml: serde_yaml::Value =
+            serde_yaml::from_str("theme: solarized").unwrap();
+        let cli_yaml: serde_yaml::Value =
+            serde_yaml::from_str("theme: dark").unwrap();
+        let merged = super::super::deep_merge(local_yaml, cli_yaml);
+        let cfg: Config = serde_yaml::from_value(merged).unwrap();
+        assert_eq!(cfg.theme, "dark"); // CLI wins
+    }
+
+    #[test]
+    fn test_local_config_partial_deep_merge() {
+        // Local config only overrides what it specifies
+        let base = serde_yaml::to_value(Config::default()).unwrap();
+        let local_yaml: serde_yaml::Value =
+            serde_yaml::from_str("general:\n  detail_panel_ratio: 0.5").unwrap();
+        let merged = super::super::deep_merge(base, local_yaml);
+        let cfg: Config = serde_yaml::from_value(merged).unwrap();
+        assert!((cfg.general.detail_panel_ratio - 0.5).abs() < f64::EPSILON);
+        assert!(cfg.general.follow_on_pipe); // default preserved
+        assert_eq!(cfg.theme, "default"); // default preserved
+    }
+
+    #[test]
     fn test_load_config_layered_with_file() {
         let dir = std::env::temp_dir().join("scouty_test_layered");
         let _ = std::fs::create_dir_all(&dir);
