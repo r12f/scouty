@@ -26,6 +26,69 @@
 | `raw` | `String` | Original raw log text |
 | `metadata` | `Option<HashMap<String, String>>` | Extensible key-value metadata (None when empty to avoid allocation) |
 | `loader_id` | `Arc<str>` | Source loader identifier (shared) |
+| `expanded` | `Option<Vec<ExpandedField>>` | Parser-provided structured expansion of the log content (None when not applicable) |
+
+### ExpandedField
+
+A recursive tree structure for representing parsed/expanded log content:
+
+```rust
+enum ExpandedValue {
+    Text(String),                          // Simple text value
+    KeyValue(Vec<(String, ExpandedValue)>),  // Ordered key-value pairs (preserves order)
+    List(Vec<ExpandedValue>),              // Ordered list of values
+}
+
+struct ExpandedField {
+    label: String,           // Display label (e.g., "TABLE", "Attributes", "Payload")
+    value: ExpandedValue,    // The structured content
+}
+```
+
+**Design rationale:**
+- Each parser knows its own log format best — parsers provide the expansion, not the UI
+- `ExpandedValue` is recursive, supporting nested JSON objects, SWSS table→key→attrs, sairedis op→oid→attrs
+- `Option<Vec>` avoids allocation for simple log lines that don't need expansion
+- Ordering is preserved (important for readability — parsers control display order)
+
+**Examples by parser:**
+
+SWSS log `2025-01-15.10:30:45.123456|ROUTE_TABLE|Vrf1:10.0.0.0/24|SET|nexthop:10.1.1.1|ifname:Ethernet0`:
+```
+expanded:
+  - label: "Operation"
+    value: Text("SET")
+  - label: "Table"
+    value: Text("ROUTE_TABLE")
+  - label: "Key"
+    value: Text("Vrf1:10.0.0.0/24")
+  - label: "Attributes"
+    value: KeyValue([("nexthop", Text("10.1.1.1")), ("ifname", Text("Ethernet0"))])
+```
+
+Sairedis log `2025-01-15.10:30:45.123456|c|SAI_OBJECT_TYPE_ROUTE_ENTRY:...`:
+```
+expanded:
+  - label: "Operation"
+    value: Text("Create")
+  - label: "Object Type"
+    value: Text("SAI_OBJECT_TYPE_ROUTE_ENTRY")
+  - label: "OID"
+    value: Text("oid:0x5000000000612")
+  - label: "Attributes"
+    value: KeyValue([("SAI_ROUTE_ENTRY_ATTR_NEXT_HOP_ID", Text("oid:0x4000...")), ...])
+```
+
+JSON log `{"timestamp":"...","level":"ERROR","service":"auth","msg":"login failed","details":{"user":"alice","ip":"10.0.0.1"}}`:
+```
+expanded:
+  - label: "Payload"
+    value: KeyValue([
+      ("service", Text("auth")),
+      ("msg", Text("login failed")),
+      ("details", KeyValue([("user", Text("alice")), ("ip", Text("10.0.0.1"))]))
+    ])
+```
 
 ### LogLevel Enum
 
@@ -49,3 +112,4 @@ All fields (including `hostname`, `container`, `context`, `function`, and metada
 | 2026-02-20 | Added `hostname` and `container` as first-class fields |
 | 2026-02-21 | Added `context` and `function` for SWSS/sairedis support |
 | 2026-02-19 | Optimized `source`/`loader_id` to `Arc<str>`, metadata to `Option<HashMap>` |
+| 2026-02-24 | Added `expanded` field with ExpandedField/ExpandedValue tree for parser-provided structured expansion |
