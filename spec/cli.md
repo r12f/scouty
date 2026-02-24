@@ -22,6 +22,7 @@ scouty-tui [OPTIONS] [file1] [file2] ...
 | `--generate-config` | Generate default config file to stdout |
 | `--generate-theme <name>` | Generate a built-in theme file to stdout |
 | `--filter <expr>` | Apply filter expression (pipe mode, can repeat) |
+| `--filter-preset <name>` | Load a saved filter preset from `~/.scouty/filters/<name>.yaml` |
 | `--level <level>` | Minimum log level filter (pipe mode): trace/debug/info/notice/warn/error/fatal |
 | `--format <fmt>` | Output format (pipe mode): `raw` (default), `json`, `yaml`, `csv` |
 | `--fields <list>` | Comma-separated fields to include in structured output (pipe mode) |
@@ -56,6 +57,12 @@ journalctl -u myservice | scouty-tui --level error --format json
 # Force pipe mode to terminal (for quick inspection without TUI)
 scouty-tui --no-tui --level error app.log
 
+# Use a saved filter preset
+scouty-tui --filter-preset my-error-filters --format json app.log
+
+# Preset + additional filter (AND logic)
+scouty-tui --filter-preset production-noise --filter 'component == "orchagent"' app.log
+
 # SSH remote + pipe mode
 scouty-tui --format json ssh://prod:/var/log/app.log | jq '.message'
 ```
@@ -74,6 +81,14 @@ scouty-tui --format json ssh://prod:/var/log/app.log | jq '.message'
 - Special value `all` (default): include all non-empty fields
 - Metadata keys accessible by name (e.g., `--fields timestamp,level,message,request_id`)
 - `raw` format ignores `--fields` (always outputs the original line)
+
+**`--filter-preset` option:**
+- Loads all filters from `~/.scouty/filters/<name>.yaml` (same format as TUI filter presets)
+- Includes both filter expressions and level filter defined in the preset
+- Can be combined with `--filter` and `--level` (all combined with AND logic)
+- `--level` on CLI overrides the preset's `level_filter` if both are specified
+- Error if preset file not found: `Filter preset not found: ~/.scouty/filters/<name>.yaml`
+- Also works in TUI mode: launches TUI with the preset's filters pre-applied
 
 **`--filter` option:**
 - Uses the same filter expression syntax as the TUI `f` key (see filter spec)
@@ -183,3 +198,4 @@ When `name` is `list`, prints all available built-in theme names (one per line).
 | 2026-02-23 | Added --theme and --config CLI flags |
 | 2026-02-24 | Added --generate-config and --generate-theme for default config generation |
 | 2026-02-24 | Pipe output mode: --filter, --level, --format, --fields, --no-tui for non-interactive use |
+| 2026-02-24 | Added --filter-preset to load saved filter presets (works in both pipe and TUI mode) |
