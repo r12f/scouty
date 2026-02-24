@@ -8,7 +8,7 @@
 #[path = "sairedis_parser_tests.rs"]
 mod sairedis_parser_tests;
 
-use crate::record::{LogLevel, LogRecord};
+use crate::record::{ExpandedField, ExpandedValue, LogLevel, LogRecord};
 use crate::traits::LogParser;
 use chrono::{DateTime, NaiveDate, NaiveDateTime, NaiveTime, Utc};
 use std::cell::RefCell;
@@ -198,6 +198,9 @@ impl SairedisParser {
             _ => Some(LogLevel::Info),
         };
 
+        // Build expanded field
+        let expanded = build_expanded(op, &function, &component, &context, &message);
+
         Some(LogRecord {
             id,
             timestamp,
@@ -215,7 +218,7 @@ impl SairedisParser {
             raw: String::new(), // Caller sets raw
             metadata: None,
             loader_id: Arc::clone(loader_id),
-            expanded: None,
+            expanded,
         })
     }
 
@@ -382,6 +385,77 @@ impl SairedisParser {
             None => (str_from_bytes(detail), String::new()),
         }
     }
+}
+
+/// Build expanded field for sairedis entries.
+///
+/// Structure: Operation, Object Type, OID (if present), Attributes (if present),
+/// and Request Context for stateful G/Q responses.
+fn build_expanded(
+    op: u8,
+    function: &str,
+    component: &Option<String>,
+    context: &Option<String>,
+    message: &str,
+) -> Option<Vec<ExpandedField>> {
+    let mut fields = Vec::new();
+
+    // Operation (human-readable name)
+    fields.push(ExpandedField {
+        label: "Operation".to_string(),
+        value: ExpandedValue::Text(function.to_string()),
+    });
+
+    // Object Type (component_name)
+    if let Some(obj_type) = component {
+        fields.push(ExpandedField {
+            label: "Object Type".to_string(),
+            value: ExpandedValue::Text(obj_type.clone()),
+        });
+    }
+
+    // OID (context)
+    if let Some(oid) = context {
+        fields.push(ExpandedField {
+            label: "OID".to_string(),
+            value: ExpandedValue::Text(oid.clone()),
+        });
+    }
+
+    // Attributes from message (pipe-delimited "key=value" pairs)
+    if !message.is_empty() {
+        let pairs: Vec<(String, ExpandedValue)> = message
+            .split('|')
+            .filter(|s| !s.is_empty())
+            .map(|attr| {
+                if let Some(pos) = attr.find('=') {
+                    let k = &attr[..pos];
+                    let v = &attr[pos + 1..];
+                    (k.to_string(), ExpandedValue::Text(v.to_string()))
+                } else {
+                    (attr.to_string(), ExpandedValue::Text(String::new()))
+                }
+            })
+            .collect();
+
+        if !pairs.is_empty() {
+            fields.push(ExpandedField {
+                label: "Attributes".to_string(),
+                value: ExpandedValue::KeyValue(pairs),
+            });
+        }
+    }
+
+    // For G/Q responses, label includes request context already in function name
+    // Mark stateful ops
+    if matches!(op, b'G' | b'Q') && context.is_some() {
+        fields.push(ExpandedField {
+            label: "Request Context".to_string(),
+            value: ExpandedValue::Text(context.as_ref().unwrap().clone()),
+        });
+    }
+
+    Some(fields)
 }
 
 impl LogParser for SairedisParser {

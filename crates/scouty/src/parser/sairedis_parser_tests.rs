@@ -347,4 +347,113 @@ mod tests {
             assert!(rate > 500_000.0, "Too slow: {:.0} rec/sec", rate);
         }
     }
+
+    #[test]
+    fn test_expanded_create_op() {
+        let p = SairedisParser::new();
+        let r = p
+            .parse(
+                "2025-01-15.10:30:45.123456|c|SAI_OBJECT_TYPE_ROUTE_ENTRY:oid:0x1234|SAI_ROUTE_ENTRY_ATTR_NEXT_HOP_ID=oid:0x5678",
+                "test",
+                "loader",
+                1,
+            )
+            .unwrap();
+        let expanded = r.expanded.as_ref().unwrap();
+        assert_eq!(expanded[0].label, "Operation");
+        assert_eq!(
+            expanded[0].value,
+            crate::record::ExpandedValue::Text("Create".to_string())
+        );
+        assert_eq!(expanded[1].label, "Object Type");
+        assert_eq!(
+            expanded[1].value,
+            crate::record::ExpandedValue::Text("SAI_OBJECT_TYPE_ROUTE_ENTRY".to_string())
+        );
+        assert_eq!(expanded[2].label, "OID");
+        assert_eq!(
+            expanded[2].value,
+            crate::record::ExpandedValue::Text("oid:0x1234".to_string())
+        );
+        assert_eq!(expanded[3].label, "Attributes");
+        if let crate::record::ExpandedValue::KeyValue(pairs) = &expanded[3].value {
+            assert_eq!(pairs[0].0, "SAI_ROUTE_ENTRY_ATTR_NEXT_HOP_ID");
+            assert_eq!(
+                pairs[0].1,
+                crate::record::ExpandedValue::Text("oid:0x5678".to_string())
+            );
+        } else {
+            panic!("expected KeyValue for Attributes");
+        }
+    }
+
+    #[test]
+    fn test_expanded_remove_no_attrs() {
+        let p = SairedisParser::new();
+        let r = p
+            .parse(
+                "2025-01-15.10:30:45.123456|r|SAI_OBJECT_TYPE_ROUTE_ENTRY:oid:0x1234",
+                "test",
+                "loader",
+                1,
+            )
+            .unwrap();
+        let expanded = r.expanded.as_ref().unwrap();
+        assert_eq!(expanded[0].label, "Operation");
+        assert_eq!(expanded[1].label, "Object Type");
+        assert_eq!(expanded[2].label, "OID");
+        // No Attributes field
+        assert_eq!(expanded.len(), 3);
+    }
+
+    #[test]
+    fn test_expanded_get_response_stateful() {
+        let p = SairedisParser::new();
+        // First parse a 'g' to set context
+        p.parse(
+            "2025-01-15.10:30:45.123456|g|SAI_OBJECT_TYPE_SWITCH:oid:0xABCD|SAI_SWITCH_ATTR_SRC_MAC_ADDRESS=",
+            "test",
+            "loader",
+            1,
+        );
+        // Then parse 'G' response
+        let r = p
+            .parse(
+                "2025-01-15.10:30:45.123457|G|SAI_STATUS_SUCCESS|SAI_SWITCH_ATTR_SRC_MAC_ADDRESS=00:11:22:33:44:55",
+                "test",
+                "loader",
+                2,
+            )
+            .unwrap();
+        let expanded = r.expanded.as_ref().unwrap();
+        assert_eq!(expanded[0].label, "Operation");
+        assert_eq!(
+            expanded[0].value,
+            crate::record::ExpandedValue::Text("GetResponse".to_string())
+        );
+        // Should have OID from stateful context
+        let has_oid = expanded.iter().any(|f| f.label == "OID");
+        assert!(has_oid);
+        // Should have Request Context
+        let has_request_ctx = expanded.iter().any(|f| f.label == "Request Context");
+        assert!(has_request_ctx);
+    }
+
+    #[test]
+    fn test_expanded_notification() {
+        let p = SairedisParser::new();
+        let r = p
+            .parse(
+                "2025-01-15.10:30:45.123456|n|fdb_event|[{\"fdb_entry\":\"{}\",\"fdb_event\":\"SAI_FDB_EVENT_LEARNED\"}]|",
+                "test",
+                "loader",
+                1,
+            )
+            .unwrap();
+        let expanded = r.expanded.as_ref().unwrap();
+        assert_eq!(expanded[0].label, "Operation");
+        assert!(expanded[0].value.eq(&crate::record::ExpandedValue::Text(
+            "Notification: fdb_event".to_string()
+        )));
+    }
 }
