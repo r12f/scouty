@@ -362,8 +362,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                     app.input_mode = InputMode::CopyFormat;
                                     app.copy_format_cursor = 0;
                                 }
-                                Action::Export => {
-                                    app.export_with_default_filename();
+                                Action::Save => {
+                                    app.input_mode = InputMode::SaveDialog;
                                 }
                                 Action::ColumnSelector => {
                                     app.input_mode = InputMode::ColumnSelector;
@@ -683,6 +683,25 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 }
                             }
                             app.input_mode = InputMode::Normal;
+                        }
+                    }
+                    InputMode::SaveDialog => {
+                        use ui::windows::save_dialog_window::SaveDialogWindow;
+                        let mut window = SaveDialogWindow::from_app(&app);
+                        let result = ui::dispatch_key(&mut window, key);
+                        app.save_path_input = window.path_input.clone();
+                        app.save_format_cursor = window.format_cursor;
+                        if result == ui::ComponentResult::Close {
+                            if window.confirmed {
+                                let path = window.expanded_path();
+                                let format = window.selected_format();
+                                let msg = SaveDialogWindow::execute_save(&app, &path, format);
+                                app.set_status(msg);
+                            }
+                            app.input_mode = InputMode::Normal;
+                            app.save_path_input =
+                                crate::text_input::TextInput::with_text("./scouty-export.log");
+                            app.save_format_cursor = 0;
                         }
                     }
                 }

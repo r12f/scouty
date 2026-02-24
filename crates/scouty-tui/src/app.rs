@@ -39,6 +39,7 @@ pub enum InputMode {
     SavePreset,
     LoadPreset,
     DensitySelector,
+    SaveDialog,
 }
 
 /// Column identifiers for the log table.
@@ -280,6 +281,10 @@ pub struct App {
     pub should_quit: bool,
     /// Copy format dialog cursor (0=Raw, 1=JSON, 2=YAML).
     pub copy_format_cursor: usize,
+    /// Save dialog: path input.
+    pub save_path_input: TextInput,
+    /// Save dialog: format cursor (0=Raw, 1=JSON, 2=YAML).
+    pub save_format_cursor: usize,
     /// Scroll offset for help window.
     pub help_scroll: u16,
     /// Save file input buffer.
@@ -550,6 +555,8 @@ impl App {
             follow_mode: false,
             should_quit: false,
             copy_format_cursor: 0,
+            save_path_input: TextInput::with_text("./scouty-export.log"),
+            save_format_cursor: 0,
             help_scroll: 0,
             command_input: TextInput::new(),
             filter_version: 0,
@@ -1649,17 +1656,6 @@ impl App {
             None
         }
     }
-    /// Generate default save filename based on current time.
-    pub fn default_save_filename() -> String {
-        let now = chrono::Local::now();
-        now.format("filtered_%Y%m%d_%H%M%S.log").to_string()
-    }
-
-    /// Export filtered records to a file with an auto-generated filename (Ctrl+s).
-    pub fn export_with_default_filename(&mut self) {
-        let filename = Self::default_save_filename();
-        self.save_to_file(&filename);
-    }
 
     /// Execute a command entered in command mode.
     pub fn execute_command(&mut self) {
@@ -1668,39 +1664,10 @@ impl App {
             return;
         }
 
-        if input == "w" {
-            // :w with no filename → show usage error
-            self.set_status("Usage: :w <filename>".to_string());
-        } else if let Some(filename) = input.strip_prefix("w ") {
-            let filename = filename.trim().to_string();
-            if filename.is_empty() {
-                self.set_status("Usage: :w <filename>".to_string());
-            } else {
-                self.save_to_file(&filename);
-            }
-        } else if input == "q" {
-            // :q — handled by caller checking should_quit
+        if input == "q" {
             self.should_quit = true;
         } else {
             self.set_status(format!("Unknown command: :{}", input));
-        }
-    }
-
-    /// Save filtered records to a file.
-    fn save_to_file(&mut self, filename: &str) {
-        let mut lines = Vec::with_capacity(self.filtered_indices.len());
-        for &idx in &self.filtered_indices {
-            lines.push(self.records[idx].raw.as_str());
-        }
-
-        match std::fs::write(filename, lines.join("\n") + "\n") {
-            Ok(()) => {
-                let count = self.filtered_indices.len();
-                self.set_status(format!("Saved {} records to {}", count, filename));
-            }
-            Err(e) => {
-                self.set_status(format!("Save failed: {}", e));
-            }
         }
     }
 
@@ -1737,6 +1704,14 @@ impl App {
 }
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum CopyFormat {
+    Raw,
+    Json,
+    Yaml,
+}
+
+/// Export format for saving logs to file.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum ExportFormat {
     Raw,
     Json,
     Yaml,
@@ -1840,6 +1815,8 @@ mod tests {
             follow_mode: false,
             should_quit: false,
             copy_format_cursor: 0,
+            save_path_input: TextInput::with_text("./scouty-export.log"),
+            save_format_cursor: 0,
             help_scroll: 0,
             command_input: TextInput::new(),
             filter_version: 0,
@@ -1900,6 +1877,8 @@ mod tests {
             follow_mode: false,
             should_quit: false,
             copy_format_cursor: 0,
+            save_path_input: TextInput::with_text("./scouty-export.log"),
+            save_format_cursor: 0,
             help_scroll: 0,
             command_input: TextInput::new(),
             filter_version: 0,
@@ -1957,6 +1936,8 @@ mod tests {
             follow_mode: false,
             should_quit: false,
             copy_format_cursor: 0,
+            save_path_input: TextInput::with_text("./scouty-export.log"),
+            save_format_cursor: 0,
             help_scroll: 0,
             command_input: TextInput::new(),
             filter_version: 0,
@@ -2468,6 +2449,8 @@ mod field_filter_v2_tests {
             follow_mode: false,
             should_quit: false,
             copy_format_cursor: 0,
+            save_path_input: TextInput::with_text("./scouty-export.log"),
+            save_format_cursor: 0,
             help_scroll: 0,
             command_input: TextInput::new(),
             filter_version: 0,
@@ -2650,6 +2633,8 @@ mod column_follow_tests {
             follow_mode: false,
             should_quit: false,
             copy_format_cursor: 0,
+            save_path_input: TextInput::with_text("./scouty-export.log"),
+            save_format_cursor: 0,
             help_scroll: 0,
             command_input: TextInput::new(),
             filter_version: 0,
@@ -2846,6 +2831,8 @@ mod copy_tests {
             follow_mode: false,
             should_quit: false,
             copy_format_cursor: 0,
+            save_path_input: TextInput::with_text("./scouty-export.log"),
+            save_format_cursor: 0,
             help_scroll: 0,
             command_input: TextInput::new(),
             filter_version: 0,
@@ -3013,6 +3000,8 @@ mod time_jump_tests {
             follow_mode: false,
             should_quit: false,
             copy_format_cursor: 0,
+            save_path_input: TextInput::with_text("./scouty-export.log"),
+            save_format_cursor: 0,
             help_scroll: 0,
             command_input: TextInput::new(),
             filter_version: 0,
@@ -3143,6 +3132,8 @@ mod command_tests {
             follow_mode: false,
             should_quit: false,
             copy_format_cursor: 0,
+            save_path_input: TextInput::with_text("./scouty-export.log"),
+            save_format_cursor: 0,
             help_scroll: 0,
             command_input: TextInput::new(),
             filter_version: 0,
@@ -3164,28 +3155,12 @@ mod command_tests {
         }
     }
     #[test]
-    fn test_command_w_no_filename_shows_usage() {
+    fn test_command_w_removed() {
         let mut app = make_command_app();
         app.command_input.set("w");
         app.execute_command();
-        assert!(app.status_message.is_some());
         let msg = app.status_message.as_ref().unwrap();
-        assert!(msg.contains("Usage: :w <filename>"));
-        assert!(!app.should_quit);
-    }
-
-    #[test]
-    fn test_command_w_with_filename() {
-        let mut app = make_command_app();
-        let tmp_path = std::env::temp_dir().join("scouty_test_cmd_export.log");
-        let tmp = tmp_path.to_str().unwrap();
-        app.command_input.set(&format!("w {}", tmp));
-        app.execute_command();
-        let msg = app.status_message.as_ref().unwrap();
-        assert!(msg.contains("Saved 2 records"));
-        assert!(msg.contains(tmp));
-        // Cleanup
-        let _ = std::fs::remove_file(tmp);
+        assert!(msg.contains("Unknown command"));
     }
 
     #[test]
