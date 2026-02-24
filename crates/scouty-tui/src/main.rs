@@ -4,6 +4,7 @@ mod app;
 pub mod config;
 mod density;
 pub mod keybinding;
+mod pipe;
 pub mod text_input;
 mod ui;
 
@@ -64,6 +65,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut theme_override: Option<String> = None;
     let mut config_override: Option<String> = None;
     let mut file_args: Vec<String> = Vec::new();
+    let mut no_tui = false;
+    let mut pipe_filters: Vec<String> = Vec::new();
+    let mut pipe_level: Option<String> = None;
+    let mut pipe_format: Option<String> = None;
+    let mut pipe_fields: Option<String> = None;
     let mut i = 1;
     while i < args.len() {
         match args[i].as_str() {
@@ -108,6 +114,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 eprintln!(
                     "  --generate-theme <name>    Generate built-in theme to stdout (or 'list')"
                 );
+                eprintln!();
+                eprintln!("Pipe mode (auto when stdout is not a TTY):");
+                eprintln!("  --no-tui                   Force pipe mode (no TUI)");
+                eprintln!("  --filter <expr>            Filter expression (repeatable, AND logic)");
+                eprintln!("  --level <level>            Minimum level (trace/debug/info/notice/warn/error/fatal)");
+                eprintln!(
+                    "  --format <fmt>             Output format: raw (default), json, yaml, csv"
+                );
+                eprintln!("  --fields <list>            Comma-separated fields (default: all)");
+                eprintln!();
                 eprintln!("  -h, --help        Show this help");
                 std::process::exit(0);
             }
@@ -164,6 +180,62 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     }
                 }
             }
+            "--no-tui" => {
+                no_tui = true;
+                i += 1;
+            }
+            "--filter" => {
+                if i + 1 < args.len() {
+                    pipe_filters.push(args[i + 1].clone());
+                    i += 2;
+                } else {
+                    eprintln!("Error: --filter requires a value");
+                    std::process::exit(1);
+                }
+            }
+            arg if arg.starts_with("--filter=") => {
+                pipe_filters.push(arg.trim_start_matches("--filter=").to_string());
+                i += 1;
+            }
+            "--level" => {
+                if i + 1 < args.len() {
+                    pipe_level = Some(args[i + 1].clone());
+                    i += 2;
+                } else {
+                    eprintln!("Error: --level requires a value");
+                    std::process::exit(1);
+                }
+            }
+            arg if arg.starts_with("--level=") => {
+                pipe_level = Some(arg.trim_start_matches("--level=").to_string());
+                i += 1;
+            }
+            "--format" => {
+                if i + 1 < args.len() {
+                    pipe_format = Some(args[i + 1].clone());
+                    i += 2;
+                } else {
+                    eprintln!("Error: --format requires a value");
+                    std::process::exit(1);
+                }
+            }
+            arg if arg.starts_with("--format=") => {
+                pipe_format = Some(arg.trim_start_matches("--format=").to_string());
+                i += 1;
+            }
+            "--fields" => {
+                if i + 1 < args.len() {
+                    pipe_fields = Some(args[i + 1].clone());
+                    i += 2;
+                } else {
+                    eprintln!("Error: --fields requires a value");
+                    std::process::exit(1);
+                }
+            }
+            arg if arg.starts_with("--fields=") => {
+                pipe_fields = Some(arg.trim_start_matches("--fields=").to_string());
+                i += 1;
+            }
             _ => {
                 file_args.push(args[i].clone());
                 i += 1;
@@ -171,8 +243,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
-    // pipe + file args are mutually exclusive
-    if piped && !file_args.is_empty() {
+    // Determine if we should run in pipe mode
+    let stdout_is_tty = std::io::stdout().is_terminal();
+    let pipe_mode = no_tui || !stdout_is_tty;
+
+    // pipe + file args are mutually exclusive (in TUI mode, stdin is consumed for terminal)
+    if !pipe_mode && piped && !file_args.is_empty() {
         eprintln!("Error: Cannot combine piped stdin with file arguments.");
         eprintln!("Use either: command | scouty-tui  OR  scouty-tui <files>");
         std::process::exit(1);
@@ -182,10 +258,70 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let cfg = config::load_config_layered(config_override.as_deref());
 
     let files: Vec<String> = if !piped && file_args.is_empty() {
+        if pipe_mode {
+            // In pipe mode without files or stdin, error
+            eprintln!("Error: No input. Provide files or pipe stdin.");
+            std::process::exit(1);
+        }
         resolve_default_files(&cfg)?
     } else {
         file_args
     };
+
+    // ── Pipe mode: parse/filter/output without TUI ──
+    if pipe_mode {
+        let format = pipe_format
+            .as_deref()
+            .map(|f| {
+                pipe::OutputFormat::from_str(f).unwrap_or_else(|| {
+                    eprintln!("Error: unknown format '{}'. Use: raw, json, yaml, csv", f);
+                    std::process::exit(1);
+                })
+            })
+            .unwrap_or(pipe::OutputFormat::Raw);
+
+        let level = pipe_level.as_deref().map(|l| {
+            scouty::record::LogLevel::from_str_loose(l).unwrap_or_else(|| {
+                eprintln!(
+                    "Error: unknown level '{}'. Use: trace, debug, info, notice, warn, error, fatal",
+                    l
+                );
+                std::process::exit(1);
+            })
+        });
+
+        let fields: Vec<String> = pipe_fields
+            .map(|f| f.split(',').map(|s| s.trim().to_string()).collect())
+            .unwrap_or_default();
+
+        // Read stdin if piped
+        let stdin_lines: Option<Vec<String>> = if piped {
+            use std::io::BufRead;
+            let stdin = std::io::stdin();
+            let lines: Vec<String> = stdin
+                .lock()
+                .lines()
+                .collect::<std::result::Result<_, _>>()?;
+            Some(lines)
+        } else {
+            None
+        };
+
+        let pipe_config = pipe::PipeConfig {
+            filters: pipe_filters,
+            level,
+            format,
+            fields,
+        };
+
+        return pipe::run_pipe_mode(
+            files,
+            stdin_lines,
+            pipe_config,
+            cfg.ssh.connect_timeout,
+            cfg.ssh.keepalive_interval,
+        );
+    }
 
     // If piped, read all stdin lines before entering TUI (stdin will be consumed).
     //
