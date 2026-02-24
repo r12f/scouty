@@ -304,7 +304,13 @@ impl DetailPanelWidget {
                 theme,
             );
         } else {
-            let raw_text = Paragraph::new(record.raw.clone())
+            // Fallback: show raw log text for plain (non-expanded) records
+            let content = if record.raw.is_empty() {
+                record.message.clone()
+            } else {
+                record.raw.clone()
+            };
+            let raw_text = Paragraph::new(content)
                 .block(left_block)
                 .wrap(Wrap { trim: false });
             frame.render_widget(raw_text, chunks[0]);

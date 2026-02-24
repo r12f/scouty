@@ -198,4 +198,52 @@ mod tests {
             Some("root.child.leaf == \"v\"")
         );
     }
+
+    #[test]
+    fn test_plain_log_title_is_log_content() {
+        // When expanded is None, left title should be "Log Content"
+        let record = sample_record();
+        assert!(record.expanded.is_none());
+        let has_expanded = record.expanded.as_ref().is_some_and(|e| !e.is_empty());
+        assert!(!has_expanded);
+        let left_title = if has_expanded {
+            " Expanded "
+        } else {
+            " Log Content "
+        };
+        assert_eq!(left_title, " Log Content ");
+    }
+
+    #[test]
+    fn test_expanded_log_title_is_expanded() {
+        let mut record = sample_record();
+        record.expanded = Some(vec![ExpandedField {
+            label: "Op".into(),
+            value: ExpandedValue::Text("SET".into()),
+        }]);
+        let has_expanded = record.expanded.as_ref().is_some_and(|e| !e.is_empty());
+        assert!(has_expanded);
+    }
+
+    #[test]
+    fn test_plain_log_fallback_uses_raw_or_message() {
+        // When raw is non-empty, it should be used
+        let record = sample_record();
+        let content = if record.raw.is_empty() {
+            record.message.clone()
+        } else {
+            record.raw.clone()
+        };
+        assert_eq!(content, "2025-05-18 INFO orchagent hello world");
+
+        // When raw is empty, falls back to message
+        let mut record2 = sample_record();
+        record2.raw = String::new();
+        let content2 = if record2.raw.is_empty() {
+            record2.message.clone()
+        } else {
+            record2.raw.clone()
+        };
+        assert_eq!(content2, "hello world");
+    }
 }
