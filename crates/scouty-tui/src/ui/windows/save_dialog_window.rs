@@ -22,7 +22,7 @@ const FORMAT_OPTIONS: [(&str, ExportFormat); 3] = [
 
 /// Focus state within the save dialog.
 #[derive(Debug, Clone, Copy, PartialEq)]
-enum Focus {
+pub enum Focus {
     Path,
     Format,
 }
@@ -33,7 +33,7 @@ pub struct SaveDialogWindow {
     pub format_cursor: usize,
     pub confirmed: bool,
     pub error: Option<String>,
-    focus: Focus,
+    pub focus: Focus,
     theme: Theme,
 }
 
@@ -44,7 +44,7 @@ impl SaveDialogWindow {
             format_cursor: app.save_format_cursor,
             confirmed: false,
             error: None,
-            focus: Focus::Path,
+            focus: app.save_dialog_focus,
             theme: app.theme.clone(),
         }
     }
