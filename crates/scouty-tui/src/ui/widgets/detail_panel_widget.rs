@@ -229,7 +229,7 @@ fn build_field_lines(record: &scouty::record::LogRecord, theme: &Theme) -> Vec<L
 pub struct DetailPanelWidget;
 
 /// Minimum total width to show split layout.
-const MIN_SPLIT_WIDTH: u16 = 80;
+const MIN_SPLIT_WIDTH: u16 = 40;
 /// Max value display length before truncation.
 const MAX_VALUE_LEN: usize = 60;
 

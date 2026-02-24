@@ -99,7 +99,7 @@ mod tests {
 
     #[test]
     fn test_min_split_width_constant() {
-        assert_eq!(MIN_SPLIT_WIDTH, 80);
+        assert_eq!(MIN_SPLIT_WIDTH, 40);
     }
 
     // --- Tree flattening tests ---
