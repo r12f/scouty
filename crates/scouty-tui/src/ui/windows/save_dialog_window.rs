@@ -104,9 +104,8 @@ impl SaveDialogWindow {
                     .and_then(|_| writeln!(writer))
             }
             ExportFormat::Yaml => {
-                // Write records one at a time to avoid building a huge
-                // intermediate string. serde_yaml's Serializer writes
-                // directly to the underlying writer.
+                // Stream YAML directly to the writer to avoid building a huge
+                // intermediate String (using `to_writer` instead of `to_string`).
                 let records: Vec<&scouty::record::LogRecord> = app
                     .filtered_indices
                     .iter()
