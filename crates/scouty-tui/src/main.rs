@@ -104,8 +104,65 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     "  --theme <name>    Override theme (default, dark, light, solarized, or custom)"
                 );
                 eprintln!("  --config <path>   Load additional config file (overrides file-based configs)");
+                eprintln!("  --generate-config          Generate default config to stdout");
+                eprintln!(
+                    "  --generate-theme <name>    Generate built-in theme to stdout (or 'list')"
+                );
                 eprintln!("  -h, --help        Show this help");
                 std::process::exit(0);
+            }
+            "--generate-config" => {
+                print!("{}", config::generate_default_config());
+                std::process::exit(0);
+            }
+            "--generate-theme" => {
+                if i + 1 < args.len() {
+                    let name = &args[i + 1];
+                    if name == "list" {
+                        for t in config::Theme::builtin_names() {
+                            println!("{}", t);
+                        }
+                        std::process::exit(0);
+                    }
+                    match config::generate_theme(name) {
+                        Some(yaml) => {
+                            print!("{}", yaml);
+                            std::process::exit(0);
+                        }
+                        None => {
+                            eprintln!("Error: unknown theme '{}'\n\nAvailable themes:", name);
+                            for t in config::Theme::builtin_names() {
+                                eprintln!("  {}", t);
+                            }
+                            std::process::exit(1);
+                        }
+                    }
+                } else {
+                    eprintln!("Error: --generate-theme requires a theme name (or 'list')");
+                    std::process::exit(1);
+                }
+            }
+            arg if arg.starts_with("--generate-theme=") => {
+                let name = arg.trim_start_matches("--generate-theme=");
+                if name == "list" {
+                    for t in config::Theme::builtin_names() {
+                        println!("{}", t);
+                    }
+                    std::process::exit(0);
+                }
+                match config::generate_theme(name) {
+                    Some(yaml) => {
+                        print!("{}", yaml);
+                        std::process::exit(0);
+                    }
+                    None => {
+                        eprintln!("Error: unknown theme '{}'\n\nAvailable themes:", name);
+                        for t in config::Theme::builtin_names() {
+                            eprintln!("  {}", t);
+                        }
+                        std::process::exit(1);
+                    }
+                }
             }
             _ => {
                 file_args.push(args[i].clone());
