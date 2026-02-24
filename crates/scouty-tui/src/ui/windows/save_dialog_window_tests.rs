@@ -160,7 +160,8 @@ mod tests {
         window.path_input.set("~/logs/export.log");
         let path = window.expanded_path();
         if let Some(home) = dirs::home_dir() {
-            assert_eq!(path, format!("{}/logs/export.log", home.display()));
+            let expected = home.join("logs/export.log").to_string_lossy().to_string();
+            assert_eq!(path, expected);
         }
     }
 
