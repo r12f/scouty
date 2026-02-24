@@ -691,6 +691,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         let result = ui::dispatch_key(&mut window, key);
                         app.save_path_input = window.path_input.clone();
                         app.save_format_cursor = window.format_cursor;
+                        app.save_dialog_focus = window.focus;
                         if result == ui::ComponentResult::Close {
                             if window.confirmed {
                                 let path = window.expanded_path();
@@ -702,6 +703,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                             app.save_path_input =
                                 crate::text_input::TextInput::with_text("./scouty-export.log");
                             app.save_format_cursor = 0;
+                            app.save_dialog_focus = ui::windows::save_dialog_window::Focus::Path;
                         }
                     }
                 }
