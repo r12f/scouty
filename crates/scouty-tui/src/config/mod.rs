@@ -30,6 +30,9 @@ pub struct Config {
     /// Default file paths/glob patterns when no CLI arguments are provided.
     #[serde(default)]
     pub default_paths: Vec<String>,
+    /// SSH settings for remote log reading.
+    #[serde(default)]
+    pub ssh: SshConfig,
 }
 
 /// General settings section.
@@ -51,6 +54,25 @@ impl Default for GeneralConfig {
     }
 }
 
+/// SSH connection settings.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
+pub struct SshConfig {
+    /// Connection timeout in seconds (default: 10).
+    pub connect_timeout: u32,
+    /// Keepalive interval in seconds (default: 30, 0 to disable).
+    pub keepalive_interval: u32,
+}
+
+impl Default for SshConfig {
+    fn default() -> Self {
+        Self {
+            connect_timeout: 10,
+            keepalive_interval: 30,
+        }
+    }
+}
+
 impl Default for Config {
     fn default() -> Self {
         Self {
@@ -58,6 +80,7 @@ impl Default for Config {
             keybindings: crate::keybinding::KeybindingConfig::default(),
             general: GeneralConfig::default(),
             default_paths: Vec::new(),
+            ssh: SshConfig::default(),
         }
     }
 }
@@ -67,6 +90,11 @@ impl Default for Config {
 pub fn expand_default_paths(patterns: &[String]) -> Vec<String> {
     let mut results = Vec::new();
     for pattern in patterns {
+        // SSH URLs are passed through as-is, not glob-expanded
+        if pattern.starts_with("ssh://") {
+            results.push(pattern.clone());
+            continue;
+        }
         match glob::glob(pattern) {
             Ok(paths) => {
                 for entry in paths.flatten() {

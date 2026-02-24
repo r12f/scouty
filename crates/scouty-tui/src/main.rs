@@ -96,6 +96,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             "--help" | "-h" => {
                 eprintln!("Usage: scouty-tui [OPTIONS] [FILES...]");
                 eprintln!();
+                eprintln!("Arguments:");
+                eprintln!("  [FILES...]        Local files or ssh://[user@]host[:port]:/path URLs");
+                eprintln!();
                 eprintln!("Options:");
                 eprintln!(
                     "  --theme <name>    Override theme (default, dark, light, solarized, or custom)"
@@ -198,7 +201,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         }
     } else {
-        match App::load_files(&files) {
+        match App::load_files(&files, cfg.ssh.connect_timeout, cfg.ssh.keepalive_interval) {
             Ok(app) => app,
             Err(e) => {
                 let _ = disable_raw_mode();

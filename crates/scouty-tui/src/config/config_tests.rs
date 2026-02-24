@@ -63,6 +63,33 @@ mod tests {
     }
 
     #[test]
+    fn test_expand_default_paths_ssh_url_passthrough() {
+        let ssh_url = "ssh://user@host:/var/log/syslog".to_string();
+        let result = super::super::expand_default_paths(&[ssh_url.clone()]);
+        assert_eq!(result, vec![ssh_url]);
+    }
+
+    #[test]
+    fn test_expand_default_paths_mixed_ssh_and_glob() {
+        let dir = std::env::temp_dir().join("scouty_test_ssh_glob");
+        let _ = std::fs::create_dir_all(&dir);
+        std::fs::write(dir.join("app.log"), "hello").unwrap();
+        let pattern = format!("{}/*.log", dir.display());
+        let ssh_url = "ssh://prod:/var/log/syslog".to_string();
+        let result = super::super::expand_default_paths(&[ssh_url.clone(), pattern]);
+        assert!(result.contains(&ssh_url));
+        assert!(result.iter().any(|p| p.contains("app.log")));
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn test_ssh_config_defaults() {
+        let cfg = Config::default();
+        assert_eq!(cfg.ssh.connect_timeout, 10);
+        assert_eq!(cfg.ssh.keepalive_interval, 30);
+    }
+
+    #[test]
     fn test_deep_merge_scalars() {
         let base: serde_yaml::Value = serde_yaml::from_str("theme: default").unwrap();
         let overlay: serde_yaml::Value = serde_yaml::from_str("theme: dark").unwrap();
