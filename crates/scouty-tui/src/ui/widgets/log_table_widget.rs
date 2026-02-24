@@ -35,7 +35,8 @@ impl LogTableWidget {
         let cw = &app.col_widths;
         let vis_cols = app.column_config.visible_columns();
 
-        let sep_style = theme.table.separator.to_style();
+        let sep_style = theme.table.separator.to_style_entry().to_style();
+        let sep_char = theme.table.separator.separator_char();
 
         let widths: Vec<Constraint> = vis_cols
             .iter()
@@ -70,7 +71,7 @@ impl LogTableWidget {
                 let cell =
                     Cell::from(col.label()).style(Style::default().add_modifier(Modifier::BOLD));
                 if i < vis_cols.len() - 1 {
-                    vec![cell, Cell::from("│").style(sep_style)]
+                    vec![cell, Cell::from(sep_char).style(sep_style)]
                 } else {
                     vec![cell]
                 }
@@ -129,7 +130,7 @@ impl LogTableWidget {
                             Column::Log => Cell::from(record.message.clone()),
                         };
                         if ci < vis_cols.len() - 1 {
-                            vec![cell, Cell::from("│").style(sep_style)]
+                            vec![cell, Cell::from(sep_char).style(sep_style)]
                         } else {
                             vec![cell]
                         }
