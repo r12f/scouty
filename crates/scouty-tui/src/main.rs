@@ -492,7 +492,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         let result = ui::dispatch_key(&mut window, key);
                         window.apply_to_app(&mut app);
                         if result == ui::ComponentResult::Close {
-                            app.input_mode = InputMode::Normal;
+                            match window.action {
+                                Some("save_preset") => {
+                                    app.preset_name_input.clear();
+                                    app.input_mode = InputMode::SavePreset;
+                                }
+                                Some("load_preset") => {
+                                    app.preset_list = crate::config::filter_preset::list_presets();
+                                    app.preset_list_cursor = 0;
+                                    app.input_mode = InputMode::LoadPreset;
+                                }
+                                _ => {
+                                    app.input_mode = InputMode::Normal;
+                                }
+                            }
                         }
                     }
                     InputMode::ColumnSelector => {
@@ -601,6 +614,40 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                             if window.confirmed {
                                 if let Some(preset) = window.selected {
                                     app.apply_level_filter(preset);
+                                }
+                            }
+                            app.input_mode = InputMode::Normal;
+                        }
+                    }
+                    InputMode::SavePreset => {
+                        use ui::windows::save_preset_window::SavePresetWindow;
+                        let mut window = SavePresetWindow::new();
+                        window.input = app.preset_name_input.clone();
+                        let result = ui::dispatch_key(&mut window, key);
+                        app.preset_name_input = window.input;
+                        if result == ui::ComponentResult::Close {
+                            if window.confirmed {
+                                let name = app.preset_name_input.value().to_string();
+                                app.save_filter_preset(&name);
+                            }
+                            app.input_mode = InputMode::Normal;
+                        }
+                    }
+                    InputMode::LoadPreset => {
+                        use ui::windows::load_preset_window::LoadPresetWindow;
+                        let mut window = LoadPresetWindow::new(app.preset_list.clone());
+                        window.cursor = app.preset_list_cursor;
+                        let result = ui::dispatch_key(&mut window, key);
+                        // Handle deletion
+                        if let Some(ref name) = window.delete_name {
+                            let _ = crate::config::filter_preset::delete_preset(name);
+                        }
+                        app.preset_list = window.presets;
+                        app.preset_list_cursor = window.cursor;
+                        if result == ui::ComponentResult::Close {
+                            if window.confirmed {
+                                if let Some(ref name) = window.selected {
+                                    app.load_filter_preset(name);
                                 }
                             }
                             app.input_mode = InputMode::Normal;

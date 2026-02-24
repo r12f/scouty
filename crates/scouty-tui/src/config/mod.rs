@@ -8,6 +8,7 @@
 //! 5. CLI flags (`--theme`, `--config`, file arguments)
 
 pub mod color;
+pub mod filter_preset;
 pub mod theme;
 
 pub use color::ThemeColor;
