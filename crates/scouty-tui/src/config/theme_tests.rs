@@ -24,4 +24,31 @@ mod tests {
         let theme = Theme::from_yaml("{}").unwrap();
         assert_eq!(theme.highlight_palette.len(), 6);
     }
+
+    #[test]
+    fn landmine_theme_preset() {
+        let theme = Theme::landmine();
+        assert_eq!(theme.highlight_palette.len(), 6);
+        assert_eq!(theme.table.separator.separator_char(), "♡");
+    }
+
+    #[test]
+    fn builtin_returns_landmine() {
+        let theme = Theme::builtin("landmine");
+        assert!(theme.is_some());
+        assert_eq!(theme.unwrap().table.separator.separator_char(), "♡");
+    }
+
+    #[test]
+    fn default_separator_char() {
+        let theme = Theme::default();
+        assert_eq!(theme.table.separator.separator_char(), "│");
+    }
+
+    #[test]
+    fn separator_char_from_yaml() {
+        let yaml = "table:\n  separator:\n    fg: \"#FF0000\"\n    char: \"|\"\n";
+        let theme = Theme::from_yaml(yaml).unwrap();
+        assert_eq!(theme.table.separator.separator_char(), "|");
+    }
 }

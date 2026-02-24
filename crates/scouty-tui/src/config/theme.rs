@@ -102,6 +102,48 @@ impl Default for LogLevelTheme {
     }
 }
 
+/// Separator style: color + character.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
+pub struct SeparatorStyle {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub fg: Option<ThemeColor>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub bg: Option<ThemeColor>,
+    /// Separator character (default: "│").
+    #[serde(default = "SeparatorStyle::default_char")]
+    pub char: String,
+}
+
+impl SeparatorStyle {
+    fn default_char() -> String {
+        "│".to_string()
+    }
+
+    pub fn separator_char(&self) -> &str {
+        &self.char
+    }
+
+    /// Convert to a StyleEntry for rendering.
+    pub fn to_style_entry(&self) -> StyleEntry {
+        StyleEntry {
+            fg: self.fg,
+            bg: self.bg,
+            bold: None,
+        }
+    }
+}
+
+impl Default for SeparatorStyle {
+    fn default() -> Self {
+        Self {
+            fg: Some(ThemeColor(Color::Rgb(59, 66, 82))), // #3B4252
+            bg: None,
+            char: "│".to_string(),
+        }
+    }
+}
+
 /// Table (log list) colors.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
@@ -112,8 +154,8 @@ pub struct TableTheme {
     pub selected_highlight: StyleEntry,
     pub search_match: StyleEntry,
     pub bookmark: StyleEntry,
-    /// Column separator style (│ between columns).
-    pub separator: StyleEntry,
+    /// Column separator style (color + character).
+    pub separator: SeparatorStyle,
 }
 
 impl Default for TableTheme {
@@ -129,7 +171,7 @@ impl Default for TableTheme {
             selected_highlight: StyleEntry::bg(Color::Rgb(40, 60, 80)),
             search_match: StyleEntry::bg(Color::Rgb(80, 80, 0)),
             bookmark: StyleEntry::bg(Color::Rgb(20, 40, 60)),
-            separator: StyleEntry::fg(Color::Rgb(59, 66, 82)), // muted #3B4252
+            separator: SeparatorStyle::default(),
         }
     }
 }
@@ -339,6 +381,7 @@ impl Theme {
             "dark" => Some(Self::dark()),
             "light" => Some(Self::light()),
             "solarized" => Some(Self::solarized()),
+            "landmine" => Some(Self::landmine()),
             _ => None,
         }
     }
@@ -532,6 +575,105 @@ impl Theme {
                 border: StyleEntry::fg(base01),
             },
             ..Self::default()
+        }
+    }
+
+    /// Landmine theme — Jirai Kei (地雷系) black and pink aesthetic.
+    pub fn landmine() -> Self {
+        use Color::*;
+        let deep_black = Rgb(13, 6, 11); // #0D060B
+        let dark_wine = Rgb(26, 10, 20); // #1A0A14
+        let rose_pink = Rgb(232, 87, 126); // #E8577E
+        let bright_pink = Rgb(255, 51, 102); // #FF3366
+        let soft_pink = Rgb(245, 160, 192); // #F5A0C0
+        let dusty_rose = Rgb(212, 160, 185); // #D4A0B9
+        let pale_pink = Rgb(245, 208, 224); // #F5D0E0
+        let muted_plum = Rgb(138, 106, 126); // #8A6A7E
+        let dark_plum = Rgb(107, 74, 94); // #6B4A5E
+        let dark_mauve = Rgb(107, 91, 107); // #6B5B6B
+        let deep_mauve = Rgb(74, 58, 74); // #4A3A4A
+        let selected_bg = Rgb(45, 16, 40); // #2D1028
+        let separator_fg = Rgb(74, 32, 64); // #4A2040
+        let border_fg = Rgb(61, 26, 48); // #3D1A30
+        let light_text = Rgb(200, 200, 200); // #C8C8C8
+
+        Self {
+            log_levels: LogLevelTheme {
+                fatal: StyleEntry::fg_bold(bright_pink),
+                error: StyleEntry::fg(rose_pink),
+                warn: StyleEntry::fg(soft_pink),
+                notice: StyleEntry::fg(dusty_rose),
+                info: StyleEntry::fg(light_text),
+                debug: StyleEntry::fg(dark_mauve),
+                trace: StyleEntry::fg(deep_mauve),
+            },
+            table: TableTheme {
+                header: StyleEntry {
+                    fg: Some(ThemeColor(soft_pink)),
+                    bg: Some(ThemeColor(dark_wine)),
+                    bold: Some(true),
+                },
+                selected: StyleEntry::bg(selected_bg),
+                separator: SeparatorStyle {
+                    fg: Some(ThemeColor(separator_fg)),
+                    bg: None,
+                    char: "♡".to_string(),
+                },
+                ..TableTheme::default()
+            },
+            status_bar: StatusBarTheme {
+                line1_bg: StyleEntry::fg_bg(dusty_rose, dark_wine),
+                line2_bg: StyleEntry::fg_bg(muted_plum, deep_black),
+                mode_label: StyleEntry {
+                    fg: Some(ThemeColor(deep_black)),
+                    bg: Some(ThemeColor(rose_pink)),
+                    bold: Some(true),
+                },
+                mode_view: StyleEntry::fg_bg(deep_black, muted_plum),
+                mode_follow: StyleEntry::fg_bg(deep_black, soft_pink),
+                density_normal: StyleEntry::fg(rose_pink),
+                density_hot: StyleEntry::fg(bright_pink),
+                density_label: StyleEntry::fg(dark_plum),
+                position: StyleEntry::fg(pale_pink),
+                cursor_marker: StyleEntry::fg(bright_pink),
+                ..StatusBarTheme::default()
+            },
+            search: SearchTheme {
+                match_highlight: StyleEntry::fg_bg(Black, soft_pink),
+                current_match: StyleEntry::fg_bg(Black, bright_pink),
+            },
+            dialog: DialogTheme {
+                border: StyleEntry::fg(rose_pink),
+                title: StyleEntry::fg_bold(soft_pink),
+                selected: StyleEntry::fg_bg(White, selected_bg),
+                text: StyleEntry::fg(dusty_rose),
+                muted: StyleEntry::fg(dark_plum),
+                ..DialogTheme::default()
+            },
+            detail_panel: DetailPanelTheme {
+                border: StyleEntry::fg(separator_fg),
+                field_name: StyleEntry::fg(rose_pink),
+                field_value: StyleEntry::fg(dusty_rose),
+                section_header: StyleEntry::fg_bold(soft_pink),
+            },
+            input: InputTheme {
+                prompt: StyleEntry::fg(soft_pink),
+                error: StyleEntry::fg(bright_pink),
+                ..InputTheme::default()
+            },
+            highlight_palette: vec![
+                ThemeColor(bright_pink), // #FF3366
+                ThemeColor(soft_pink),   // #F5A0C0
+                ThemeColor(dusty_rose),  // #D4A0B9
+                ThemeColor(rose_pink),   // #E8577E
+                ThemeColor(pale_pink),   // #F5D0E0
+                ThemeColor(muted_plum),  // #8A6A7E
+            ],
+            general: GeneralTheme {
+                accent: StyleEntry::fg(rose_pink),
+                muted: StyleEntry::fg(dark_plum),
+                border: StyleEntry::fg(border_fg),
+            },
         }
     }
 }
