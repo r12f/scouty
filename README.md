@@ -54,7 +54,7 @@ Each source gets its own loader, and a single session can combine multiple loade
 - **Stats overlay** — `S` shows log level distribution, top components
 - **Save/export** — `s` opens save dialog with path input and format selection (Raw/JSON/YAML)
 - **Remote logs** — `scouty-tui ssh://user@host:/var/log/syslog` reads logs via SSH
-- **Level filter** — `l` opens level selector (1=ALL, 2=DEBUG+, 3=INFO+, 4=WARN+, 5=ERROR+)
+- **Level filter** — `l` opens level selector (1=ALL through 8=FATAL only, covers all 7 levels)
 - **Filter presets** — save/load filter sets in `~/.scouty/filters/` via filter manager
 - **Density chart modes** — `d`/`D` to show density by level or highlight group
 - **Pipe input** — `cat log | scouty-tui` with auto follow mode
