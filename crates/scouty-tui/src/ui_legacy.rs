@@ -21,11 +21,20 @@ pub fn render(frame: &mut Frame, app: &mut App) {
         let detail_height = if let Some(record) = app.selected_record() {
             use crate::ui::widgets::detail_panel_widget::field_count;
             let fc = field_count(record);
-            // +1 for top border, min 4
-            let raw_height = (fc.min(u16::MAX as usize) as u16).saturating_add(1).max(4);
+            // For split layout, ensure enough height for left-side content
+            // (raw text or expanded tree). Minimum 8 rows for usable detail.
+            let left_min = if record.expanded.is_some() || !record.raw.is_empty() {
+                8
+            } else {
+                4
+            };
+            // +1 for top border
+            let raw_height = (fc.min(u16::MAX as usize) as u16)
+                .saturating_add(1)
+                .max(left_min);
             // Cap detail panel height using the configurable ratio
             let max_detail = (main_chunks[0].height as f64 * app.detail_panel_ratio) as u16;
-            raw_height.min(max_detail).max(4)
+            raw_height.min(max_detail).max(left_min)
         } else {
             4 // "No record selected" + border
         };

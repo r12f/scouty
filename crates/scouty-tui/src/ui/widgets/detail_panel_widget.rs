@@ -428,11 +428,38 @@ impl DetailPanelWidget {
     ) {
         let mut lines = build_field_lines(record, theme);
         lines.push(Line::from(""));
-        lines.push(Line::styled(
-            "Message:",
-            theme.detail_panel.section_header.to_style(),
-        ));
-        lines.push(Line::from(record.message.clone()));
+
+        // Show log content section
+        let has_expanded = record.expanded.as_ref().is_some_and(|e| !e.is_empty());
+        if has_expanded {
+            lines.push(Line::styled(
+                "Expanded:",
+                theme.detail_panel.section_header.to_style(),
+            ));
+            // Show a flat summary of expanded fields
+            if let Some(expanded) = &record.expanded {
+                for field in expanded {
+                    let summary = match &field.value {
+                        scouty::record::ExpandedValue::Text(t) => {
+                            format!("  {}: {}", field.label, t)
+                        }
+                        _ => format!("  {} (…)", field.label),
+                    };
+                    lines.push(Line::from(summary));
+                }
+            }
+        } else {
+            lines.push(Line::styled(
+                "Log Content:",
+                theme.detail_panel.section_header.to_style(),
+            ));
+            let content = if record.raw.is_empty() {
+                &record.message
+            } else {
+                &record.raw
+            };
+            lines.push(Line::from(content.clone()));
+        }
 
         let detail = Paragraph::new(lines).wrap(Wrap { trim: false });
         frame.render_widget(detail, area);
