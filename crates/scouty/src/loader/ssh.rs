@@ -118,13 +118,15 @@ pub struct SshLoader {
     url: SshUrl,
     info: LoaderInfo,
     connect_timeout: u32,
+    keepalive_interval: u32,
 }
 
 impl SshLoader {
     /// Create a new SSH loader.
     ///
     /// `connect_timeout` is in seconds (default: 10).
-    pub fn new(url: SshUrl, connect_timeout: u32) -> Self {
+    /// `keepalive_interval` is in seconds (default: 30, 0 to disable).
+    pub fn new(url: SshUrl, connect_timeout: u32, keepalive_interval: u32) -> Self {
         let id = url.to_url_string();
         Self {
             info: LoaderInfo {
@@ -136,6 +138,7 @@ impl SshLoader {
             },
             url,
             connect_timeout,
+            keepalive_interval,
         }
     }
 }
@@ -154,6 +157,13 @@ impl LogLoader for SshLoader {
 
         // Batch mode — no interactive prompts
         cmd.arg("-o").arg("BatchMode=yes");
+
+        // Keepalive interval
+        if self.keepalive_interval > 0 {
+            cmd.arg("-o")
+                .arg(format!("ServerAliveInterval={}", self.keepalive_interval));
+            cmd.arg("-o").arg("ServerAliveCountMax=3");
+        }
 
         // Port
         if let Some(port) = self.url.port {

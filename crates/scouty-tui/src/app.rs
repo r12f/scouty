@@ -310,6 +310,7 @@ impl App {
     pub fn load_files(
         paths: &[&str],
         ssh_connect_timeout: u32,
+        ssh_keepalive_interval: u32,
     ) -> Result<Self, Box<dyn std::error::Error>> {
         let mut store = scouty::store::LogStore::new();
         let mut record_id: u64 = 0;
@@ -319,7 +320,7 @@ impl App {
                 let url = SshUrl::parse(path).map_err(|e| {
                     Box::<dyn std::error::Error>::from(format!("Invalid SSH URL '{}': {}", path, e))
                 })?;
-                let mut loader = SshLoader::new(url, ssh_connect_timeout);
+                let mut loader = SshLoader::new(url, ssh_connect_timeout, ssh_keepalive_interval);
                 let lines = loader.load()?;
                 let info = loader.info().clone();
                 Self::ingest_lines(&mut store, lines, &info, &mut record_id);
