@@ -80,6 +80,8 @@ mod tests {
             bookmarks: std::collections::HashSet::new(),
             bookmark_manager_cursor: 0,
             theme: crate::config::Theme::default(),
+            level_filter: None,
+            level_filter_cursor: 0,
         }
     }
 
@@ -168,6 +170,8 @@ mod tests {
             bookmarks: std::collections::HashSet::new(),
             bookmark_manager_cursor: 0,
             theme: crate::config::Theme::default(),
+            level_filter: None,
+            level_filter_cursor: 0,
         };
         let stats = StatsData::compute(&app);
         assert_eq!(stats.total_records, 0);
