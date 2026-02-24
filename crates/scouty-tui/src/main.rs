@@ -333,6 +333,64 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 match app.input_mode {
                     InputMode::Normal => {
                         use keybinding::Action;
+
+                        // Detail panel tree navigation (when focused)
+                        if app.detail_open && app.detail_tree_focus {
+                            use crossterm::event::KeyCode;
+                            let handled = match key.code {
+                                KeyCode::Char('j') | KeyCode::Down => {
+                                    app.detail_tree_move_down();
+                                    true
+                                }
+                                KeyCode::Char('k') | KeyCode::Up => {
+                                    app.detail_tree_move_up();
+                                    true
+                                }
+                                KeyCode::Char('l') | KeyCode::Enter => {
+                                    app.detail_tree_toggle();
+                                    true
+                                }
+                                KeyCode::Char('h') => {
+                                    app.detail_tree_collapse_or_parent();
+                                    true
+                                }
+                                KeyCode::Char('H') => {
+                                    app.detail_tree_collapse_all();
+                                    true
+                                }
+                                KeyCode::Char('L') => {
+                                    app.detail_tree_expand_all();
+                                    true
+                                }
+                                KeyCode::Char('f') => {
+                                    app.detail_tree_quick_filter();
+                                    true
+                                }
+                                KeyCode::Tab => {
+                                    app.detail_tree_focus = false;
+                                    true
+                                }
+                                KeyCode::Esc => {
+                                    app.detail_tree_focus = false;
+                                    true
+                                }
+                                _ => false,
+                            };
+                            if handled {
+                                continue;
+                            }
+                        }
+
+                        // Tab toggles tree focus when detail panel is open with expanded data
+                        if key.code == crossterm::event::KeyCode::Tab && app.detail_open {
+                            if let Some(record) = app.selected_record() {
+                                if record.expanded.as_ref().is_some_and(|e| !e.is_empty()) {
+                                    app.detail_tree_focus = !app.detail_tree_focus;
+                                    continue;
+                                }
+                            }
+                        }
+
                         if let Some(action) = keymap.action(&key) {
                             match action {
                                 Action::Quit => {
