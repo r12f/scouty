@@ -156,7 +156,7 @@ pub fn load_config_layered(cli_config_path: Option<&str>) -> Config {
     }
 
     // Layer 4: local/project config — ./scouty.yaml in current working directory
-    let local_path = PathBuf::from("./scouty.yaml");
+    let local_path = local_config_path();
     if let Some(local_val) = load_yaml_file(&local_path) {
         merged = deep_merge(merged, local_val);
     }
