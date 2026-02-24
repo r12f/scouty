@@ -4,7 +4,7 @@
 
 Region parsing identifies logical spans ("regions") in log streams by matching configurable start and end points. A region groups consecutive log records that belong to a single logical operation (e.g., a request lifecycle, a SAI bulk operation, a port startup sequence).
 
-Regions are defined via YAML config files and processed by a log processor that runs after parsing, attaching region metadata to matched log records.
+Regions are defined via YAML config files and processed by a log processor that runs after parsing. Metadata is used only during matching and template rendering — created regions store only the rendered name, description, reasons, and index range.
 
 
 ## Design
@@ -26,7 +26,7 @@ For each incoming log record:
      a. Try each END POINT:
         - Evaluate filters (include AND, exclude ANY)
         - If passed → run extract rules to get metadata
-        - Search backwards for the nearest unmatched START POINT
+        - Search forward (FIFO) through pending START POINTs
           whose extracted metadata matches on the specified correlation fields
         - If correlation succeeds → CREATE REGION (start..end)
         - Construct region name/description from template
@@ -220,12 +220,13 @@ Each start/end point is a **filter engine** with separate extraction:
 When an end point matches:
 
 1. Extract metadata from the end record using the matched end point's extract rules
-2. Walk backwards through pending (unmatched) start points for this region definition
+2. Walk forward (FIFO) through pending start points for this region definition — oldest first
 3. For each pending start, check if ALL `correlate` fields have equal values between start and end metadata
 4. First match wins → region is created from that start record to the current end record
 5. The matched start is consumed (removed from pending list)
+6. If no correlating start is found → this end point is silently discarded
 
-If no correlation fields are specified or all are empty, the nearest pending start is used (LIFO).
+If no correlation fields are specified or all are empty, the oldest pending start is used (FIFO).
 
 **Overlap:** Regions can overlap — a single log record may belong to multiple regions simultaneously. This is why region membership is not stored on LogRecord; instead, region lookups are index-based (see below).
 
@@ -241,7 +242,6 @@ struct Region {
     timed_out: bool,                // true if region was closed by timeout, not by end point match
     start_index: usize,             // LogStore index of start record
     end_index: usize,               // LogStore index of end record (last record before timeout, or matched end)
-    metadata: HashMap<String, String>,  // merged metadata from start + end
 }
 ```
 
@@ -390,3 +390,4 @@ scouty-tui --filter '_region == "Port Startup Ethernet0"' app.log
 | 2026-02-25 | Remove LogRecord tagging — regions can overlap, use index-based RegionStore lookup instead |
 | 2026-02-25 | Timeout creates timed-out regions (not silently discarded); timeout_reason template for end_reason |
 | 2026-02-25 | Filter engine: each start/end point has include+exclude filters; extract rules separated from matching |
+| 2026-02-25 | FIFO matching (oldest pending start first); unmatched end points discarded; no metadata stored on created regions |
