@@ -264,6 +264,59 @@ pub fn resolve_theme(config: &Config, cli_theme: Option<&str>) -> Theme {
     Theme::default()
 }
 
+/// Generate a default config file with comments for `--generate-config`.
+pub fn generate_default_config() -> String {
+    r#"# Scouty configuration file
+# Place at ~/.scouty/config.yaml (user) or ./scouty.yaml (project)
+# See: https://github.com/r12f/scouty
+
+# Theme selection (built-in: default, dark, light, solarized, landmine)
+theme: default
+
+# Default log paths when no files specified (glob patterns supported)
+default_paths: []
+
+# Keybindings (uncomment to override)
+# keybindings:
+#   quit: "q"
+#   search: "/"
+#   filter: "f"
+
+# General settings
+general:
+  # Auto-enable follow mode when reading from pipe/stdin
+  follow_on_pipe: true
+  # Detail panel height ratio (0.0 - 1.0)
+  detail_panel_ratio: 0.3
+
+# SSH settings for remote log reading (ssh:// URLs)
+ssh:
+  # Connection timeout in seconds
+  connect_timeout: 10
+  # Keepalive interval in seconds (0 to disable)
+  keepalive_interval: 30
+"#
+    .to_string()
+}
+
+/// Generate a built-in theme as commented YAML for `--generate-theme`.
+/// Returns `None` if the theme name is unknown.
+pub fn generate_theme(name: &str) -> Option<String> {
+    let theme = Theme::builtin(name)?;
+    let yaml = serde_yaml::to_string(&theme).ok()?;
+    Some(format!(
+        "# Scouty theme: {}\n\
+         # Place at ~/.scouty/themes/<name>.yaml\n\
+         # Customize and load with: theme: <name> in config.yaml\n\
+         #\n\
+         # Color values: named (Red, Green, Blue, ...) or RGB hex (\"#ff5533\")\n\
+         # Style fields: fg, bg, bold, italic, underline\n\
+         \n\
+         {yaml}",
+        name
+    ))
+}
+
 #[cfg(test)]
 #[path = "config_tests.rs"]
 mod config_tests;

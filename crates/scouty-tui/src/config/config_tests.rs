@@ -187,4 +187,43 @@ mod tests {
         assert_eq!(cfg.theme, "solarized");
         let _ = std::fs::remove_dir_all(&dir);
     }
+
+    #[test]
+    fn test_generate_default_config_is_valid_yaml() {
+        let yaml = super::super::generate_default_config();
+        let cfg: super::super::Config = serde_yaml::from_str(&yaml).unwrap();
+        assert_eq!(cfg.theme, "default");
+        assert_eq!(cfg.ssh.connect_timeout, 10);
+    }
+
+    #[test]
+    fn test_generate_theme_known() {
+        for name in super::super::Theme::builtin_names() {
+            let yaml = super::super::generate_theme(name);
+            assert!(yaml.is_some(), "theme {} should generate", name);
+            let yaml = yaml.unwrap();
+            assert!(yaml.contains(&format!("# Scouty theme: {}", name)));
+            // Should be parseable as a Theme
+            // Skip the comment lines and parse
+            let theme_yaml: String = yaml
+                .lines()
+                .filter(|l| !l.starts_with('#'))
+                .collect::<Vec<_>>()
+                .join("\n");
+            let _theme: super::super::Theme = serde_yaml::from_str(&theme_yaml).unwrap();
+        }
+    }
+
+    #[test]
+    fn test_generate_theme_unknown() {
+        assert!(super::super::generate_theme("nonexistent").is_none());
+    }
+
+    #[test]
+    fn test_builtin_names() {
+        let names = super::super::Theme::builtin_names();
+        assert!(names.contains(&"default"));
+        assert!(names.contains(&"landmine"));
+        assert_eq!(names.len(), 5);
+    }
 }

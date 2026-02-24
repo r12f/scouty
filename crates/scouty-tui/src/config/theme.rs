@@ -386,6 +386,11 @@ impl Theme {
         }
     }
 
+    /// List all built-in theme names.
+    pub fn builtin_names() -> &'static [&'static str] {
+        &["default", "dark", "light", "solarized", "landmine"]
+    }
+
     /// Muted dark theme — lower contrast, softer colors.
     pub fn dark() -> Self {
         use Color::*;
