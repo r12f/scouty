@@ -159,6 +159,8 @@ impl ColumnConfig {
 pub struct FilterEntry {
     /// Human-readable label (e.g. "exclude: timeout", "level == ERROR").
     pub label: String,
+    /// The original parseable expression string.
+    pub expr_str: String,
     /// The compiled expression.
     pub expr: Expr,
     /// Whether this is an exclude (true) or include (false) filter.
@@ -840,6 +842,7 @@ impl App {
             Ok(parsed_expr) => {
                 self.filters.push(FilterEntry {
                     label: self.filter_input.value().to_string(),
+                    expr_str: self.filter_input.value().to_string(),
                     expr: parsed_expr,
                     exclude: false,
                 });
@@ -864,6 +867,7 @@ impl App {
             Ok(parsed_expr) => {
                 self.filters.push(FilterEntry {
                     label: format!("exclude: {}", text),
+                    expr_str: expr_str.clone(),
                     expr: parsed_expr,
                     exclude: true,
                 });
@@ -887,6 +891,7 @@ impl App {
             Ok(parsed_expr) => {
                 self.filters.push(FilterEntry {
                     label: format!("include: {}", text),
+                    expr_str: expr_str.clone(),
                     expr: parsed_expr,
                     exclude: false,
                 });
@@ -1012,7 +1017,7 @@ impl App {
                 .filters
                 .iter()
                 .map(|f| FilterPresetEntry {
-                    expr: f.label.clone(),
+                    expr: f.expr_str.clone(),
                     exclude: f.exclude,
                 })
                 .collect(),
@@ -1046,6 +1051,7 @@ impl App {
                 Ok(parsed) => {
                     self.filters.push(FilterEntry {
                         label: entry.expr.clone(),
+                        expr_str: entry.expr.clone(),
                         expr: parsed,
                         exclude: entry.exclude,
                     });
@@ -1145,6 +1151,7 @@ impl App {
                     };
                     self.filters.push(FilterEntry {
                         label,
+                        expr_str: part.to_string(),
                         expr: parsed_expr,
                         exclude: state.exclude,
                     });
@@ -1170,6 +1177,7 @@ impl App {
                 Ok(parsed_expr) => {
                     self.filters.push(FilterEntry {
                         label,
+                        expr_str: expr_str.clone(),
                         expr: parsed_expr,
                         exclude: state.exclude,
                     });
