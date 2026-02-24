@@ -38,6 +38,7 @@ pub enum InputMode {
     LevelFilter,
     SavePreset,
     LoadPreset,
+    DensitySelector,
 }
 
 /// Column identifiers for the log table.
@@ -200,6 +201,17 @@ pub struct FieldFilterState {
     pub logic_or: bool,
 }
 
+/// Source for density chart data.
+#[derive(Debug, Clone, PartialEq)]
+pub enum DensitySource {
+    /// All filtered records (default).
+    All,
+    /// Only records matching a specific level.
+    Level(String),
+    /// Only records matching a specific highlight rule (by pattern).
+    Highlight(String),
+}
+
 /// A single highlight rule: regex pattern + assigned color.
 #[derive(Debug, Clone)]
 pub struct HighlightRule {
@@ -298,6 +310,10 @@ pub struct App {
     pub preset_list: Vec<String>,
     /// Load preset cursor.
     pub preset_list_cursor: usize,
+    /// Current density chart source.
+    pub density_source: DensitySource,
+    /// Density selector cursor.
+    pub density_selector_cursor: usize,
 }
 
 /// Level filter presets.
@@ -397,6 +413,8 @@ pub struct DensityCache {
     pub filter_version: u64,
     /// Chart width when cache was built.
     pub chart_width: usize,
+    /// Density source when cache was built.
+    pub density_source: DensitySource,
 }
 
 impl App {
@@ -514,6 +532,8 @@ impl App {
             preset_name_input: TextInput::new(),
             preset_list: Vec::new(),
             preset_list_cursor: 0,
+            density_source: DensitySource::All,
+            density_selector_cursor: 0,
         })
     }
 
@@ -595,7 +615,11 @@ impl App {
             return None;
         }
         let needs_rebuild = match &self.density_cache {
-            Some(c) => c.filter_version != self.filter_version || c.chart_width != chart_width,
+            Some(c) => {
+                c.filter_version != self.filter_version
+                    || c.chart_width != chart_width
+                    || c.density_source != self.density_source
+            }
             None => true,
         };
 
@@ -605,9 +629,15 @@ impl App {
                 return None;
             }
 
+            let source_indices = self.density_source_indices();
+            if source_indices.is_empty() {
+                self.density_cache = None;
+                return None;
+            }
+
             let (buckets, min_ts, max_ts) = crate::density::compute_density_indexed(
                 &self.records,
-                &self.filtered_indices,
+                &source_indices,
                 num_buckets,
             );
 
@@ -620,6 +650,7 @@ impl App {
                 max_ts,
                 filter_version: self.filter_version,
                 chart_width,
+                density_source: self.density_source.clone(),
             });
         }
 
@@ -638,6 +669,68 @@ impl App {
         let offset_ms = (cursor_ts - cache.min_ts).num_milliseconds() as f64;
         let idx = ((offset_ms / range_ms) * (cache.num_buckets as f64 - 1.0)) as usize;
         Some(idx.min(cache.num_buckets - 1) / 2)
+    }
+
+    /// Compute filtered indices for the current density source.
+    fn density_source_indices(&self) -> Vec<usize> {
+        match &self.density_source {
+            DensitySource::All => self.filtered_indices.clone(),
+            DensitySource::Level(level) => {
+                let target_level = scouty::record::LogLevel::from_str_loose(level);
+                self.filtered_indices
+                    .iter()
+                    .copied()
+                    .filter(|&i| self.records[i].level == target_level)
+                    .collect()
+            }
+            DensitySource::Highlight(pattern) => {
+                if let Some(rule) = self.highlight_rules.iter().find(|r| r.pattern == *pattern) {
+                    let regex = rule.regex.clone();
+                    self.filtered_indices
+                        .iter()
+                        .copied()
+                        .filter(|&i| regex.is_match(&self.records[i].raw))
+                        .collect()
+                } else {
+                    Vec::new()
+                }
+            }
+        }
+    }
+
+    /// Cycle density source: All -> ERROR -> WARN -> highlights -> All.
+    pub fn cycle_density_source(&mut self) {
+        let sources = self.density_source_options();
+        let current_idx = sources
+            .iter()
+            .position(|s| *s == self.density_source)
+            .unwrap_or(0);
+        let next_idx = (current_idx + 1) % sources.len();
+        self.density_source = sources[next_idx].clone();
+        self.density_cache = None;
+        self.set_status(format!("Density: {}", self.density_source_label()));
+    }
+
+    /// All available density source options.
+    pub fn density_source_options(&self) -> Vec<DensitySource> {
+        let mut options = vec![
+            DensitySource::All,
+            DensitySource::Level("ERROR".to_string()),
+            DensitySource::Level("WARN".to_string()),
+        ];
+        for rule in &self.highlight_rules {
+            options.push(DensitySource::Highlight(rule.pattern.clone()));
+        }
+        options
+    }
+
+    /// Label for current density source.
+    pub fn density_source_label(&self) -> String {
+        match &self.density_source {
+            DensitySource::All => "All".to_string(),
+            DensitySource::Level(l) => l.clone(),
+            DensitySource::Highlight(p) => format!("\"{}\"", p),
+        }
     }
 
     // ── Filter application ──────────────────────────────────────
@@ -1717,6 +1810,8 @@ mod tests {
             preset_name_input: TextInput::new(),
             preset_list: Vec::new(),
             preset_list_cursor: 0,
+            density_source: DensitySource::All,
+            density_selector_cursor: 0,
         }
     }
 
@@ -1775,6 +1870,8 @@ mod tests {
             preset_name_input: TextInput::new(),
             preset_list: Vec::new(),
             preset_list_cursor: 0,
+            density_source: DensitySource::All,
+            density_selector_cursor: 0,
         }
     }
 
@@ -1830,6 +1927,8 @@ mod tests {
             preset_name_input: TextInput::new(),
             preset_list: Vec::new(),
             preset_list_cursor: 0,
+            density_source: DensitySource::All,
+            density_selector_cursor: 0,
         }
     }
 
@@ -2339,6 +2438,8 @@ mod field_filter_v2_tests {
             preset_name_input: TextInput::new(),
             preset_list: Vec::new(),
             preset_list_cursor: 0,
+            density_source: DensitySource::All,
+            density_selector_cursor: 0,
         }
     }
 
@@ -2519,6 +2620,8 @@ mod column_follow_tests {
             preset_name_input: TextInput::new(),
             preset_list: Vec::new(),
             preset_list_cursor: 0,
+            density_source: DensitySource::All,
+            density_selector_cursor: 0,
         }
     }
 
@@ -2713,6 +2816,8 @@ mod copy_tests {
             preset_name_input: TextInput::new(),
             preset_list: Vec::new(),
             preset_list_cursor: 0,
+            density_source: DensitySource::All,
+            density_selector_cursor: 0,
         }
     }
 
@@ -2878,6 +2983,8 @@ mod time_jump_tests {
             preset_name_input: TextInput::new(),
             preset_list: Vec::new(),
             preset_list_cursor: 0,
+            density_source: DensitySource::All,
+            density_selector_cursor: 0,
         }
     }
 
@@ -3006,6 +3113,8 @@ mod command_tests {
             preset_name_input: TextInput::new(),
             preset_list: Vec::new(),
             preset_list_cursor: 0,
+            density_source: DensitySource::All,
+            density_selector_cursor: 0,
         }
     }
     #[test]

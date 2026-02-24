@@ -333,6 +333,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                         .map(|l| (l.as_number() - 1) as usize)
                                         .unwrap_or(0);
                                 }
+                                Action::DensityCycle => {
+                                    app.cycle_density_source();
+                                }
+                                Action::DensitySelector => {
+                                    app.density_selector_cursor = 0;
+                                    app.input_mode = InputMode::DensitySelector;
+                                }
                                 Action::GotoLine => {
                                     app.input_mode = InputMode::GotoLine;
                                     app.goto_input.clear();
@@ -648,6 +655,27 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                             if window.confirmed {
                                 if let Some(ref name) = window.selected {
                                     app.load_filter_preset(name);
+                                }
+                            }
+                            app.input_mode = InputMode::Normal;
+                        }
+                    }
+                    InputMode::DensitySelector => {
+                        use ui::windows::density_selector_window::DensitySelectorWindow;
+                        let options = app.density_source_options();
+                        let mut window =
+                            DensitySelectorWindow::new(options, app.density_selector_cursor);
+                        let result = ui::dispatch_key(&mut window, key);
+                        app.density_selector_cursor = window.cursor;
+                        if result == ui::ComponentResult::Close {
+                            if window.confirmed {
+                                if let Some(source) = window.selected {
+                                    app.density_source = source;
+                                    app.density_cache = None;
+                                    app.set_status(format!(
+                                        "Density: {}",
+                                        app.density_source_label()
+                                    ));
                                 }
                             }
                             app.input_mode = InputMode::Normal;

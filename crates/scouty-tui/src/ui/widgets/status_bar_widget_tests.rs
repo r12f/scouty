@@ -41,6 +41,7 @@ mod tests {
             max_ts: chrono::Utc::now() + chrono::Duration::milliseconds(50_000),
             filter_version: 0,
             chart_width: 50,
+            density_source: crate::app::DensitySource::All,
         };
         let label = StatusBarWidget::time_per_column_label(&cache).unwrap();
         assert_eq!(label, "[█=500ms]");
@@ -55,6 +56,7 @@ mod tests {
             max_ts: chrono::Utc::now() + chrono::Duration::seconds(500),
             filter_version: 0,
             chart_width: 50,
+            density_source: crate::app::DensitySource::All,
         };
         let label = StatusBarWidget::time_per_column_label(&cache).unwrap();
         assert_eq!(label, "[█=5s]");
@@ -69,6 +71,7 @@ mod tests {
             max_ts: chrono::Utc::now() + chrono::Duration::minutes(200),
             filter_version: 0,
             chart_width: 50,
+            density_source: crate::app::DensitySource::All,
         };
         let label = StatusBarWidget::time_per_column_label(&cache).unwrap();
         assert_eq!(label, "[█=5m]");
@@ -83,6 +86,7 @@ mod tests {
             max_ts: chrono::Utc::now() + chrono::Duration::hours(20),
             filter_version: 0,
             chart_width: 50,
+            density_source: crate::app::DensitySource::All,
         };
         let label = StatusBarWidget::time_per_column_label(&cache).unwrap();
         assert_eq!(label, "[█=2h]");
@@ -98,6 +102,7 @@ mod tests {
             max_ts: now,
             filter_version: 0,
             chart_width: 50,
+            density_source: crate::app::DensitySource::All,
         };
         assert!(StatusBarWidget::time_per_column_label(&cache).is_none());
     }
@@ -112,6 +117,7 @@ mod tests {
             max_ts: now + chrono::Duration::milliseconds(55_000),
             filter_version: 0,
             chart_width: 50,
+            density_source: crate::app::DensitySource::All,
         };
         let label = StatusBarWidget::time_per_column_label(&cache).unwrap();
         assert_eq!(label, "[█=15s]");
@@ -127,6 +133,7 @@ mod tests {
             max_ts: now + chrono::Duration::minutes(25),
             filter_version: 0,
             chart_width: 50,
+            density_source: crate::app::DensitySource::All,
         };
         let label = StatusBarWidget::time_per_column_label(&cache).unwrap();
         assert_eq!(label, "[█=5m]");
@@ -142,6 +149,7 @@ mod tests {
             max_ts: now + chrono::Duration::hours(15),
             filter_version: 0,
             chart_width: 50,
+            density_source: crate::app::DensitySource::All,
         };
         let label = StatusBarWidget::time_per_column_label(&cache).unwrap();
         assert_eq!(label, "[█=2h]");

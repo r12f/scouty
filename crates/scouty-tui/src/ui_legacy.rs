@@ -132,6 +132,14 @@ pub fn render(frame: &mut Frame, app: &mut App) {
         let window = LoadPresetWindow::new(app.preset_list.clone());
         UiComponent::render(&window, frame, area);
     }
+
+    if app.input_mode == InputMode::DensitySelector {
+        use crate::ui::windows::density_selector_window::DensitySelectorWindow;
+        use crate::ui::UiComponent;
+        let options = app.density_source_options();
+        let window = DensitySelectorWindow::new(options, app.density_selector_cursor);
+        UiComponent::render(&window, frame, area);
+    }
 }
 
 fn render_log_table(frame: &mut Frame, app: &App, area: Rect) {

@@ -130,8 +130,14 @@ impl StatusBarWidget {
             if let Some(cache) = &app.density_cache {
                 // Show time-per-column label before chart
                 if let Some(label) = Self::time_per_column_label(cache) {
+                    let source_label = app.density_source_label();
+                    let full_label = if source_label == "All" {
+                        label
+                    } else {
+                        format!("{} {}", &label[..label.len() - 1], source_label) + "]"
+                    };
                     spans.push(Span::styled(
-                        label,
+                        full_label,
                         theme.status_bar.density_label.to_style(),
                     ));
                 }
