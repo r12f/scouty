@@ -3,6 +3,7 @@
 pub mod bookmark_manager_window;
 pub mod column_selector_window;
 pub mod copy_format_window;
+pub mod density_selector_window;
 pub mod field_filter_window;
 pub mod filter_manager_window;
 pub mod goto_line_window;

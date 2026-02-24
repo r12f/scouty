@@ -85,6 +85,8 @@ mod tests {
             preset_name_input: TextInput::new(),
             preset_list: Vec::new(),
             preset_list_cursor: 0,
+            density_source: crate::app::DensitySource::All,
+            density_selector_cursor: 0,
         }
     }
 
@@ -178,6 +180,8 @@ mod tests {
             preset_name_input: TextInput::new(),
             preset_list: Vec::new(),
             preset_list_cursor: 0,
+            density_source: crate::app::DensitySource::All,
+            density_selector_cursor: 0,
         };
         let stats = StatsData::compute(&app);
         assert_eq!(stats.total_records, 0);

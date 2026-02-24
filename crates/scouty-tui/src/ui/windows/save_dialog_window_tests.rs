@@ -93,6 +93,8 @@ mod tests {
             bookmarks: std::collections::HashSet::new(),
             bookmark_manager_cursor: 0,
             theme: crate::config::Theme::default(),
+            density_source: crate::app::DensitySource::All,
+            density_selector_cursor: 0,
         }
     }
 

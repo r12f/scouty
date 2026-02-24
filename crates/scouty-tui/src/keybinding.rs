@@ -41,6 +41,10 @@ pub enum Action {
     AddHighlight,
     HighlightManager,
 
+    // Density chart
+    DensityCycle,
+    DensitySelector,
+
     // Bookmarks
     ToggleBookmark,
     NextBookmark,
@@ -157,6 +161,8 @@ pub struct KeybindingConfig {
     pub stats: Option<KeyOrKeys>,
     pub add_highlight: Option<KeyOrKeys>,
     pub highlight_manager: Option<KeyOrKeys>,
+    pub density_cycle: Option<KeyOrKeys>,
+    pub density_selector: Option<KeyOrKeys>,
     pub toggle_bookmark: Option<KeyOrKeys>,
     pub next_bookmark: Option<KeyOrKeys>,
     pub prev_bookmark: Option<KeyOrKeys>,
@@ -267,6 +273,8 @@ impl KeybindingConfig {
             Action::Stats => self.stats.as_ref(),
             Action::AddHighlight => self.add_highlight.as_ref(),
             Action::HighlightManager => self.highlight_manager.as_ref(),
+            Action::DensityCycle => self.density_cycle.as_ref(),
+            Action::DensitySelector => self.density_selector.as_ref(),
             Action::ToggleBookmark => self.toggle_bookmark.as_ref(),
             Action::NextBookmark => self.next_bookmark.as_ref(),
             Action::PrevBookmark => self.prev_bookmark.as_ref(),
@@ -314,6 +322,9 @@ fn default_bindings() -> Vec<(Action, Vec<&'static str>)> {
         // Highlight
         (Action::AddHighlight, vec!["h"]),
         (Action::HighlightManager, vec!["H"]),
+        // Density chart
+        (Action::DensityCycle, vec!["d"]),
+        (Action::DensitySelector, vec!["D"]),
         // Bookmarks
         (Action::ToggleBookmark, vec!["m"]),
         (Action::NextBookmark, vec!["'"]),
