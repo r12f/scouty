@@ -67,15 +67,31 @@ impl SaveDialogWindow {
 
     /// Perform the export. Returns a status message.
     pub fn execute_save(app: &App, path: &str, format: ExportFormat) -> String {
+        use std::io::{BufWriter, Write};
+
         let count = app.filtered_indices.len();
 
-        let content = match format {
+        let file = match std::fs::File::create(path) {
+            Ok(f) => f,
+            Err(e) => return format!("Save failed: {}", e),
+        };
+        let mut writer = BufWriter::new(file);
+
+        let result = match format {
             ExportFormat::Raw => {
-                let mut lines = Vec::with_capacity(count);
+                let mut first = true;
                 for &idx in &app.filtered_indices {
-                    lines.push(app.records[idx].raw.as_str());
+                    if !first {
+                        if let Err(e) = writeln!(writer) {
+                            return format!("Save failed: {}", e);
+                        }
+                    }
+                    first = false;
+                    if let Err(e) = write!(writer, "{}", app.records[idx].raw) {
+                        return format!("Save failed: {}", e);
+                    }
                 }
-                lines.join("\n") + "\n"
+                writeln!(writer)
             }
             ExportFormat::Json => {
                 let records: Vec<&scouty::record::LogRecord> = app
@@ -83,23 +99,28 @@ impl SaveDialogWindow {
                     .iter()
                     .map(|&idx| app.records[idx].as_ref())
                     .collect();
-                match serde_json::to_string_pretty(&records) {
-                    Ok(json) => json + "\n",
-                    Err(e) => return format!("Save failed: {}", e),
-                }
+                serde_json::to_writer_pretty(&mut writer, &records)
+                    .map_err(std::io::Error::other)
+                    .and_then(|_| writeln!(writer))
             }
             ExportFormat::Yaml => {
+                // Stream YAML directly to the writer to avoid building a huge
+                // intermediate String (using `to_writer` instead of `to_string`).
                 let records: Vec<&scouty::record::LogRecord> = app
                     .filtered_indices
                     .iter()
                     .map(|&idx| app.records[idx].as_ref())
                     .collect();
-                match serde_yaml::to_string(&records) {
-                    Ok(yaml) => yaml,
-                    Err(e) => return format!("Save failed: {}", e),
-                }
+                serde_yaml::to_writer(&mut writer, &records).map_err(std::io::Error::other)
             }
         };
+
+        if let Err(e) = result {
+            return format!("Save failed: {}", e);
+        }
+        if let Err(e) = writer.flush() {
+            return format!("Save failed: {}", e);
+        }
 
         let fmt_label = match format {
             ExportFormat::Raw => "raw",
@@ -107,10 +128,7 @@ impl SaveDialogWindow {
             ExportFormat::Yaml => "yaml",
         };
 
-        match std::fs::write(path, content) {
-            Ok(()) => format!("Saved {} records to {} ({})", count, path, fmt_label),
-            Err(e) => format!("Save failed: {}", e),
-        }
+        format!("Saved {} records to {} ({})", count, path, fmt_label)
     }
 }
 
