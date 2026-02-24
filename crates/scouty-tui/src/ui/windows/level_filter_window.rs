@@ -10,12 +10,15 @@ use crate::ui::{ComponentResult, UiComponent};
 use ratatui::prelude::*;
 use ratatui::widgets::{Block, Borders, Clear, Paragraph};
 
-const OPTIONS: [(u8, LevelFilterPreset); 5] = [
+const OPTIONS: [(u8, LevelFilterPreset); 8] = [
     (1, LevelFilterPreset::All),
-    (2, LevelFilterPreset::DebugPlus),
-    (3, LevelFilterPreset::InfoPlus),
-    (4, LevelFilterPreset::WarnPlus),
-    (5, LevelFilterPreset::ErrorPlus),
+    (2, LevelFilterPreset::TracePlus),
+    (3, LevelFilterPreset::DebugPlus),
+    (4, LevelFilterPreset::InfoPlus),
+    (5, LevelFilterPreset::NoticePlus),
+    (6, LevelFilterPreset::WarnPlus),
+    (7, LevelFilterPreset::ErrorPlus),
+    (8, LevelFilterPreset::FatalOnly),
 ];
 
 pub struct LevelFilterWindow<'a> {
@@ -74,7 +77,7 @@ impl<'a> UiComponent for LevelFilterWindow<'a> {
 
     fn on_char(&mut self, c: char) -> ComponentResult {
         if let Some(n) = c.to_digit(10) {
-            if (1..=5).contains(&n) {
+            if (1..=8).contains(&n) {
                 if let Some(preset) = LevelFilterPreset::from_number(n as u8) {
                     self.selected = Some(preset);
                     self.confirmed = true;
