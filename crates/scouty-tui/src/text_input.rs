@@ -137,6 +137,19 @@ impl TextInput {
         self.cursor
     }
 
+    /// Delete from cursor to end of line (Ctrl+k).
+    pub fn kill_to_end(&mut self) {
+        let byte_pos = self.byte_pos();
+        self.text.truncate(byte_pos);
+    }
+
+    /// Delete from start of line to cursor (Ctrl+u).
+    pub fn kill_to_start(&mut self) {
+        let byte_pos = self.byte_pos();
+        self.text.drain(..byte_pos);
+        self.cursor = 0;
+    }
+
     /// Handle a key event. Returns true if the key was consumed.
     pub fn handle_key(&mut self, key: KeyEvent) -> bool {
         let ctrl = key.modifiers.contains(KeyModifiers::CONTROL);
@@ -144,6 +157,18 @@ impl TextInput {
         // Normalize Ctrl+H to Backspace (some terminals send ^H)
         if ctrl && key.code == KeyCode::Char('h') {
             self.backspace();
+            return true;
+        }
+
+        // Readline/emacs shortcuts
+        if ctrl {
+            match key.code {
+                KeyCode::Char('a') => self.home(),
+                KeyCode::Char('e') => self.end(),
+                KeyCode::Char('k') => self.kill_to_end(),
+                KeyCode::Char('u') => self.kill_to_start(),
+                _ => return false,
+            }
             return true;
         }
 

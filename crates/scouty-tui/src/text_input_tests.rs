@@ -156,4 +156,56 @@ mod tests {
         assert_eq!(ti.value(), "ac");
         assert_eq!(ti.cursor_position(), 1);
     }
+
+    #[test]
+    fn ctrl_a_moves_to_start() {
+        let mut ti = TextInput::with_text("hello");
+        assert_eq!(ti.cursor_position(), 5);
+        assert!(ti.handle_key(ctrl_key(KeyCode::Char('a'))));
+        assert_eq!(ti.cursor_position(), 0);
+        assert_eq!(ti.value(), "hello");
+    }
+
+    #[test]
+    fn ctrl_e_moves_to_end() {
+        let mut ti = TextInput::with_text("hello");
+        ti.home();
+        assert_eq!(ti.cursor_position(), 0);
+        assert!(ti.handle_key(ctrl_key(KeyCode::Char('e'))));
+        assert_eq!(ti.cursor_position(), 5);
+        assert_eq!(ti.value(), "hello");
+    }
+
+    #[test]
+    fn ctrl_k_kills_to_end() {
+        let mut ti = TextInput::with_text("hello world");
+        ti.cursor = 5; // after "hello"
+        assert!(ti.handle_key(ctrl_key(KeyCode::Char('k'))));
+        assert_eq!(ti.value(), "hello");
+        assert_eq!(ti.cursor_position(), 5);
+    }
+
+    #[test]
+    fn ctrl_k_at_end_is_noop() {
+        let mut ti = TextInput::with_text("hello");
+        assert!(ti.handle_key(ctrl_key(KeyCode::Char('k'))));
+        assert_eq!(ti.value(), "hello");
+    }
+
+    #[test]
+    fn ctrl_u_kills_to_start() {
+        let mut ti = TextInput::with_text("hello world");
+        ti.cursor = 5; // after "hello"
+        assert!(ti.handle_key(ctrl_key(KeyCode::Char('u'))));
+        assert_eq!(ti.value(), " world");
+        assert_eq!(ti.cursor_position(), 0);
+    }
+
+    #[test]
+    fn ctrl_u_at_start_is_noop() {
+        let mut ti = TextInput::with_text("hello");
+        ti.home();
+        assert!(ti.handle_key(ctrl_key(KeyCode::Char('u'))));
+        assert_eq!(ti.value(), "hello");
+    }
 }
