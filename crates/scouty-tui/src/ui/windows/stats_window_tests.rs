@@ -28,6 +28,7 @@ mod tests {
             raw: format!("msg {}", id),
             metadata: None,
             loader_id: "test".into(),
+            expanded: None,
         }
     }
 

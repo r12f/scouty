@@ -26,6 +26,7 @@ mod tests {
             raw: message.into(),
             metadata: None,
             loader_id: "test-loader".into(),
+            expanded: None,
         }
     }
 

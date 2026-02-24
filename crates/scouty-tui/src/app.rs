@@ -1755,6 +1755,7 @@ mod tests {
             raw: message.to_string(),
             metadata: None,
             loader_id: "test".into(),
+            expanded: None,
         }
     }
 
@@ -1776,6 +1777,7 @@ mod tests {
             raw: format!("msg {}", id),
             metadata: None,
             loader_id: "test".into(),
+            expanded: None,
         }
     }
 
@@ -2420,6 +2422,7 @@ mod field_filter_v2_tests {
             raw: msg.to_string(),
             metadata: None,
             loader_id: "test".into(),
+            expanded: None,
         }
     }
 
@@ -2604,6 +2607,7 @@ mod column_follow_tests {
             raw: message.to_string(),
             metadata: None,
             loader_id: "test".into(),
+            expanded: None,
         }
     }
 
@@ -2805,6 +2809,7 @@ mod copy_tests {
             raw: msg.to_string(),
             metadata: None,
             loader_id: "test".into(),
+            expanded: None,
         }
     }
 
@@ -2968,6 +2973,7 @@ mod time_jump_tests {
             raw: format!("msg {}", id),
             metadata: None,
             loader_id: "test".into(),
+            expanded: None,
         }
     }
 
@@ -3106,6 +3112,7 @@ mod command_tests {
             raw: msg.to_string(),
             metadata: None,
             loader_id: "test".into(),
+            expanded: None,
         }
     }
 

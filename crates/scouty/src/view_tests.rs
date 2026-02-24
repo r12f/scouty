@@ -30,6 +30,7 @@ mod tests {
             raw: message.to_string(),
             metadata: None,
             loader_id: "loader".into(),
+            expanded: None,
         }
     }
 

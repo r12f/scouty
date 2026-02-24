@@ -400,6 +400,7 @@ random garbage
                 raw: format!("message {}", i),
                 metadata: None,
                 loader_id: "bench".into(),
+                expanded: None,
             });
         }
 

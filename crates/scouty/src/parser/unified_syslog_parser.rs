@@ -427,6 +427,7 @@ fn build_record(
         raw: String::new(), // Caller should set raw to avoid double allocation
         metadata: None,
         loader_id: Arc::clone(loader_id),
+        expanded: None,
     }
 }
 

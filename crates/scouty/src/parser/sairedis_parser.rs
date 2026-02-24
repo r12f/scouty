@@ -215,6 +215,7 @@ impl SairedisParser {
             raw: String::new(), // Caller sets raw
             metadata: None,
             loader_id: Arc::clone(loader_id),
+            expanded: None,
         })
     }
 

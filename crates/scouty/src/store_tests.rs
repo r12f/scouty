@@ -25,6 +25,7 @@ mod tests {
             raw: message.into(),
             metadata: None,
             loader_id: "test-loader".into(),
+            expanded: None,
         }
     }
 
@@ -46,6 +47,7 @@ mod tests {
             raw: format!("msg-{}", id),
             metadata: None,
             loader_id: "test-loader".into(),
+            expanded: None,
         }
     }
 
@@ -360,6 +362,7 @@ mod tests {
                 raw: format!("msg-{}", i),
                 metadata: None,
                 loader_id: "bench".into(),
+                expanded: None,
             })
             .collect();
 
@@ -386,6 +389,7 @@ mod tests {
                 raw: format!("new-{}", i),
                 metadata: None,
                 loader_id: "bench".into(),
+                expanded: None,
             })
             .collect();
 
@@ -425,6 +429,7 @@ mod tests {
                 raw: format!("msg-{}", i),
                 metadata: None,
                 loader_id: "bench".into(),
+                expanded: None,
             })
             .collect();
 
@@ -450,6 +455,7 @@ mod tests {
                 raw: format!("interleaved-{}", i),
                 metadata: None,
                 loader_id: "bench".into(),
+                expanded: None,
             })
             .collect();
 
@@ -495,6 +501,7 @@ mod tests {
                 raw: format!("msg-{}", i),
                 metadata: None,
                 loader_id: "bench".into(),
+                expanded: None,
             });
         }
 
@@ -525,6 +532,7 @@ mod tests {
                 raw: format!("msg-{}", i),
                 metadata: None,
                 loader_id: "bench".into(),
+                expanded: None,
             })
             .collect();
 
@@ -563,6 +571,7 @@ mod tests {
                 raw: format!("msg-{}", i),
                 metadata: None,
                 loader_id: "bench".into(),
+                expanded: None,
             })
             .collect();
 
@@ -599,6 +608,7 @@ mod tests {
                 raw: format!("msg-{}", i),
                 metadata: None,
                 loader_id: "bench".into(),
+                expanded: None,
             })
             .collect();
 
@@ -639,6 +649,7 @@ mod tests {
                 raw: format!("msg-{}", i),
                 metadata: None,
                 loader_id: "bench".into(),
+                expanded: None,
             })
             .collect();
 

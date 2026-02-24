@@ -274,6 +274,7 @@ impl RegexParser {
             raw: raw.to_string(),
             metadata,
             loader_id: Arc::clone(loader_id),
+            expanded: None,
         })
     }
 
@@ -368,6 +369,7 @@ impl RegexParser {
             raw,
             metadata,
             loader_id: Arc::clone(loader_id),
+            expanded: None,
         })
     }
 
@@ -441,6 +443,7 @@ impl RegexParser {
             raw: raw.to_string(),
             metadata,
             loader_id: Arc::clone(loader_id),
+            expanded: None,
         })
     }
 }
