@@ -118,6 +118,7 @@ Components notify App via return values or callbacks. App updates shared state (
 | `'`/`"` | Next/prev bookmark |
 | `M` | Bookmark manager |
 | `S` | Stats summary |
+| `r` / `R` | Region manager / jump to next region start |
 | `]`/`[` | Relative time jump (forward/backward) |
 | `Ctrl+]` | Toggle follow mode |
 

@@ -1,0 +1,238 @@
+# Region Parsing
+
+## Overview
+
+Region parsing identifies logical spans ("regions") in log streams by matching configurable start and end points. A region groups consecutive log records that belong to a single logical operation (e.g., a request lifecycle, a SAI bulk operation, a port startup sequence).
+
+Regions are defined via YAML config files and processed by a log processor that runs after parsing, attaching region metadata to matched log records.
+
+
+## Design
+
+### Concepts
+
+- **Region Definition** — a named configuration describing how to detect a region's start/end boundaries
+- **Start Point** — a filter expression that identifies a potential region start; on match, regex extracts metadata
+- **End Point** — a filter expression that identifies a potential region end; on match, regex extracts metadata
+- **Region** — a created span from a matched start to a matched end, where extracted metadata fields correlate the two
+- **Region Processor** — a log processor that evaluates records against region definitions and creates regions
+
+### Region Detection Flow
+
+```
+For each incoming log record:
+  1. Check against all active region definitions
+  2. For each definition:
+     a. Try each END POINT filter:
+        - If matched → extract metadata via regex
+        - Search backwards for the nearest unmatched START POINT
+          whose extracted metadata matches on the specified correlation fields
+        - If correlation succeeds → CREATE REGION (start..end)
+        - Construct region name/description from template
+     b. Try each START POINT filter:
+        - If matched → extract metadata via regex
+        - Store as pending start point (awaiting a matching end)
+```
+
+### Configuration
+
+Region configs are YAML files stored in:
+- `/etc/scouty/regions/*.yaml` — system-wide
+- `~/.scouty/regions/*.yaml` — user-level
+- `./scouty-regions/*.yaml` — project-level
+
+Loading order follows config precedence (system → user → project). Each file can define multiple region definitions.
+
+### Config File Format
+
+```yaml
+# ~/.scouty/regions/sonic-operations.yaml
+
+regions:
+  - name: "sai_bulk_create"
+    description: "SAI bulk object creation operation"
+
+    start_points:
+      - filter: 'function == "c" AND component == "sairedis"'
+        regex: 'SAI_OBJECT_TYPE_(?P<obj_type>\w+).*oid:(?P<oid>0x[0-9a-f]+)'
+      - filter: 'function == "C" AND component == "sairedis"'
+        regex: 'SAI_OBJECT_TYPE_(?P<obj_type>\w+).*count:(?P<count>\d+)'
+
+    end_points:
+      - filter: 'function == "G" AND component == "sairedis"'
+        regex: 'SAI_STATUS_(?P<status>\w+)'
+      - filter: 'function == "s" AND message =~ "SAI_STATUS"'
+        regex: 'SAI_STATUS_(?P<status>\w+)'
+
+    # Fields that must match between start and end to correlate them
+    correlate:
+      - "obj_type"    # extracted metadata field
+
+    # Template for constructing region name and description
+    template:
+      name: "SAI Create {obj_type}"
+      description: "{function} {obj_type} oid:{oid} → {status}"
+
+  - name: "port_startup"
+    description: "Port initialization to oper up"
+
+    start_points:
+      - filter: 'message =~ "addPort" AND component == "orchagent"'
+        regex: '(?:addPort|initPort).*?(?P<port>Ethernet\d+)'
+
+    end_points:
+      - filter: 'message =~ "oper_status.*up" AND component == "orchagent"'
+        regex: '(?P<port>Ethernet\d+).*oper_status.*(?P<oper_status>up|down)'
+      - filter: 'message =~ "Port init failed"'
+        regex: '(?P<port>Ethernet\d+).*(?P<error>.+)'
+
+    correlate:
+      - "port"        # same port name links start to end
+
+    template:
+      name: "Port Startup {port}"
+      description: "{port} startup → {oper_status}"
+
+    # Optional: max time window between start and end (default: unlimited)
+    timeout: "30s"
+
+  - name: "http_request"
+    description: "HTTP request lifecycle"
+
+    start_points:
+      - filter: 'message =~ "request started"'
+        regex: 'request_id=(?P<req_id>[a-f0-9-]+).*method=(?P<method>\w+).*path=(?P<path>\S+)'
+
+    end_points:
+      - filter: 'message =~ "request completed"'
+        regex: 'request_id=(?P<req_id>[a-f0-9-]+).*status=(?P<status>\d+).*duration=(?P<duration>\S+)'
+
+    correlate:
+      - "req_id"
+
+    template:
+      name: "{method} {path}"
+      description: "{method} {path} → {status} ({duration})"
+
+    timeout: "60s"
+```
+
+### Config Fields
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `regions[].name` | string | yes | Unique identifier for this region type |
+| `regions[].description` | string | no | Human-readable description |
+| `regions[].start_points` | list | yes | One or more start point matchers |
+| `regions[].start_points[].filter` | string | yes | Filter expression (same syntax as TUI filter) |
+| `regions[].start_points[].regex` | string | no | Regex with named groups for metadata extraction (applied to `message` field). If omitted, no metadata extracted from this point. |
+| `regions[].end_points` | list | yes | One or more end point matchers |
+| `regions[].end_points[].filter` | string | yes | Filter expression |
+| `regions[].end_points[].regex` | string | no | Regex with named groups for metadata extraction |
+| `regions[].correlate` | list | yes | Metadata field names that must match between start and end |
+| `regions[].template.name` | string | yes | Template string for region name (`{field}` substitution) |
+| `regions[].template.description` | string | no | Template string for region description |
+| `regions[].timeout` | string | no | Max duration between start and end (`30s`, `5m`, `1h`). Stale pending starts are discarded. Default: no timeout. |
+
+### Correlation Logic
+
+When an end point matches:
+
+1. Extract metadata from the end record using regex
+2. Walk backwards through pending (unmatched) start points for this region definition
+3. For each pending start, check if ALL `correlate` fields have equal values between start and end metadata
+4. First match wins → region is created from that start record to the current end record
+5. The matched start is consumed (removed from pending list)
+6. All log records between start and end are tagged with the region
+
+If no correlation fields are specified or all are empty, the nearest pending start is used (LIFO).
+
+### Region Data Structure
+
+```rust
+struct Region {
+    definition_name: String,        // e.g., "port_startup"
+    name: String,                   // e.g., "Port Startup Ethernet0" (from template)
+    description: Option<String>,    // e.g., "Ethernet0 startup → up" (from template)
+    start_index: usize,             // LogStore index of start record
+    end_index: usize,               // LogStore index of end record
+    metadata: HashMap<String, String>,  // merged metadata from start + end
+}
+```
+
+### LogRecord Integration
+
+Log records that belong to a region get tagged:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `metadata["_region"]` | String | Region name (from template) |
+| `metadata["_region_type"]` | String | Region definition name |
+| `metadata["_region_pos"]` | String | Position within region: `start`, `middle`, `end`, or `start+end` (single-record region) |
+
+This allows filtering by region: `_region == "Port Startup Ethernet0"` or `_region_type == "port_startup"`.
+
+### TUI Integration
+
+#### Region Markers in Log Table
+
+- Start records: `▶` marker in a dedicated gutter column (left of table)
+- End records: `◀` marker
+- Middle records: `│` marker (within a region)
+- Markers colored by region type (using highlight palette rotation)
+
+#### Region Navigation
+
+| Key | Function |
+|-----|----------|
+| `r` | Region manager — list all detected regions |
+| `R` | Jump to next region start |
+
+**Region Manager (`r`):**
+
+```
+┌─ Regions ───────────────────────────────────────────┐
+│                                                     │
+│  Port Startup Ethernet0          10:30:45 → 10:30:47│
+│  Port Startup Ethernet4          10:30:45 → 10:30:48│
+│  SAI Create ROUTE_ENTRY          10:30:46 → 10:30:46│
+│  HTTP GET /api/status            10:31:02 → 10:31:02│
+│                                                     │
+│  Total: 4 regions (2 types)                         │
+│                                                     │
+│  [Enter] Jump  [f] Filter  [Esc] Close              │
+└─────────────────────────────────────────────────────┘
+```
+
+- `Enter` — jump to region start record
+- `f` — filter to show only records in selected region
+- `j`/`k` navigation
+
+#### Density Chart
+
+When density chart source is set to a region type (`D` selector), show region distribution over time.
+
+### CLI Integration (Pipe Mode)
+
+```bash
+# Filter by region type
+scouty-tui --filter '_region_type == "port_startup"' --format json app.log
+
+# Show only region start/end records
+scouty-tui --filter '_region_pos == "start" OR _region_pos == "end"' app.log
+```
+
+### Performance Considerations
+
+- Region processor runs as a post-parse step, after records are in LogStore
+- Filter expressions compiled once at config load time
+- Regex compiled once at config load time
+- Pending start points stored in memory; `timeout` prevents unbounded growth
+- Large files: region detection is incremental (processes new records as they arrive)
+
+
+## Change Log
+
+| Date | Change |
+|------|--------|
+| 2026-02-24 | Initial region parsing spec — configurable start/end matching, correlation, templates |
