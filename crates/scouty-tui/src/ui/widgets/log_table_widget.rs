@@ -12,6 +12,36 @@ use ratatui::style::{Color, Modifier, Style};
 use ratatui::widgets::{Cell, Row, Table};
 use ratatui::Frame;
 use scouty::record::LogLevel;
+use scouty::region::Region;
+
+/// Region gutter marker colors (matching RegionManagerWindow palette).
+const REGION_COLORS: &[Color] = &[
+    Color::Cyan,
+    Color::Yellow,
+    Color::Green,
+    Color::Magenta,
+    Color::Blue,
+    Color::Red,
+];
+
+/// Build a gutter cell showing region markers for a record.
+fn region_gutter_marker(record_idx: usize, regions: &[Region]) -> Cell<'static> {
+    // Find which region(s) this record belongs to
+    for (i, region) in regions.iter().enumerate() {
+        if record_idx >= region.start_index && record_idx <= region.end_index {
+            let color = REGION_COLORS[i % REGION_COLORS.len()];
+            let marker = if record_idx == region.start_index {
+                "▶ "
+            } else if record_idx == region.end_index {
+                "◀ "
+            } else {
+                "│ "
+            };
+            return Cell::from(marker.to_string()).style(Style::default().fg(color));
+        }
+    }
+    Cell::from("  ".to_string())
+}
 
 pub fn level_style(level: Option<LogLevel>, theme: &Theme) -> Style {
     match level {
@@ -37,46 +67,55 @@ impl LogTableWidget {
 
         let sep_style = theme.table.separator.to_style_entry().to_style();
         let sep_char = theme.table.separator.separator_char();
+        let has_regions = !app.regions.is_empty();
 
-        let widths: Vec<Constraint> = vis_cols
-            .iter()
-            .enumerate()
-            .flat_map(|(i, col)| {
-                let w = match col {
-                    Column::Time => Constraint::Length(cw[0]),
-                    Column::Level => Constraint::Length(cw[1]),
-                    Column::Hostname => Constraint::Length(20),
-                    Column::Container => Constraint::Length(15),
-                    Column::Context => Constraint::Length(25),
-                    Column::Function => Constraint::Length(10),
-                    Column::ProcessName => Constraint::Length(cw[2]),
-                    Column::Pid => Constraint::Length(cw[3]),
-                    Column::Tid => Constraint::Length(cw[4]),
-                    Column::Component => Constraint::Length(cw[5]),
-                    Column::Source => Constraint::Length(15),
-                    Column::Log => Constraint::Fill(1),
-                };
-                if i < vis_cols.len() - 1 {
-                    vec![w, Constraint::Length(1)]
-                } else {
-                    vec![w]
-                }
-            })
-            .collect();
+        let mut widths: Vec<Constraint> = Vec::new();
+        // Gutter column for region markers (2 chars)
+        if has_regions {
+            widths.push(Constraint::Length(2));
+            widths.push(Constraint::Length(1)); // separator
+        }
+        widths.extend(
+            vis_cols
+                .iter()
+                .enumerate()
+                .flat_map(|(i, col)| {
+                    let w = match col {
+                        Column::Time => Constraint::Length(cw[0]),
+                        Column::Level => Constraint::Length(cw[1]),
+                        Column::Hostname => Constraint::Length(20),
+                        Column::Container => Constraint::Length(15),
+                        Column::Context => Constraint::Length(25),
+                        Column::Function => Constraint::Length(10),
+                        Column::ProcessName => Constraint::Length(cw[2]),
+                        Column::Pid => Constraint::Length(cw[3]),
+                        Column::Tid => Constraint::Length(cw[4]),
+                        Column::Component => Constraint::Length(cw[5]),
+                        Column::Source => Constraint::Length(15),
+                        Column::Log => Constraint::Fill(1),
+                    };
+                    if i < vis_cols.len() - 1 {
+                        vec![w, Constraint::Length(1)]
+                    } else {
+                        vec![w]
+                    }
+                })
+                .collect::<Vec<_>>(),
+        );
 
-        let header_cells: Vec<Cell> = vis_cols
-            .iter()
-            .enumerate()
-            .flat_map(|(i, col)| {
-                let cell =
-                    Cell::from(col.label()).style(Style::default().add_modifier(Modifier::BOLD));
-                if i < vis_cols.len() - 1 {
-                    vec![cell, Cell::from(sep_char).style(sep_style)]
-                } else {
-                    vec![cell]
-                }
-            })
-            .collect();
+        let mut header_cells: Vec<Cell> = Vec::new();
+        if has_regions {
+            header_cells.push(Cell::from("").style(Style::default()));
+            header_cells.push(Cell::from(sep_char).style(sep_style));
+        }
+        header_cells.extend(vis_cols.iter().enumerate().flat_map(|(i, col)| {
+            let cell = Cell::from(col.label()).style(Style::default().add_modifier(Modifier::BOLD));
+            if i < vis_cols.len() - 1 {
+                vec![cell, Cell::from(sep_char).style(sep_style)]
+            } else {
+                vec![cell]
+            }
+        }));
 
         let header = Row::new(header_cells).style(theme.table.header.to_style());
 
@@ -91,51 +130,62 @@ impl LogTableWidget {
                 let is_bookmarked = app.is_bookmarked(record_idx);
                 let row_style = level_style(record.level, theme);
 
-                let cells: Vec<Cell> = vis_cols
-                    .iter()
-                    .enumerate()
-                    .flat_map(|(ci, col)| {
-                        let cell = match col {
-                            Column::Time => {
-                                Cell::from(record.timestamp.format("%Y-%m-%d %H:%M:%S").to_string())
+                let mut cells: Vec<Cell> = Vec::new();
+
+                // Region gutter marker
+                if has_regions {
+                    let gutter = region_gutter_marker(record_idx, &app.regions);
+                    cells.push(gutter);
+                    cells.push(Cell::from(sep_char).style(sep_style));
+                }
+
+                cells.extend(
+                    vis_cols
+                        .iter()
+                        .enumerate()
+                        .flat_map(|(ci, col)| {
+                            let cell = match col {
+                                Column::Time => Cell::from(
+                                    record.timestamp.format("%Y-%m-%d %H:%M:%S").to_string(),
+                                ),
+                                Column::Level => Cell::from(
+                                    record.level.map(|l| format!("{}", l)).unwrap_or_default(),
+                                ),
+                                Column::Hostname => {
+                                    Cell::from(record.hostname.as_deref().unwrap_or("").to_string())
+                                }
+                                Column::Container => Cell::from(
+                                    record.container.as_deref().unwrap_or("").to_string(),
+                                ),
+                                Column::Context => {
+                                    Cell::from(record.context.as_deref().unwrap_or("").to_string())
+                                }
+                                Column::Function => {
+                                    Cell::from(record.function.as_deref().unwrap_or("").to_string())
+                                }
+                                Column::ProcessName => Cell::from(
+                                    record.process_name.as_deref().unwrap_or("").to_string(),
+                                ),
+                                Column::Pid => Cell::from(
+                                    record.pid.map(|p| p.to_string()).unwrap_or_default(),
+                                ),
+                                Column::Tid => Cell::from(
+                                    record.tid.map(|t| t.to_string()).unwrap_or_default(),
+                                ),
+                                Column::Component => Cell::from(
+                                    record.component_name.as_deref().unwrap_or("").to_string(),
+                                ),
+                                Column::Source => Cell::from(record.source.to_string()),
+                                Column::Log => Cell::from(record.message.clone()),
+                            };
+                            if ci < vis_cols.len() - 1 {
+                                vec![cell, Cell::from(sep_char).style(sep_style)]
+                            } else {
+                                vec![cell]
                             }
-                            Column::Level => Cell::from(
-                                record.level.map(|l| format!("{}", l)).unwrap_or_default(),
-                            ),
-                            Column::Hostname => {
-                                Cell::from(record.hostname.as_deref().unwrap_or("").to_string())
-                            }
-                            Column::Container => {
-                                Cell::from(record.container.as_deref().unwrap_or("").to_string())
-                            }
-                            Column::Context => {
-                                Cell::from(record.context.as_deref().unwrap_or("").to_string())
-                            }
-                            Column::Function => {
-                                Cell::from(record.function.as_deref().unwrap_or("").to_string())
-                            }
-                            Column::ProcessName => {
-                                Cell::from(record.process_name.as_deref().unwrap_or("").to_string())
-                            }
-                            Column::Pid => {
-                                Cell::from(record.pid.map(|p| p.to_string()).unwrap_or_default())
-                            }
-                            Column::Tid => {
-                                Cell::from(record.tid.map(|t| t.to_string()).unwrap_or_default())
-                            }
-                            Column::Component => Cell::from(
-                                record.component_name.as_deref().unwrap_or("").to_string(),
-                            ),
-                            Column::Source => Cell::from(record.source.to_string()),
-                            Column::Log => Cell::from(record.message.clone()),
-                        };
-                        if ci < vis_cols.len() - 1 {
-                            vec![cell, Cell::from(sep_char).style(sep_style)]
-                        } else {
-                            vec![cell]
-                        }
-                    })
-                    .collect();
+                        })
+                        .collect::<Vec<_>>(),
+                );
 
                 // Determine highlight row background: last matching rule wins
                 let highlight_bg: Option<Color> = if app.highlight_rules.is_empty() {

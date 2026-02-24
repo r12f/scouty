@@ -156,6 +156,12 @@ pub fn render(frame: &mut Frame, app: &mut App) {
         let window = DensitySelectorWindow::new(options, app.density_selector_cursor);
         UiComponent::render(&window, frame, area);
     }
+
+    if app.input_mode == InputMode::RegionManager {
+        use crate::ui::windows::region_manager_window::RegionManagerWindow;
+        let window = RegionManagerWindow::from_app(app);
+        window.render_with_app(frame, area, app);
+    }
 }
 
 fn render_log_table(frame: &mut Frame, app: &App, area: Rect) {
