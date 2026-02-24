@@ -55,23 +55,28 @@ regions:
     start_points:
       - filter: 'function == "c" AND component == "sairedis"'
         regex: 'SAI_OBJECT_TYPE_(?P<obj_type>\w+).*oid:(?P<oid>0x[0-9a-f]+)'
+        reason: "single create"
       - filter: 'function == "C" AND component == "sairedis"'
         regex: 'SAI_OBJECT_TYPE_(?P<obj_type>\w+).*count:(?P<count>\d+)'
+        reason: "bulk create ({count} objects)"
 
     end_points:
       - filter: 'function == "G" AND component == "sairedis"'
         regex: 'SAI_STATUS_(?P<status>\w+)'
+        reason: "got response: {status}"
       - filter: 'function == "s" AND message =~ "SAI_STATUS"'
         regex: 'SAI_STATUS_(?P<status>\w+)'
+        reason: "status callback: {status}"
 
     # Fields that must match between start and end to correlate them
     correlate:
       - "obj_type"    # extracted metadata field
 
     # Template for constructing region name and description
+    # {start_reason} and {end_reason} reference the matched point's reason
     template:
       name: "SAI Create {obj_type}"
-      description: "{function} {obj_type} oid:{oid} → {status}"
+      description: "{start_reason} → {end_reason}"
 
   - name: "port_startup"
     description: "Port initialization to oper up"
@@ -79,19 +84,22 @@ regions:
     start_points:
       - filter: 'message =~ "addPort" AND component == "orchagent"'
         regex: '(?:addPort|initPort).*?(?P<port>Ethernet\d+)'
+        reason: "port add requested"
 
     end_points:
       - filter: 'message =~ "oper_status.*up" AND component == "orchagent"'
         regex: '(?P<port>Ethernet\d+).*oper_status.*(?P<oper_status>up|down)'
+        reason: "oper {oper_status}"
       - filter: 'message =~ "Port init failed"'
         regex: '(?P<port>Ethernet\d+).*(?P<error>.+)'
+        reason: "init failed: {error}"
 
     correlate:
       - "port"        # same port name links start to end
 
     template:
       name: "Port Startup {port}"
-      description: "{port} startup → {oper_status}"
+      description: "{start_reason} → {end_reason}"
 
     # Optional: max time window between start and end (default: unlimited)
     timeout: "30s"
@@ -102,17 +110,19 @@ regions:
     start_points:
       - filter: 'message =~ "request started"'
         regex: 'request_id=(?P<req_id>[a-f0-9-]+).*method=(?P<method>\w+).*path=(?P<path>\S+)'
+        reason: "request started"
 
     end_points:
       - filter: 'message =~ "request completed"'
         regex: 'request_id=(?P<req_id>[a-f0-9-]+).*status=(?P<status>\d+).*duration=(?P<duration>\S+)'
+        reason: "completed {status} ({duration})"
 
     correlate:
       - "req_id"
 
     template:
       name: "{method} {path}"
-      description: "{method} {path} → {status} ({duration})"
+      description: "{start_reason} → {end_reason}"
 
     timeout: "60s"
 ```
@@ -126,9 +136,11 @@ regions:
 | `regions[].start_points` | list | yes | One or more start point matchers |
 | `regions[].start_points[].filter` | string | yes | Filter expression (same syntax as TUI filter) |
 | `regions[].start_points[].regex` | string | no | Regex with named groups for metadata extraction (applied to `message` field). If omitted, no metadata extracted from this point. |
+| `regions[].start_points[].reason` | string | no | Reason template for this start point. Supports `{field}` substitution from regex groups. Available as `{start_reason}` in region template. |
 | `regions[].end_points` | list | yes | One or more end point matchers |
 | `regions[].end_points[].filter` | string | yes | Filter expression |
 | `regions[].end_points[].regex` | string | no | Regex with named groups for metadata extraction |
+| `regions[].end_points[].reason` | string | no | Reason template for this end point. Supports `{field}` substitution from regex groups. Available as `{end_reason}` in region template. |
 | `regions[].correlate` | list | yes | Metadata field names that must match between start and end |
 | `regions[].template.name` | string | yes | Template string for region name (`{field}` substitution) |
 | `regions[].template.description` | string | no | Template string for region description |
@@ -153,7 +165,9 @@ If no correlation fields are specified or all are empty, the nearest pending sta
 struct Region {
     definition_name: String,        // e.g., "port_startup"
     name: String,                   // e.g., "Port Startup Ethernet0" (from template)
-    description: Option<String>,    // e.g., "Ethernet0 startup → up" (from template)
+    description: Option<String>,    // e.g., "port add requested → oper up" (from template)
+    start_reason: Option<String>,   // e.g., "port add requested" (rendered from start point reason)
+    end_reason: Option<String>,     // e.g., "oper up" (rendered from end point reason)
     start_index: usize,             // LogStore index of start record
     end_index: usize,               // LogStore index of end record
     metadata: HashMap<String, String>,  // merged metadata from start + end
@@ -276,3 +290,4 @@ scouty-tui --filter '_region_pos == "start" OR _region_pos == "end"' app.log
 |------|--------|
 | 2026-02-24 | Initial region parsing spec — configurable start/end matching, correlation, templates |
 | 2026-02-24 | Region density chart as floating window (95%×70%), Gantt-style timeline, separate from log density bar |
+| 2026-02-24 | Start/end point reason field — each point specifies its own reason, available as {start_reason}/{end_reason} in templates |
