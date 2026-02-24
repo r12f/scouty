@@ -52,7 +52,11 @@ Each source gets its own loader, and a single session can combine multiple loade
 - **Custom highlight** — `h` to add highlight rule, `H` for highlight manager, full-row background coloring, auto color rotation
 - **Time jump** — `]` jump forward / `[` jump backward by relative time (5m, 30s, 2h)
 - **Stats overlay** — `S` shows log level distribution, top components
-- **Save/export** — `:w <filename>` in command mode to export filtered logs to file
+- **Save/export** — `s` opens save dialog with path input and format selection (Raw/JSON/YAML)
+- **Remote logs** — `scouty-tui ssh://user@host:/var/log/syslog` reads logs via SSH
+- **Level filter** — `l` opens level selector (1=ALL, 2=DEBUG+, 3=INFO+, 4=WARN+, 5=ERROR+)
+- **Filter presets** — save/load filter sets in `~/.scouty/filters/` via filter manager
+- **Density chart modes** — `d`/`D` to show density by level or highlight group
 - **Pipe input** — `cat log | scouty-tui` with auto follow mode
 - **Copy to clipboard** — Raw, JSON, or YAML format via OSC 52
 - **Component architecture** — Unified `UiComponent` trait with standardized keyboard dispatch
@@ -165,6 +169,9 @@ journalctl -f | scouty-tui
 |-----|--------|
 | `y` | Copy selected row (raw text) |
 | `Y` | Copy with format dialog (Raw/JSON/YAML) |
+| `s` | Save/export dialog (path + format) |
+| `l` | Log level quick filter (1-5) |
+| `d` / `D` | Cycle / select density chart source |
 
 ### General
 

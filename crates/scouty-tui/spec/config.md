@@ -85,9 +85,15 @@ keybindings:
   prev_bookmark: '"'
   bookmark_manager: "M"
 
-  # Copy & Export (saving via ":w" in command mode)
+  # Copy & Export (saving via "s" dialog)
   copy_raw: "y"
   copy_format: "Y"
+  save_export: "s"
+
+  # Level & Density
+  level_filter: "l"
+  density_cycle: "d"
+  density_select: "D"
 
   # General
   help: "?"

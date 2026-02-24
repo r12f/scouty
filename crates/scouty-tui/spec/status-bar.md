@@ -49,7 +49,37 @@ The number of buckets should be adjusted accordingly so that the chart covers th
 - [ ] Label width deducted from chart width, no layout overflow
 - [ ] Hidden when insufficient data
 
-### Line 2: Interactive State (Three Mutually Exclusive Modes)
+### Density Chart Level/Highlight Selector
+
+The density chart can be switched to show only a specific log level or highlight group, making it easy to visually locate error clusters or highlighted regions.
+
+**Trigger:** Press `d` to cycle through density chart modes, or `D` to open a selector overlay:
+
+```
+┌─ Density Chart Source ──────────────┐
+│                                     │
+│  > All records (default)            │
+│    FATAL only                       │
+│    ERROR only                       │
+│    WARN only                        │
+│    INFO only                        │
+│    ── Highlights ──                 │
+│    Highlight #1: "timeout"          │
+│    Highlight #2: "connection"       │
+│                                     │
+│         [Enter] Select  [Esc] Close │
+└─────────────────────────────────────┘
+```
+
+**Behavior:**
+- Default: density chart shows all filtered records (current behavior)
+- When a level is selected: chart only counts records of that level → spikes = error clusters
+- When a highlight is selected: chart only counts records matching that highlight rule
+- Current selection shown in the density label: `[█=5s ERROR]` or `[█=5s "timeout"]`
+- `d` quick-cycles: All → ERROR → WARN → current highlights → All
+- `D` opens full selector overlay with all options
+- Selection persists until changed or reset
+- Cursor marker still works in filtered density view
 
 **Mode A — Default (shortcut hints):**
 ```
@@ -97,3 +127,4 @@ Navigation (j/k/PageUp/PageDown/g/G) does **not** trigger recomputation. Only th
 | 2026-02-22 | Add time-per-column label spec for density chart |
 | 2026-02-23 | Label format changed from [Xs/█] to [█=Xs] |
 | 2026-02-23 | Time per column snaps up to standard intervals (5/15/30 for s and m) |
+| 2026-02-24 | Density chart level/highlight selector (d/D keys) |

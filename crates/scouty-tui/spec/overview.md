@@ -100,6 +100,9 @@ Components notify App via return values or callbacks. App updates shared state (
 | `F` | Filter manager |
 | `c` | Column selector |
 | `y`/`Y` | Copy raw / format selection |
+| `s` | Save/export dialog (path + format) |
+| `l` | Log level quick filter (1-5) |
+| `d`/`D` | Cycle / select density chart source (level/highlight) |
 | `h`/`H` | Add highlight / highlight manager |
 | `m` | Toggle bookmark |
 | `'`/`"` | Next/prev bookmark |
