@@ -23,14 +23,16 @@ Regions are defined via YAML config files and processed by a log processor that 
 For each incoming log record:
   1. Check against all active region definitions
   2. For each definition:
-     a. Try each END POINT filter:
-        - If matched → extract metadata via regex
+     a. Try each END POINT:
+        - Evaluate filters (include AND, exclude ANY)
+        - If passed → run extract rules to get metadata
         - Search backwards for the nearest unmatched START POINT
           whose extracted metadata matches on the specified correlation fields
         - If correlation succeeds → CREATE REGION (start..end)
         - Construct region name/description from template
-     b. Try each START POINT filter:
-        - If matched → extract metadata via regex
+     b. Try each START POINT:
+        - Evaluate filters (include AND, exclude ANY)
+        - If passed → run extract rules to get metadata
         - Store as pending start point (awaiting a matching end)
 ```
 
@@ -53,27 +55,35 @@ regions:
     description: "SAI bulk object creation operation"
 
     start_points:
-      - filter: 'function == "c" AND component == "sairedis"'
-        regex: 'SAI_OBJECT_TYPE_(?P<obj_type>\w+).*oid:(?P<oid>0x[0-9a-f]+)'
-        reason: "single create"
-      - filter: 'function == "C" AND component == "sairedis"'
-        regex: 'SAI_OBJECT_TYPE_(?P<obj_type>\w+).*count:(?P<count>\d+)'
-        reason: "bulk create ({count} objects)"
+      - filters:
+          include:
+            - 'component == "sairedis"'
+            - 'function == "c" OR function == "C"'
+          exclude:
+            - 'message =~ "SAI_NULL_OBJECT_ID"'
+        extract:
+          - field: message
+            regex: 'SAI_OBJECT_TYPE_(?P<obj_type>\w+)'
+          - field: message
+            regex: 'oid:(?P<oid>0x[0-9a-f]+)'
+          - field: message
+            regex: 'count:(?P<count>\d+)'
+        reason: "create {obj_type}"
 
     end_points:
-      - filter: 'function == "G" AND component == "sairedis"'
-        regex: 'SAI_STATUS_(?P<status>\w+)'
-        reason: "got response: {status}"
-      - filter: 'function == "s" AND message =~ "SAI_STATUS"'
-        regex: 'SAI_STATUS_(?P<status>\w+)'
-        reason: "status callback: {status}"
+      - filters:
+          include:
+            - 'component == "sairedis"'
+            - 'function == "G" OR function == "s"'
+          exclude: []
+        extract:
+          - field: message
+            regex: 'SAI_STATUS_(?P<status>\w+)'
+        reason: "response: {status}"
 
-    # Fields that must match between start and end to correlate them
     correlate:
-      - "obj_type"    # extracted metadata field
+      - "obj_type"
 
-    # Template for constructing region name and description
-    # {start_reason} and {end_reason} reference the matched point's reason
     template:
       name: "SAI Create {obj_type}"
       description: "{start_reason} → {end_reason}"
@@ -82,26 +92,43 @@ regions:
     description: "Port initialization to oper up"
 
     start_points:
-      - filter: 'message =~ "addPort" AND component == "orchagent"'
-        regex: '(?:addPort|initPort).*?(?P<port>Ethernet\d+)'
+      - filters:
+          include:
+            - 'component == "orchagent"'
+            - 'message =~ "addPort|initPort"'
+        extract:
+          - field: message
+            regex: '(?P<port>Ethernet\d+)'
         reason: "port add requested"
 
     end_points:
-      - filter: 'message =~ "oper_status.*up" AND component == "orchagent"'
-        regex: '(?P<port>Ethernet\d+).*oper_status.*(?P<oper_status>up|down)'
+      - filters:
+          include:
+            - 'component == "orchagent"'
+            - 'message =~ "oper_status"'
+        extract:
+          - field: message
+            regex: '(?P<port>Ethernet\d+)'
+          - field: message
+            regex: 'oper_status.*(?P<oper_status>up|down)'
         reason: "oper {oper_status}"
-      - filter: 'message =~ "Port init failed"'
-        regex: '(?P<port>Ethernet\d+).*(?P<error>.+)'
+      - filters:
+          include:
+            - 'message =~ "Port init failed"'
+        extract:
+          - field: message
+            regex: '(?P<port>Ethernet\d+)'
+          - field: message
+            regex: 'failed.*?(?P<error>.+)'
         reason: "init failed: {error}"
 
     correlate:
-      - "port"        # same port name links start to end
+      - "port"
 
     template:
       name: "Port Startup {port}"
       description: "{start_reason} → {end_reason}"
 
-    # Optional: max time window between start and end (default: unlimited)
     timeout: "30s"
     timeout_reason: "{port} did not come up within 30s"
 
@@ -109,13 +136,31 @@ regions:
     description: "HTTP request lifecycle"
 
     start_points:
-      - filter: 'message =~ "request started"'
-        regex: 'request_id=(?P<req_id>[a-f0-9-]+).*method=(?P<method>\w+).*path=(?P<path>\S+)'
+      - filters:
+          include:
+            - 'message =~ "request started"'
+          exclude:
+            - 'message =~ "health_check"'
+        extract:
+          - field: message
+            regex: 'request_id=(?P<req_id>[a-f0-9-]+)'
+          - field: message
+            regex: 'method=(?P<method>\w+)'
+          - field: message
+            regex: 'path=(?P<path>\S+)'
         reason: "request started"
 
     end_points:
-      - filter: 'message =~ "request completed"'
-        regex: 'request_id=(?P<req_id>[a-f0-9-]+).*status=(?P<status>\d+).*duration=(?P<duration>\S+)'
+      - filters:
+          include:
+            - 'message =~ "request completed"'
+        extract:
+          - field: message
+            regex: 'request_id=(?P<req_id>[a-f0-9-]+)'
+          - field: message
+            regex: 'status=(?P<status>\d+)'
+          - field: message
+            regex: 'duration=(?P<duration>\S+)'
         reason: "completed {status} ({duration})"
 
     correlate:
@@ -136,24 +181,45 @@ regions:
 | `regions[].name` | string | yes | Unique identifier for this region type |
 | `regions[].description` | string | no | Human-readable description |
 | `regions[].start_points` | list | yes | One or more start point matchers |
-| `regions[].start_points[].filter` | string | yes | Filter expression (same syntax as TUI filter) |
-| `regions[].start_points[].regex` | string | no | Regex with named groups for metadata extraction (applied to `message` field). If omitted, no metadata extracted from this point. |
-| `regions[].start_points[].reason` | string | no | Reason template for this start point. Supports `{field}` substitution from regex groups. Available as `{start_reason}` in region template. |
+| `regions[].start_points[].filters` | object | yes | Filter engine for matching |
+| `regions[].start_points[].filters.include` | list[string] | yes | Filter expressions that must ALL match (AND logic). Same syntax as TUI filter. |
+| `regions[].start_points[].filters.exclude` | list[string] | no | Filter expressions — if ANY matches, the record is excluded. Default: empty. |
+| `regions[].start_points[].extract` | list | no | Metadata extraction rules (separate from matching filters). Each rule applies a regex to a specified field. |
+| `regions[].start_points[].extract[].field` | string | yes | LogRecord field to apply regex to (`message`, `raw`, `context`, `function`, etc.) |
+| `regions[].start_points[].extract[].regex` | string | yes | Regex with named groups for metadata extraction. All named groups merged into extracted metadata. |
+| `regions[].start_points[].reason` | string | no | Reason template for this start point. Supports `{field}` substitution from extracted metadata. Available as `{start_reason}` in region template. |
 | `regions[].end_points` | list | yes | One or more end point matchers |
-| `regions[].end_points[].filter` | string | yes | Filter expression |
-| `regions[].end_points[].regex` | string | no | Regex with named groups for metadata extraction |
-| `regions[].end_points[].reason` | string | no | Reason template for this end point. Supports `{field}` substitution from regex groups. Available as `{end_reason}` in region template. |
+| `regions[].end_points[].filters` | object | yes | Filter engine (same structure as start_points[].filters) |
+| `regions[].end_points[].filters.include` | list[string] | yes | Include filter expressions (AND logic) |
+| `regions[].end_points[].filters.exclude` | list[string] | no | Exclude filter expressions (ANY match → skip) |
+| `regions[].end_points[].extract` | list | no | Metadata extraction rules (same structure as start_points[].extract) |
+| `regions[].end_points[].extract[].field` | string | yes | LogRecord field to apply regex to |
+| `regions[].end_points[].extract[].regex` | string | yes | Regex with named groups |
+| `regions[].end_points[].reason` | string | no | Reason template for this end point. Supports `{field}` substitution from extracted metadata. Available as `{end_reason}` in region template. |
 | `regions[].correlate` | list | yes | Metadata field names that must match between start and end |
 | `regions[].template.name` | string | yes | Template string for region name (`{field}` substitution) |
 | `regions[].template.description` | string | no | Template string for region description |
 | `regions[].timeout` | string | no | Max duration between start and end (`30s`, `5m`, `1h`). When exceeded, a timed-out region is created (not silently discarded). Default: no timeout. |
 | `regions[].timeout_reason` | string | no | Reason template when a region is closed by timeout. Supports `{field}` substitution from start point's extracted metadata. Default: `"timeout after {timeout}"`. |
 
+### Match Point Evaluation
+
+Each start/end point is a **filter engine** with separate extraction:
+
+1. **Filter phase** — evaluate the record against the point's filters:
+   - ALL `include` filters must match (AND logic)
+   - If ANY `exclude` filter matches → skip this point
+2. **Extract phase** — only runs if filter phase passed:
+   - Each `extract` rule applies its regex to the specified LogRecord field
+   - Named groups from all extract rules are merged into one metadata map
+   - If a regex doesn't match, its groups are simply absent (not an error)
+   - Extraction is independent of matching — you can match on `level` + `component` but extract from `message`
+
 ### Correlation Logic
 
 When an end point matches:
 
-1. Extract metadata from the end record using regex
+1. Extract metadata from the end record using the matched end point's extract rules
 2. Walk backwards through pending (unmatched) start points for this region definition
 3. For each pending start, check if ALL `correlate` fields have equal values between start and end metadata
 4. First match wins → region is created from that start record to the current end record
@@ -323,3 +389,4 @@ scouty-tui --filter '_region == "Port Startup Ethernet0"' app.log
 | 2026-02-24 | Start/end point reason field — each point specifies its own reason, available as {start_reason}/{end_reason} in templates |
 | 2026-02-25 | Remove LogRecord tagging — regions can overlap, use index-based RegionStore lookup instead |
 | 2026-02-25 | Timeout creates timed-out regions (not silently discarded); timeout_reason template for end_reason |
+| 2026-02-25 | Filter engine: each start/end point has include+exclude filters; extract rules separated from matching |
