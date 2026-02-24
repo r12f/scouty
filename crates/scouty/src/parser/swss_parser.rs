@@ -157,7 +157,15 @@ fn build_expanded(
     // Only build expanded for structured entries (must have an operation)
     let op = function.as_ref()?;
 
-    let mut fields = Vec::new();
+    // Pre-calculate capacity: Operation + optional Table + optional Key + optional Attributes
+    let attr_count = if message.is_empty() {
+        0
+    } else {
+        message.split('|').filter(|kv| kv.contains(':')).count()
+    };
+    let field_count =
+        1 + component.is_some() as usize + context.is_some() as usize + (attr_count > 0) as usize;
+    let mut fields = Vec::with_capacity(field_count);
 
     fields.push(ExpandedField {
         label: "Operation".to_string(),
@@ -179,23 +187,20 @@ fn build_expanded(
     }
 
     // Parse KV pairs from message (pipe-delimited "k:v" pairs)
-    if !message.is_empty() {
-        let pairs: Vec<(String, ExpandedValue)> = message
-            .split('|')
-            .filter_map(|kv| {
-                let colon = kv.find(':')?;
-                let k = &kv[..colon];
-                let v = &kv[colon + 1..];
-                Some((k.to_string(), ExpandedValue::Text(v.to_string())))
-            })
-            .collect();
-
-        if !pairs.is_empty() {
-            fields.push(ExpandedField {
-                label: "Attributes".to_string(),
-                value: ExpandedValue::KeyValue(pairs),
-            });
+    if attr_count > 0 {
+        let mut pairs = Vec::with_capacity(attr_count);
+        for kv in message.split('|') {
+            if let Some(colon) = kv.find(':') {
+                pairs.push((
+                    kv[..colon].to_string(),
+                    ExpandedValue::Text(kv[colon + 1..].to_string()),
+                ));
+            }
         }
+        fields.push(ExpandedField {
+            label: "Attributes".to_string(),
+            value: ExpandedValue::KeyValue(pairs),
+        });
     }
 
     Some(fields)
