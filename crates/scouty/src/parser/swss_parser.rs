@@ -12,7 +12,7 @@
 #[path = "swss_parser_tests.rs"]
 mod swss_parser_tests;
 
-use crate::record::LogRecord;
+use crate::record::{ExpandedField, ExpandedValue, LogRecord};
 use crate::traits::LogParser;
 use chrono::{DateTime, NaiveDate, NaiveDateTime, NaiveTime, Utc};
 use std::sync::Arc;
@@ -107,8 +107,10 @@ impl SwssParser {
         let content = &raw[content_start..];
 
         // Try to parse structured content: TABLE[:Key]|OP|kv...
-        // First, check if there's a pipe in the content
         let (component, context, function, message) = parse_content(content);
+
+        // Build expanded field for structured SWSS entries
+        let expanded = build_expanded(&component, &context, &function, &message);
 
         Some(LogRecord {
             id,
@@ -127,7 +129,7 @@ impl SwssParser {
             raw: raw.to_string(),
             metadata: None,
             loader_id: Arc::clone(loader_id),
-            expanded: None,
+            expanded,
         })
     }
 }
@@ -142,6 +144,66 @@ impl LogParser for SwssParser {
     fn name(&self) -> &str {
         "swss"
     }
+}
+
+/// Build expanded field from parsed SWSS content.
+/// Only produces expanded if there's structured content (operation present).
+fn build_expanded(
+    component: &Option<String>,
+    context: &Option<String>,
+    function: &Option<String>,
+    message: &str,
+) -> Option<Vec<ExpandedField>> {
+    // Only build expanded for structured entries (must have an operation)
+    let op = function.as_ref()?;
+
+    // Pre-calculate capacity: Operation + optional Table + optional Key + optional Attributes
+    let attr_count = if message.is_empty() {
+        0
+    } else {
+        message.split('|').filter(|kv| kv.contains(':')).count()
+    };
+    let field_count =
+        1 + component.is_some() as usize + context.is_some() as usize + (attr_count > 0) as usize;
+    let mut fields = Vec::with_capacity(field_count);
+
+    fields.push(ExpandedField {
+        label: "Operation".to_string(),
+        value: ExpandedValue::Text(op.clone()),
+    });
+
+    if let Some(table) = component {
+        fields.push(ExpandedField {
+            label: "Table".to_string(),
+            value: ExpandedValue::Text(table.clone()),
+        });
+    }
+
+    if let Some(key) = context {
+        fields.push(ExpandedField {
+            label: "Key".to_string(),
+            value: ExpandedValue::Text(key.clone()),
+        });
+    }
+
+    // Parse KV pairs from message (pipe-delimited "k:v" pairs)
+    if attr_count > 0 {
+        let mut pairs = Vec::with_capacity(attr_count);
+        for kv in message.split('|') {
+            if let Some(colon) = kv.find(':') {
+                pairs.push((
+                    kv[..colon].to_string(),
+                    ExpandedValue::Text(kv[colon + 1..].to_string()),
+                ));
+            }
+        }
+        fields.push(ExpandedField {
+            label: "Attributes".to_string(),
+            value: ExpandedValue::KeyValue(pairs),
+        });
+    }
+
+    Some(fields)
 }
 
 /// Parse content after the timestamp|.
