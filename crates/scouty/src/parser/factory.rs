@@ -5,6 +5,7 @@
 mod factory_tests;
 
 use crate::parser::group::ParserGroup;
+use crate::parser::json_parser::{looks_like_json, JsonParser};
 use crate::parser::regex_parser::RegexParser;
 use crate::parser::sairedis_parser::{looks_like_sairedis, SairedisParser};
 use crate::parser::swss_parser::SwssParser;
@@ -39,6 +40,8 @@ impl ParserFactory {
                     Self::add_swss_parsers(&mut group);
                 } else if Self::looks_like_syslog(&info.sample_lines) {
                     Self::add_unified_syslog_parser(&mut group);
+                } else if Self::looks_like_json(&info.sample_lines) {
+                    Self::add_json_parser(&mut group);
                 }
                 // Add common log format parsers
                 Self::add_common_parsers(&mut group);
@@ -106,6 +109,10 @@ impl ParserFactory {
         Self::majority_match(sample_lines, |l| re.is_match(l))
     }
 
+    fn looks_like_json(sample_lines: &[String]) -> bool {
+        Self::majority_match(sample_lines, looks_like_json)
+    }
+
     /// Returns true if the majority of non-empty sample lines (up to 5) match the predicate.
     fn majority_match(sample_lines: &[String], pred: impl Fn(&str) -> bool) -> bool {
         let lines: Vec<&str> = sample_lines
@@ -127,6 +134,10 @@ impl ParserFactory {
 
     fn add_swss_parsers(group: &mut ParserGroup) {
         group.add_parser(Box::new(SwssParser::new()));
+    }
+
+    fn add_json_parser(group: &mut ParserGroup) {
+        group.add_parser(Box::new(JsonParser::new()));
     }
 
     fn add_unified_syslog_parser(group: &mut ParserGroup) {

@@ -1,6 +1,7 @@
 pub mod config;
 pub mod factory;
 pub mod group;
+pub mod json_parser;
 pub mod multiline;
 pub mod regex_parser;
 pub mod sairedis_parser;
