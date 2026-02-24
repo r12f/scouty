@@ -31,7 +31,12 @@ impl ParserGroup {
     /// Try each parser in order. Returns the first successful parse, or None.
     pub fn parse(&self, raw: &str, source: &str, loader_id: &str, id: u64) -> Option<LogRecord> {
         for parser in &self.parsers {
-            if let Some(record) = parser.parse(raw, source, loader_id, id) {
+            if let Some(mut record) = parser.parse(raw, source, loader_id, id) {
+                // Ensure raw is always populated (some parsers leave it empty
+                // to avoid double allocation — we fill it here once).
+                if record.raw.is_empty() {
+                    record.raw = raw.to_string();
+                }
                 return Some(record);
             }
         }

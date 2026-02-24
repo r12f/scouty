@@ -51,4 +51,17 @@ mod tests {
         let group = ParserGroup::new("empty");
         assert!(group.parse("anything", "test", "loader", 0).is_none());
     }
+
+    #[test]
+    fn test_group_populates_raw_field() {
+        use crate::parser::unified_syslog_parser::UnifiedSyslogParser;
+        let mut group = ParserGroup::new("test");
+        group.add_parser(Box::new(UnifiedSyslogParser::new("syslog")));
+        let line = "Nov 24 17:56:03 myhost myproc[1234]: hello world";
+        let record = group.parse(line, "test.log", "loader", 1).unwrap();
+        assert_eq!(
+            record.raw, line,
+            "raw field should be populated by ParserGroup"
+        );
+    }
 }
