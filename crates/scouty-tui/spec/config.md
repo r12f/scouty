@@ -101,9 +101,10 @@ Configuration is loaded in layers. Each layer merges on top of the previous one 
 1. **Built-in defaults** (compiled into binary, lowest priority)
 2. **System config** — `/etc/scouty/config.yaml` (if exists)
 3. **User config** — `~/.scouty/config.yaml` (if exists)
-4. **CLI flags** (highest priority)
+4. **Local config** — `./scouty.yaml` in current working directory (if exists) — project-level overrides
+5. **CLI flags** (highest priority)
    - `--theme <name>` overrides `theme`
-   - `--config <path>` loads an additional config file after user config (overrides all file-based configs)
+   - `--config <path>` loads an additional config file after local config (overrides all file-based configs)
    - File arguments override `default_paths`
 
 **Merge semantics:**
@@ -132,7 +133,19 @@ keybindings:
 
 Result: theme=solarized (user wins), default_paths=[/var/log/app/*.log] (from system), follow_on_pipe=false (from system), quit=ctrl+q (user override), all other keybindings=built-in defaults.
 
-5. Resolve file paths:
+**Example — project-level local config:**
+
+`./scouty.yaml` (in project root, checked into repo):
+```yaml
+default_paths:
+  - "./logs/*.log"
+general:
+  follow_on_pipe: true
+```
+
+This overrides user and system configs for anyone running scouty in this directory. Useful for per-project log paths and parser settings.
+
+6. Resolve file paths:
    - If CLI file arguments provided → use CLI files (ignore `default_paths`)
    - If no CLI arguments and `default_paths` configured → expand globs and open matching files
    - If no CLI arguments and no `default_paths` → fall back to platform defaults (see cli.md)
@@ -161,11 +174,13 @@ Result: theme=solarized (user wins), default_paths=[/var/log/app/*.log] (from sy
 
 ## Acceptance Criteria
 
-- [ ] Built-in defaults → `/etc/scouty/config.yaml` → `~/.scouty/config.yaml` → CLI flags, layered override
+- [ ] Built-in defaults → `/etc/scouty/config.yaml` → `~/.scouty/config.yaml` → `./scouty.yaml` → CLI flags, layered override
 - [ ] Each layer does field-level deep merge (not full replacement)
 - [ ] Lists (e.g., `default_paths`) are replaced entirely by later layers, not appended
 - [ ] Missing config files silently skipped (no error)
-- [ ] `--config <path>` loads additional config after user config
+- [ ] `--config <path>` loads additional config after local config
+- [ ] `./scouty.yaml` in cwd loaded as local/project config
+- [ ] Local config priority: above user config, below CLI flags
 - [ ] All keybindings configurable via config file
 - [ ] Theme selected by name from config or `--theme` CLI flag
 - [ ] Theme search: `~/.scouty/themes/` → `/etc/scouty/themes/` → built-in
@@ -185,3 +200,4 @@ Result: theme=solarized (user wins), default_paths=[/var/log/app/*.log] (from sy
 | 2026-02-22 | Moved theme details to theme.md, kept references |
 | 2026-02-23 | Added default_paths with glob support |
 | 2026-02-23 | Multi-profile config: built-in → /etc/scouty → ~/.scouty → CLI layered override |
+| 2026-02-24 | Added ./scouty.yaml local/project config (priority below CLI, above user config) |
