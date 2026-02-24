@@ -12,7 +12,7 @@ The main log table widget displays parsed log records in a scrollable, column-ba
 Time | Log
 
 - **Log** column auto-fills remaining width
-- **Column separator**: a vertical line (`│`) is displayed between adjacent columns for visual clarity
+- **Column separator**: a vertical line is displayed between adjacent columns for visual clarity. The separator character and color are themeable (default: `│`, see theme spec). For example, the `landmine` theme uses `♡`.
 - Column widths adapt to content
 - Empty fields display blank
 - Optional columns (via `c` selector): Level, ProcessName, Pid, Tid, Component, Hostname, Container, Context, Function, Source (all hidden by default)
