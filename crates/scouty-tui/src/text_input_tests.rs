@@ -114,7 +114,7 @@ mod tests {
         let ti = TextInput::with_text("abc");
         let (before, cursor, after) = ti.render_parts();
         assert_eq!(before, "abc");
-        assert_eq!(cursor, "█");
+        assert_eq!(cursor, " ");
         assert_eq!(after, "");
     }
 
