@@ -1271,6 +1271,7 @@ version = "0.2.0"
 dependencies = [
  "chrono",
  "criterion",
+ "dirs",
  "flate2",
  "memchr",
  "memmap2",
