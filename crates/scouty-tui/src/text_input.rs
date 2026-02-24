@@ -184,7 +184,7 @@ impl TextInput {
             let after_pos = byte_pos + ch.len_utf8();
             (before, ch.to_string(), &self.text[after_pos..])
         } else {
-            (before, "█".to_string(), "")
+            (before, " ".to_string(), "")
         }
     }
 }
