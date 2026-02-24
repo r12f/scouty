@@ -8,18 +8,139 @@ use crate::app::App;
 use crate::config::Theme;
 use crate::ui::UiComponent;
 use ratatui::layout::{Constraint, Layout, Rect};
+use scouty::record::{ExpandedField, ExpandedValue};
 
 use crate::ui::widgets::log_table_widget::level_style;
+use ratatui::style::Modifier;
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, Cell, Paragraph, Row, Table, Wrap};
 use ratatui::Frame;
+use std::collections::HashSet;
+
+/// A flattened tree node for rendering/navigation.
+#[derive(Debug, Clone)]
+pub struct FlatNode {
+    /// Indentation depth.
+    pub depth: usize,
+    /// Path key for collapse state (e.g. "0.Attributes.2").
+    pub path_key: String,
+    /// Display label.
+    pub label: String,
+    /// Display value (None for branch nodes).
+    pub value: Option<String>,
+    /// Whether this node is collapsible (has children).
+    pub collapsible: bool,
+    /// Whether this node is currently collapsed.
+    pub collapsed: bool,
+    /// Filter expression for quick filter (leaf nodes only).
+    pub filter_expr: Option<String>,
+}
+
+/// Flatten expanded fields into a list of renderable nodes.
+pub fn flatten_expanded(fields: &[ExpandedField], collapsed: &HashSet<String>) -> Vec<FlatNode> {
+    let mut nodes = Vec::new();
+    for (i, field) in fields.iter().enumerate() {
+        let path = i.to_string();
+        flatten_value(
+            &field.label,
+            &field.value,
+            0,
+            &path,
+            collapsed,
+            &mut nodes,
+            &field.label,
+        );
+    }
+    nodes
+}
+
+fn flatten_value(
+    label: &str,
+    value: &ExpandedValue,
+    depth: usize,
+    path: &str,
+    collapsed: &HashSet<String>,
+    nodes: &mut Vec<FlatNode>,
+    filter_path: &str,
+) {
+    match value {
+        ExpandedValue::Text(text) => {
+            nodes.push(FlatNode {
+                depth,
+                path_key: path.to_string(),
+                label: label.to_string(),
+                value: Some(text.clone()),
+                collapsible: false,
+                collapsed: false,
+                filter_expr: Some(format!(
+                    "{} == \"{}\"",
+                    filter_path,
+                    text.replace('"', "\\\"")
+                )),
+            });
+        }
+        ExpandedValue::KeyValue(pairs) => {
+            let is_collapsed = collapsed.contains(path);
+            nodes.push(FlatNode {
+                depth,
+                path_key: path.to_string(),
+                label: label.to_string(),
+                value: None,
+                collapsible: true,
+                collapsed: is_collapsed,
+                filter_expr: None,
+            });
+            if !is_collapsed {
+                for (i, (key, child)) in pairs.iter().enumerate() {
+                    let child_path = format!("{}.{}", path, i);
+                    let child_filter = format!("{}.{}", filter_path, key);
+                    flatten_value(
+                        key,
+                        child,
+                        depth + 1,
+                        &child_path,
+                        collapsed,
+                        nodes,
+                        &child_filter,
+                    );
+                }
+            }
+        }
+        ExpandedValue::List(items) => {
+            let is_collapsed = collapsed.contains(path);
+            nodes.push(FlatNode {
+                depth,
+                path_key: path.to_string(),
+                label: label.to_string(),
+                value: None,
+                collapsible: true,
+                collapsed: is_collapsed,
+                filter_expr: None,
+            });
+            if !is_collapsed {
+                for (i, child) in items.iter().enumerate() {
+                    let child_path = format!("{}.{}", path, i);
+                    let child_label = format!("[{}]", i);
+                    let child_filter = format!("{}[{}]", filter_path, i);
+                    flatten_value(
+                        &child_label,
+                        child,
+                        depth + 1,
+                        &child_path,
+                        collapsed,
+                        nodes,
+                        &child_filter,
+                    );
+                }
+            }
+        }
+    }
+}
 
 /// Count the number of field rows that would be displayed for a record,
 /// without allocating the full field pairs vector.
 pub(crate) fn field_count(record: &scouty::record::LogRecord) -> usize {
-    // Always-present: Timestamp, Level, Source
     let mut count: usize = 3;
-
     if record.hostname.is_some() {
         count += 1;
     }
@@ -44,11 +165,9 @@ pub(crate) fn field_count(record: &scouty::record::LogRecord) -> usize {
     if record.tid.is_some() {
         count += 1;
     }
-
     if let Some(meta) = record.metadata.as_ref() {
         count += meta.len();
     }
-
     count
 }
 
@@ -88,8 +207,6 @@ fn build_field_pairs(record: &scouty::record::LogRecord) -> Vec<(&'static str, S
 
     if record.metadata.as_ref().is_some_and(|m| !m.is_empty()) {
         for (k, v) in record.metadata.as_ref().unwrap() {
-            // Leak is fine since these are short-lived display strings
-            // Use a static prefix instead
             pairs.push(("Meta", format!("{} = {}", k, v)));
         }
     }
@@ -113,6 +230,8 @@ pub struct DetailPanelWidget;
 
 /// Minimum total width to show split layout.
 const MIN_SPLIT_WIDTH: u16 = 80;
+/// Max value display length before truncation.
+const MAX_VALUE_LEN: usize = 60;
 
 impl DetailPanelWidget {
     pub fn render_with_app(&self, frame: &mut Frame, area: Rect, app: &App) {
@@ -134,7 +253,7 @@ impl DetailPanelWidget {
         if inner.width < MIN_SPLIT_WIDTH {
             self.render_single_column(frame, inner, record, theme);
         } else {
-            self.render_split(frame, inner, record, theme);
+            self.render_split(frame, inner, record, app);
         }
     }
 
@@ -143,20 +262,55 @@ impl DetailPanelWidget {
         frame: &mut Frame,
         area: Rect,
         record: &scouty::record::LogRecord,
-        theme: &Theme,
+        app: &App,
     ) {
+        let theme = &app.theme;
         let chunks = Layout::horizontal([Constraint::Percentage(70), Constraint::Percentage(30)])
             .split(area);
 
-        let left_block = Block::default()
-            .title(" Log Content ")
-            .borders(Borders::RIGHT)
-            .border_style(theme.detail_panel.border.to_style());
-        let raw_text = Paragraph::new(record.raw.clone())
-            .block(left_block)
-            .wrap(Wrap { trim: false });
-        frame.render_widget(raw_text, chunks[0]);
+        // Left pane: tree or raw text
+        let has_expanded = record.expanded.as_ref().is_some_and(|e| !e.is_empty());
 
+        let left_title = if has_expanded {
+            " Expanded "
+        } else {
+            " Log Content "
+        };
+        let left_border_style = if app.detail_tree_focus && has_expanded {
+            theme
+                .detail_panel
+                .border
+                .to_style()
+                .add_modifier(Modifier::BOLD)
+        } else {
+            theme.detail_panel.border.to_style()
+        };
+        let left_block = Block::default()
+            .title(left_title)
+            .borders(Borders::RIGHT)
+            .border_style(left_border_style);
+
+        if has_expanded {
+            let expanded = record.expanded.as_ref().unwrap();
+            let flat = flatten_expanded(expanded, &app.detail_tree_collapsed);
+            let inner_left = left_block.inner(chunks[0]);
+            frame.render_widget(left_block, chunks[0]);
+            self.render_tree(
+                frame,
+                inner_left,
+                &flat,
+                app.detail_tree_cursor,
+                app.detail_tree_focus,
+                theme,
+            );
+        } else {
+            let raw_text = Paragraph::new(record.raw.clone())
+                .block(left_block)
+                .wrap(Wrap { trim: false });
+            frame.render_widget(raw_text, chunks[0]);
+        }
+
+        // Right pane: fields table
         let pairs = build_field_pairs(record);
         let label_style = theme.detail_panel.field_name.to_style();
         let rows: Vec<Row> = pairs
@@ -177,6 +331,86 @@ impl DetailPanelWidget {
             .column_spacing(1)
             .block(right_block);
         frame.render_widget(table, chunks[1]);
+    }
+
+    fn render_tree(
+        &self,
+        frame: &mut Frame,
+        area: Rect,
+        nodes: &[FlatNode],
+        cursor: usize,
+        focused: bool,
+        theme: &Theme,
+    ) {
+        let visible_rows = area.height as usize;
+        if nodes.is_empty() || visible_rows == 0 {
+            return;
+        }
+
+        // Scroll to keep cursor visible
+        let scroll_offset = if cursor >= visible_rows {
+            cursor - visible_rows + 1
+        } else {
+            0
+        };
+
+        let mut lines = Vec::with_capacity(visible_rows);
+        let width = area.width as usize;
+
+        for (i, node) in nodes
+            .iter()
+            .enumerate()
+            .skip(scroll_offset)
+            .take(visible_rows)
+        {
+            let indent = "  ".repeat(node.depth);
+            let is_selected = i == cursor && focused;
+
+            let indicator = if node.collapsible {
+                if node.collapsed {
+                    "▶ "
+                } else {
+                    "▼ "
+                }
+            } else {
+                "  "
+            };
+
+            let line_text = if let Some(ref val) = node.value {
+                let truncated = if val.len() > MAX_VALUE_LEN {
+                    format!("{}…", &val[..MAX_VALUE_LEN])
+                } else {
+                    val.clone()
+                };
+                format!("{}{}{}: {}", indent, indicator, node.label, truncated)
+            } else {
+                format!("{}{}{}", indent, indicator, node.label)
+            };
+
+            // Pad/truncate to width
+            let display = if line_text.len() > width {
+                format!("{}…", &line_text[..width.saturating_sub(1)])
+            } else {
+                line_text
+            };
+
+            let style = if is_selected {
+                theme
+                    .detail_panel
+                    .field_name
+                    .to_style()
+                    .add_modifier(Modifier::REVERSED)
+            } else if node.collapsible {
+                theme.detail_panel.section_header.to_style()
+            } else {
+                theme.detail_panel.field_value.to_style()
+            };
+
+            lines.push(Line::styled(display, style));
+        }
+
+        let para = Paragraph::new(lines);
+        frame.render_widget(para, area);
     }
 
     fn render_single_column(

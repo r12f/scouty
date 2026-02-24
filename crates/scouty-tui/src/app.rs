@@ -244,6 +244,12 @@ pub struct App {
     pub detail_open: bool,
     /// Detail panel max height ratio (0.1 - 0.9).
     pub detail_panel_ratio: f64,
+    /// Detail panel: tree cursor position (index into flattened tree).
+    pub detail_tree_cursor: usize,
+    /// Detail panel: set of collapsed node indices (path-based keys).
+    pub detail_tree_collapsed: std::collections::HashSet<String>,
+    /// Detail panel: whether left pane (tree/content) has focus.
+    pub detail_tree_focus: bool,
     /// Current input mode.
     pub input_mode: InputMode,
     /// Filter input buffer (for expression mode).
@@ -538,6 +544,9 @@ impl App {
             visible_rows: 20,
             detail_open: false,
             detail_panel_ratio: 0.3,
+            detail_tree_cursor: 0,
+            detail_tree_collapsed: std::collections::HashSet::new(),
+            detail_tree_focus: false,
             input_mode: InputMode::Normal,
             filter_input: TextInput::new(),
             filter_error: None,
@@ -1575,6 +1584,128 @@ impl App {
 
     pub fn toggle_detail(&mut self) {
         self.detail_open = !self.detail_open;
+        if self.detail_open {
+            // Auto-focus tree if expanded data is available
+            if let Some(record) = self.selected_record() {
+                if record.expanded.as_ref().is_some_and(|e| !e.is_empty()) {
+                    self.detail_tree_focus = true;
+                    self.detail_tree_cursor = 0;
+                }
+            }
+        } else {
+            self.detail_tree_focus = false;
+        }
+    }
+
+    /// Get the flattened tree nodes for the current record.
+    fn detail_flat_nodes(&self) -> Vec<crate::ui::widgets::detail_panel_widget::FlatNode> {
+        if let Some(record) = self.selected_record() {
+            if let Some(expanded) = record.expanded.as_ref() {
+                return crate::ui::widgets::detail_panel_widget::flatten_expanded(
+                    expanded,
+                    &self.detail_tree_collapsed,
+                );
+            }
+        }
+        Vec::new()
+    }
+
+    /// Move tree cursor down.
+    pub fn detail_tree_move_down(&mut self) {
+        let nodes = self.detail_flat_nodes();
+        if self.detail_tree_cursor + 1 < nodes.len() {
+            self.detail_tree_cursor += 1;
+        }
+    }
+
+    /// Move tree cursor up.
+    pub fn detail_tree_move_up(&mut self) {
+        if self.detail_tree_cursor > 0 {
+            self.detail_tree_cursor -= 1;
+        }
+    }
+
+    /// Toggle expand/collapse on current tree node.
+    pub fn detail_tree_toggle(&mut self) {
+        let nodes = self.detail_flat_nodes();
+        if let Some(node) = nodes.get(self.detail_tree_cursor) {
+            if node.collapsible {
+                let key = node.path_key.clone();
+                if node.collapsed {
+                    self.detail_tree_collapsed.remove(&key);
+                } else {
+                    self.detail_tree_collapsed.insert(key);
+                }
+            }
+        }
+    }
+
+    /// Collapse current node or move to parent.
+    pub fn detail_tree_collapse_or_parent(&mut self) {
+        let nodes = self.detail_flat_nodes();
+        if let Some(node) = nodes.get(self.detail_tree_cursor) {
+            if node.collapsible && !node.collapsed {
+                // Collapse this node
+                self.detail_tree_collapsed.insert(node.path_key.clone());
+            } else {
+                // Move to parent: find nearest node with lower depth
+                let current_depth = node.depth;
+                if current_depth > 0 {
+                    for i in (0..self.detail_tree_cursor).rev() {
+                        if nodes[i].depth < current_depth {
+                            self.detail_tree_cursor = i;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /// Collapse all tree nodes.
+    pub fn detail_tree_collapse_all(&mut self) {
+        // First expand all, then flatten to get all collapsible paths.
+        self.detail_tree_collapsed.clear();
+        let all_nodes = self.detail_flat_nodes();
+        for node in &all_nodes {
+            if node.collapsible {
+                self.detail_tree_collapsed.insert(node.path_key.clone());
+            }
+        }
+        // Clamp cursor
+        let new_nodes = self.detail_flat_nodes();
+        if self.detail_tree_cursor >= new_nodes.len() {
+            self.detail_tree_cursor = new_nodes.len().saturating_sub(1);
+        }
+    }
+
+    /// Expand all tree nodes.
+    pub fn detail_tree_expand_all(&mut self) {
+        self.detail_tree_collapsed.clear();
+    }
+
+    /// Create a quick filter from the current tree leaf node.
+    pub fn detail_tree_quick_filter(&mut self) {
+        let nodes = self.detail_flat_nodes();
+        if let Some(node) = nodes.get(self.detail_tree_cursor) {
+            if let Some(ref expr_str) = node.filter_expr {
+                match expr::parse(expr_str) {
+                    Ok(parsed_expr) => {
+                        self.filters.push(FilterEntry {
+                            label: expr_str.clone(),
+                            expr_str: expr_str.clone(),
+                            expr: parsed_expr,
+                            exclude: false,
+                        });
+                        self.reapply_filters();
+                        self.set_status(format!("Filter added: {}", expr_str));
+                    }
+                    Err(e) => {
+                        self.set_status(format!("Filter error: {}", e));
+                    }
+                }
+            }
+        }
     }
 
     /// Toggle follow mode.
@@ -1801,6 +1932,9 @@ mod tests {
             visible_rows: 10,
             detail_open: false,
             detail_panel_ratio: 0.3,
+            detail_tree_cursor: 0,
+            detail_tree_collapsed: std::collections::HashSet::new(),
+            detail_tree_focus: false,
             input_mode: InputMode::Normal,
             filter_input: TextInput::new(),
             filter_error: None,
@@ -1864,6 +1998,9 @@ mod tests {
             visible_rows: 10,
             detail_open: false,
             detail_panel_ratio: 0.3,
+            detail_tree_cursor: 0,
+            detail_tree_collapsed: std::collections::HashSet::new(),
+            detail_tree_focus: false,
             input_mode: InputMode::Normal,
             filter_input: TextInput::new(),
             filter_error: None,
@@ -1924,6 +2061,9 @@ mod tests {
             visible_rows: 10,
             detail_open: false,
             detail_panel_ratio: 0.3,
+            detail_tree_cursor: 0,
+            detail_tree_collapsed: std::collections::HashSet::new(),
+            detail_tree_focus: false,
             input_mode: InputMode::Normal,
             filter_input: TextInput::new(),
             filter_error: None,
@@ -2439,6 +2579,9 @@ mod field_filter_v2_tests {
             visible_rows: 10,
             detail_open: false,
             detail_panel_ratio: 0.3,
+            detail_tree_cursor: 0,
+            detail_tree_collapsed: std::collections::HashSet::new(),
+            detail_tree_focus: false,
             input_mode: InputMode::Normal,
             filter_input: TextInput::new(),
             filter_error: None,
@@ -2625,6 +2768,9 @@ mod column_follow_tests {
             visible_rows: 10,
             detail_open: false,
             detail_panel_ratio: 0.3,
+            detail_tree_cursor: 0,
+            detail_tree_collapsed: std::collections::HashSet::new(),
+            detail_tree_focus: false,
             input_mode: InputMode::Normal,
             filter_input: TextInput::new(),
             filter_error: None,
@@ -2825,6 +2971,9 @@ mod copy_tests {
             visible_rows: 10,
             detail_open: false,
             detail_panel_ratio: 0.3,
+            detail_tree_cursor: 0,
+            detail_tree_collapsed: std::collections::HashSet::new(),
+            detail_tree_focus: false,
             input_mode: InputMode::Normal,
             filter_input: TextInput::new(),
             filter_error: None,
@@ -2996,6 +3145,9 @@ mod time_jump_tests {
             visible_rows: 10,
             detail_open: false,
             detail_panel_ratio: 0.3,
+            detail_tree_cursor: 0,
+            detail_tree_collapsed: std::collections::HashSet::new(),
+            detail_tree_focus: false,
             input_mode: InputMode::Normal,
             filter_input: TextInput::new(),
             filter_error: None,
@@ -3130,6 +3282,9 @@ mod command_tests {
             visible_rows: 10,
             detail_open: false,
             detail_panel_ratio: 0.3,
+            detail_tree_cursor: 0,
+            detail_tree_collapsed: std::collections::HashSet::new(),
+            detail_tree_focus: false,
             input_mode: InputMode::Normal,
             filter_input: TextInput::new(),
             filter_error: None,
