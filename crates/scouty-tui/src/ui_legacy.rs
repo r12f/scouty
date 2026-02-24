@@ -110,6 +110,13 @@ pub fn render(frame: &mut Frame, app: &mut App) {
         let window = BookmarkManagerWindow::from_app(app);
         window.render_with_app(frame, app, area);
     }
+
+    if app.input_mode == InputMode::LevelFilter {
+        use crate::ui::windows::level_filter_window::LevelFilterWindow;
+        use crate::ui::UiComponent;
+        let window = LevelFilterWindow::from_app(app);
+        UiComponent::render(&window, frame, area);
+    }
 }
 
 fn render_log_table(frame: &mut Frame, app: &App, area: Rect) {

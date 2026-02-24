@@ -34,6 +34,7 @@ pub enum InputMode {
 
     Highlight,
     HighlightManager,
+    LevelFilter,
 }
 
 /// Column identifiers for the log table.
@@ -284,6 +285,92 @@ pub struct App {
     pub bookmark_manager_cursor: usize,
     /// Theme for UI colors.
     pub theme: Theme,
+    /// Active level filter (None = ALL).
+    pub level_filter: Option<LevelFilterPreset>,
+    /// Level filter cursor for overlay navigation.
+    pub level_filter_cursor: usize,
+}
+
+/// Level filter presets.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum LevelFilterPreset {
+    /// Show all levels.
+    All,
+    /// DEBUG and above.
+    DebugPlus,
+    /// INFO and above.
+    InfoPlus,
+    /// WARN and above.
+    WarnPlus,
+    /// ERROR and above.
+    ErrorPlus,
+}
+
+impl LevelFilterPreset {
+    pub fn label(&self) -> &'static str {
+        match self {
+            Self::All => "ALL",
+            Self::DebugPlus => "DEBUG+",
+            Self::InfoPlus => "INFO+",
+            Self::WarnPlus => "WARN+",
+            Self::ErrorPlus => "ERROR+",
+        }
+    }
+
+    pub fn from_number(n: u8) -> Option<Self> {
+        match n {
+            1 => Some(Self::All),
+            2 => Some(Self::DebugPlus),
+            3 => Some(Self::InfoPlus),
+            4 => Some(Self::WarnPlus),
+            5 => Some(Self::ErrorPlus),
+            _ => None,
+        }
+    }
+
+    pub fn as_number(&self) -> u8 {
+        match self {
+            Self::All => 1,
+            Self::DebugPlus => 2,
+            Self::InfoPlus => 3,
+            Self::WarnPlus => 4,
+            Self::ErrorPlus => 5,
+        }
+    }
+
+    /// Returns the minimum log level ordinal that passes this filter.
+    pub fn matches_level(&self, level: Option<&scouty::record::LogLevel>) -> bool {
+        use scouty::record::LogLevel;
+        match self {
+            Self::All => true,
+            Self::DebugPlus => matches!(
+                level,
+                Some(
+                    LogLevel::Debug
+                        | LogLevel::Info
+                        | LogLevel::Notice
+                        | LogLevel::Warn
+                        | LogLevel::Error
+                        | LogLevel::Fatal
+                )
+            ),
+            Self::InfoPlus => matches!(
+                level,
+                Some(
+                    LogLevel::Info
+                        | LogLevel::Notice
+                        | LogLevel::Warn
+                        | LogLevel::Error
+                        | LogLevel::Fatal
+                )
+            ),
+            Self::WarnPlus => matches!(
+                level,
+                Some(LogLevel::Warn | LogLevel::Error | LogLevel::Fatal)
+            ),
+            Self::ErrorPlus => matches!(level, Some(LogLevel::Error | LogLevel::Fatal)),
+        }
+    }
 }
 
 /// Cached density chart — avoids O(N) recomputation on every frame.
@@ -398,6 +485,8 @@ impl App {
             bookmarks: std::collections::HashSet::new(),
             bookmark_manager_cursor: 0,
             theme: Theme::default(),
+            level_filter: None,
+            level_filter_cursor: 0,
         })
     }
 
@@ -534,6 +623,12 @@ impl App {
         self.filtered_indices = (0..self.records.len())
             .filter(|&i| {
                 let record = &self.records[i];
+                // Apply level filter first
+                if let Some(ref lf) = self.level_filter {
+                    if !lf.matches_level(record.level.as_ref()) {
+                        return false;
+                    }
+                }
                 for f in &self.filters {
                     let matches = eval::eval(&f.expr, record);
                     if f.exclude && matches {
@@ -742,6 +837,17 @@ impl App {
     }
 
     /// Apply the field filter dialog selections.
+    /// Apply a level filter preset. None = clear level filter (show ALL).
+    pub fn apply_level_filter(&mut self, preset: LevelFilterPreset) {
+        if preset == LevelFilterPreset::All {
+            self.level_filter = None;
+        } else {
+            self.level_filter = Some(preset);
+        }
+        self.reapply_filters();
+        self.set_status(format!("Level filter: {}", preset.label()));
+    }
+
     pub fn apply_field_filter(&mut self) {
         let state = match self.field_filter.clone() {
             Some(s) => s,
@@ -1501,6 +1607,8 @@ mod tests {
             bookmarks: std::collections::HashSet::new(),
             bookmark_manager_cursor: 0,
             theme: Theme::default(),
+            level_filter: None,
+            level_filter_cursor: 0,
         }
     }
 
@@ -1554,6 +1662,8 @@ mod tests {
             bookmarks: std::collections::HashSet::new(),
             bookmark_manager_cursor: 0,
             theme: Theme::default(),
+            level_filter: None,
+            level_filter_cursor: 0,
         }
     }
 
@@ -1604,6 +1714,8 @@ mod tests {
             bookmarks: std::collections::HashSet::new(),
             bookmark_manager_cursor: 0,
             theme: Theme::default(),
+            level_filter: None,
+            level_filter_cursor: 0,
         }
     }
 
@@ -2108,6 +2220,8 @@ mod field_filter_v2_tests {
             bookmarks: std::collections::HashSet::new(),
             bookmark_manager_cursor: 0,
             theme: Theme::default(),
+            level_filter: None,
+            level_filter_cursor: 0,
         }
     }
 
@@ -2283,6 +2397,8 @@ mod column_follow_tests {
             bookmarks: std::collections::HashSet::new(),
             bookmark_manager_cursor: 0,
             theme: Theme::default(),
+            level_filter: None,
+            level_filter_cursor: 0,
         }
     }
 
@@ -2472,6 +2588,8 @@ mod copy_tests {
             bookmarks: std::collections::HashSet::new(),
             bookmark_manager_cursor: 0,
             theme: Theme::default(),
+            level_filter: None,
+            level_filter_cursor: 0,
         }
     }
 
@@ -2632,6 +2750,8 @@ mod time_jump_tests {
             bookmarks: std::collections::HashSet::new(),
             bookmark_manager_cursor: 0,
             theme: Theme::default(),
+            level_filter: None,
+            level_filter_cursor: 0,
         }
     }
 
@@ -2755,6 +2875,8 @@ mod command_tests {
             bookmarks: std::collections::HashSet::new(),
             bookmark_manager_cursor: 0,
             theme: Theme::default(),
+            level_filter: None,
+            level_filter_cursor: 0,
         }
     }
     #[test]

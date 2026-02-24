@@ -323,6 +323,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                     app.input_mode = InputMode::FilterManager;
                                     app.filter_manager_cursor = 0;
                                 }
+                                Action::LevelFilter => {
+                                    app.input_mode = InputMode::LevelFilter;
+                                    app.level_filter_cursor = app
+                                        .level_filter
+                                        .map(|l| (l.as_number() - 1) as usize)
+                                        .unwrap_or(0);
+                                }
                                 Action::GotoLine => {
                                     app.input_mode = InputMode::GotoLine;
                                     app.goto_input.clear();
@@ -580,6 +587,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         let result = ui::dispatch_key(&mut window, key);
                         window.apply_to_app(&mut app);
                         if result == ui::ComponentResult::Close {
+                            app.input_mode = InputMode::Normal;
+                        }
+                    }
+                    InputMode::LevelFilter => {
+                        use ui::windows::level_filter_window::LevelFilterWindow;
+                        let mut window = LevelFilterWindow::from_app(&app);
+                        let result = ui::dispatch_key(&mut window, key);
+                        if result == ui::ComponentResult::Close {
+                            if window.confirmed {
+                                if let Some(preset) = window.selected {
+                                    app.apply_level_filter(preset);
+                                }
+                            }
                             app.input_mode = InputMode::Normal;
                         }
                     }

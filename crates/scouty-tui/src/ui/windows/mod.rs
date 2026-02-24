@@ -8,4 +8,5 @@ pub mod filter_manager_window;
 pub mod goto_line_window;
 pub mod help_window;
 pub mod highlight_manager_window;
+pub mod level_filter_window;
 pub mod stats_window;

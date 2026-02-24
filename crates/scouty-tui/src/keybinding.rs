@@ -30,6 +30,7 @@ pub enum Action {
     FieldExclude,
     FieldInclude,
     FilterManager,
+    LevelFilter,
 
     // Display
     ToggleDetail,
@@ -150,6 +151,7 @@ pub struct KeybindingConfig {
     pub field_exclude: Option<KeyOrKeys>,
     pub field_include: Option<KeyOrKeys>,
     pub filter_manager: Option<KeyOrKeys>,
+    pub level_filter: Option<KeyOrKeys>,
     pub toggle_detail: Option<KeyOrKeys>,
     pub column_selector: Option<KeyOrKeys>,
     pub stats: Option<KeyOrKeys>,
@@ -259,6 +261,7 @@ impl KeybindingConfig {
             Action::FieldExclude => self.field_exclude.as_ref(),
             Action::FieldInclude => self.field_include.as_ref(),
             Action::FilterManager => self.filter_manager.as_ref(),
+            Action::LevelFilter => self.level_filter.as_ref(),
             Action::ToggleDetail => self.toggle_detail.as_ref(),
             Action::ColumnSelector => self.column_selector.as_ref(),
             Action::Stats => self.stats.as_ref(),
@@ -303,6 +306,7 @@ fn default_bindings() -> Vec<(Action, Vec<&'static str>)> {
         (Action::FieldExclude, vec!["_"]),
         (Action::FieldInclude, vec!["+"]),
         (Action::FilterManager, vec!["F", "ctrl+f"]),
+        (Action::LevelFilter, vec!["l"]),
         // Display
         (Action::ToggleDetail, vec!["enter"]),
         (Action::ColumnSelector, vec!["c"]),
