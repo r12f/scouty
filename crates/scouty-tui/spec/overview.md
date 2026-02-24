@@ -85,6 +85,16 @@ Components notify App via return values or callbacks. App updates shared state (
 
 ### Keybinding Summary
 
+#### Global (always active)
+
+| Key | Function |
+|-----|----------|
+| `Esc` | Close current overlay / cancel input |
+| `q` | Quit |
+| `?` | Help |
+
+#### Log Table View (main view, no overlay open)
+
 | Key | Function |
 |-----|----------|
 | `j`/`k` | Move up/down one row |
@@ -98,10 +108,10 @@ Components notify App via return values or callbacks. App updates shared state (
 | `-`/`=` | Quick exclude/include text |
 | `_`/`+` | Field exclude/include dialog |
 | `F` | Filter manager |
+| `l` | Log level quick filter (1-8) |
 | `c` | Column selector |
 | `y`/`Y` | Copy raw / format selection |
 | `s` | Save/export dialog (path + format) |
-| `l` | Log level quick filter (1-8) |
 | `d`/`D` | Cycle / select density chart source (level/highlight) |
 | `h`/`H` | Add highlight / highlight manager |
 | `m` | Toggle bookmark |
@@ -110,9 +120,16 @@ Components notify App via return values or callbacks. App updates shared state (
 | `S` | Stats summary |
 | `]`/`[` | Relative time jump (forward/backward) |
 | `Ctrl+]` | Toggle follow mode |
-| `Esc` | Close current overlay |
-| `q` | Quit |
-| `?` | Help |
+
+#### Dialog Navigation (shared across all overlays/dialogs)
+
+| Key | Function |
+|-----|----------|
+| `j`/`k`/`↑`/`↓` | Move selection |
+| `PageUp`/`PageDown` | Page through options |
+| `Space` | Toggle selection (multi-select dialogs) |
+| `Enter` | Confirm |
+| `Esc` | Cancel / close |
 
 ## Change Log
 
