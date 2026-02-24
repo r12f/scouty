@@ -208,9 +208,48 @@ This allows filtering by region: `_region == "Port Startup Ethernet0"` or `_regi
 - `f` — filter to show only records in selected region
 - `j`/`k` navigation
 
-#### Density Chart
+#### Region Density Chart (Floating Window)
 
-When density chart source is set to a region type (`D` selector), show region distribution over time.
+Region density chart is a **standalone floating window** (not part of the log density bar). It visualizes region distribution over time using a Gantt-style timeline.
+
+**Open:** `r` → region manager → `d` on a region type, or directly via `Shift+D` from log table.
+
+**Layout:** Floating window, 95% of log table width, 70% of log table height, centered.
+
+```
+┌─ Region Density: port_startup ─────────────────────────────────────────────────┐
+│                                                                                │
+│  Time     10:30:00    10:30:15    10:30:30    10:30:45    10:31:00             │
+│           ┊           ┊           ┊           ┊           ┊                    │
+│  Eth0     ████████████████████                                                 │
+│  Eth4     ████████████████████████████                                         │
+│  Eth8              ███████████                                                 │
+│  Eth12                    █████████████████████████████                         │
+│  Eth16                              ██████████                                 │
+│  Eth20    ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ (timeout)                     │
+│                                                                                │
+│  Total: 6 regions │ 5 completed │ 1 timed out                                  │
+│                                                                                │
+│  [j/k] Navigate  [Enter] Jump  [f] Filter  [t] Type  [Esc] Close              │
+└────────────────────────────────────────────────────────────────────────────────┘
+```
+
+**Features:**
+- Each row = one region instance, labeled by the primary correlate field value (e.g., port name)
+- `████` bars show region duration; bar length proportional to time span
+- Color: completed regions use region type color; timed-out regions use `░` (dimmed)
+- Time axis auto-scales to fit all visible regions
+- `j`/`k` to navigate rows
+- `Enter` — jump to selected region's start record in log table
+- `f` — filter log table to selected region
+- `t` — switch between region types (if multiple types defined)
+- Sorted by start time (default), `s` to toggle sort by duration
+- `Esc` closes the floating window
+
+**Behavior:**
+- Does NOT replace or modify the existing log density chart in the status bar
+- The log density chart (`d`/`D` keys) continues to work as before (level/highlight modes only)
+- Region density is its own independent visualization
 
 ### CLI Integration (Pipe Mode)
 
@@ -236,3 +275,4 @@ scouty-tui --filter '_region_pos == "start" OR _region_pos == "end"' app.log
 | Date | Change |
 |------|--------|
 | 2026-02-24 | Initial region parsing spec — configurable start/end matching, correlation, templates |
+| 2026-02-24 | Region density chart as floating window (95%×70%), Gantt-style timeline, separate from log density bar |
