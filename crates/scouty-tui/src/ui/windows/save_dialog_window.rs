@@ -234,6 +234,27 @@ impl UiComponent for SaveDialogWindow {
         ComponentResult::Close
     }
 
+    fn on_char(&mut self, c: char) -> ComponentResult {
+        if self.focus == Focus::Path {
+            self.path_input.insert(c);
+            self.error = None;
+            ComponentResult::Consumed
+        } else {
+            ComponentResult::Ignored
+        }
+    }
+
+    fn on_toggle(&mut self) -> ComponentResult {
+        // Space in path input should insert a space character
+        if self.focus == Focus::Path {
+            self.path_input.insert(' ');
+            self.error = None;
+            ComponentResult::Consumed
+        } else {
+            ComponentResult::Ignored
+        }
+    }
+
     fn on_key(&mut self, key: crossterm::event::KeyEvent) -> ComponentResult {
         use crossterm::event::KeyCode;
 

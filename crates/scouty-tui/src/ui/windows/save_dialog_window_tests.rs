@@ -216,4 +216,49 @@ mod tests {
         window.on_key(KeyEvent::new(KeyCode::Tab, KeyModifiers::NONE));
         assert!(!window.enable_jk_navigation());
     }
+
+    #[test]
+    fn test_char_input_via_dispatch() {
+        let app = make_test_app(1);
+        let mut window = SaveDialogWindow::from_app(&app);
+        // Clear default path
+        window.path_input.clear();
+
+        // Type via dispatch_key (same path as main.rs)
+        let result = crate::ui::dispatch_key(
+            &mut window,
+            KeyEvent::new(KeyCode::Char('a'), KeyModifiers::NONE),
+        );
+        assert_eq!(result, ComponentResult::Consumed);
+        crate::ui::dispatch_key(
+            &mut window,
+            KeyEvent::new(KeyCode::Char('b'), KeyModifiers::NONE),
+        );
+        crate::ui::dispatch_key(
+            &mut window,
+            KeyEvent::new(KeyCode::Char('c'), KeyModifiers::NONE),
+        );
+        assert_eq!(window.path_input.value(), "abc");
+    }
+
+    #[test]
+    fn test_space_in_path_input() {
+        let app = make_test_app(1);
+        let mut window = SaveDialogWindow::from_app(&app);
+        window.path_input.clear();
+
+        crate::ui::dispatch_key(
+            &mut window,
+            KeyEvent::new(KeyCode::Char('a'), KeyModifiers::NONE),
+        );
+        crate::ui::dispatch_key(
+            &mut window,
+            KeyEvent::new(KeyCode::Char(' '), KeyModifiers::NONE),
+        );
+        crate::ui::dispatch_key(
+            &mut window,
+            KeyEvent::new(KeyCode::Char('b'), KeyModifiers::NONE),
+        );
+        assert_eq!(window.path_input.value(), "a b");
+    }
 }
