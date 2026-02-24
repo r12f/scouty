@@ -66,28 +66,34 @@ Press `l` to open a level selector overlay:
 ┌─ Level Filter ──────────┐
 │                         │
 │  1. ALL (no filter)     │
-│  2. DEBUG+              │
-│  3. INFO+               │
-│  4. WARN+               │
-│  5. ERROR+              │
+│  2. TRACE+              │
+│  3. DEBUG+              │
+│  4. INFO+               │
+│  5. NOTICE+             │
+│  6. WARN+               │
+│  7. ERROR+              │
+│  8. FATAL only          │
 │                         │
 │  Current: ALL           │
 └─────────────────────────┘
 ```
 
 **Behavior:**
-- Press `1`-`5` to instantly apply level filter (overlay closes immediately)
+- Press `1`-`8` to instantly apply level filter (overlay closes immediately)
 - Or use `↑`/`↓`/`j`/`k` to navigate, `Enter` to confirm
 - `Esc` closes without changing
 - Level filter is additive — it combines with other active filters
 - Applied filter shown in filter manager as a level filter entry
 - Selecting a new level replaces the previous level filter (not stacked)
-- Level mappings:
+- Level mappings (severity low → high: Trace < Debug < Info < Notice < Warn < Error < Fatal):
   - `1` ALL: no level filter
-  - `2` DEBUG+: TRACE excluded
-  - `3` INFO+: TRACE, DEBUG excluded
-  - `4` WARN+: TRACE, DEBUG, INFO excluded
-  - `5` ERROR+: TRACE, DEBUG, INFO, WARN, NOTICE excluded
+  - `2` TRACE+: all levels shown (same as ALL, explicit)
+  - `3` DEBUG+: TRACE excluded
+  - `4` INFO+: TRACE, DEBUG excluded
+  - `5` NOTICE+: TRACE, DEBUG, INFO excluded
+  - `6` WARN+: TRACE, DEBUG, INFO, NOTICE excluded
+  - `7` ERROR+: TRACE, DEBUG, INFO, NOTICE, WARN excluded
+  - `8` FATAL only: only FATAL shown
 - Current active level shown in the overlay
 
 ### Filter Presets (Save/Load)
@@ -129,7 +135,7 @@ Filter presets are stored in `~/.scouty/filters/` as YAML files.
       expression: 'level == "Error" OR level == "Fatal"'
     - type: exclude
       expression: 'component == "healthcheck"'
-  level_filter: 4    # WARN+ (0=ALL, 1=TRACE+, 2=DEBUG+, 3=INFO+, 4=WARN+, 5=ERROR+)
+  level_filter: 6    # WARN+ (0=ALL, 1=ALL, 2=TRACE+, 3=DEBUG+, 4=INFO+, 5=NOTICE+, 6=WARN+, 7=ERROR+, 8=FATAL)
   ```
 - Empty filter list: show "No presets found" in load dialog
 - Name collision on save: overwrite with confirmation prompt
@@ -151,3 +157,4 @@ Via the field filter dialog's time options:
 | 2026-02-23 | Filter preserves cursor position (stay on same record or nearest preceding) |
 | 2026-02-24 | Log level quick filter (l key, 1-5 selection) |
 | 2026-02-24 | Filter presets save/load in filter manager (s/l keys, stored in ~/.scouty/filters/) |
+| 2026-02-24 | Level filter expanded to all 7 levels: TRACE+/DEBUG+/INFO+/NOTICE+/WARN+/ERROR+/FATAL only (1-8) |
