@@ -82,6 +82,9 @@ mod tests {
             theme: crate::config::Theme::default(),
             level_filter: None,
             level_filter_cursor: 0,
+            preset_name_input: TextInput::new(),
+            preset_list: Vec::new(),
+            preset_list_cursor: 0,
         }
     }
 
@@ -172,6 +175,9 @@ mod tests {
             theme: crate::config::Theme::default(),
             level_filter: None,
             level_filter_cursor: 0,
+            preset_name_input: TextInput::new(),
+            preset_list: Vec::new(),
+            preset_list_cursor: 0,
         };
         let stats = StatsData::compute(&app);
         assert_eq!(stats.total_records, 0);

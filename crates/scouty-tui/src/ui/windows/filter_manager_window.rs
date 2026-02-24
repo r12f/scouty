@@ -71,7 +71,7 @@ impl FilterManagerWindow {
 
         lines.push(Line::from(""));
         lines.push(Line::styled(
-            " d: Delete  c: Clear all  Esc: Close",
+            " d: Delete  c: Clear  s: Save preset  l: Load preset  Esc: Close",
             theme.dialog.muted.to_style(),
         ));
 
@@ -160,6 +160,14 @@ impl UiComponent for FilterManagerWindow {
             'c' => {
                 self.action = Some("clear");
                 ComponentResult::Consumed
+            }
+            's' => {
+                self.action = Some("save_preset");
+                ComponentResult::Close
+            }
+            'l' => {
+                self.action = Some("load_preset");
+                ComponentResult::Close
             }
             _ => ComponentResult::Ignored,
         }

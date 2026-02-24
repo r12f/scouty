@@ -36,6 +36,8 @@ pub enum InputMode {
     Highlight,
     HighlightManager,
     LevelFilter,
+    SavePreset,
+    LoadPreset,
 }
 
 /// Column identifiers for the log table.
@@ -290,6 +292,12 @@ pub struct App {
     pub level_filter: Option<LevelFilterPreset>,
     /// Level filter cursor for overlay navigation.
     pub level_filter_cursor: usize,
+    /// Save preset name input.
+    pub preset_name_input: TextInput,
+    /// Available preset names for load dialog.
+    pub preset_list: Vec<String>,
+    /// Load preset cursor.
+    pub preset_list_cursor: usize,
 }
 
 /// Level filter presets.
@@ -503,6 +511,9 @@ impl App {
             theme: Theme::default(),
             level_filter: None,
             level_filter_cursor: 0,
+            preset_name_input: TextInput::new(),
+            preset_list: Vec::new(),
+            preset_list_cursor: 0,
         })
     }
 
@@ -862,6 +873,84 @@ impl App {
         }
         self.reapply_filters();
         self.set_status(format!("Level filter: {}", preset.label()));
+    }
+
+    /// Save current filters as a named preset.
+    pub fn save_filter_preset(&mut self, name: &str) {
+        use crate::config::filter_preset::{save_preset, FilterPreset, FilterPresetEntry};
+
+        let preset = FilterPreset {
+            filters: self
+                .filters
+                .iter()
+                .map(|f| FilterPresetEntry {
+                    expr: f.label.clone(),
+                    exclude: f.exclude,
+                })
+                .collect(),
+            level_filter: self.level_filter.map(|l| l.label().to_string()),
+        };
+
+        match save_preset(name, &preset) {
+            Ok(_) => self.set_status(format!("Preset '{}' saved", name)),
+            Err(e) => self.set_status(format!("Error saving preset: {}", e)),
+        }
+    }
+
+    /// Load a filter preset by name, replacing current filters.
+    pub fn load_filter_preset(&mut self, name: &str) {
+        use crate::config::filter_preset::load_preset;
+
+        let preset = match load_preset(name) {
+            Ok(p) => p,
+            Err(e) => {
+                self.set_status(format!("Error loading preset: {}", e));
+                return;
+            }
+        };
+
+        // Clear existing filters
+        self.filters.clear();
+
+        // Load expression filters
+        for entry in &preset.filters {
+            match expr::parse(&entry.expr) {
+                Ok(parsed) => {
+                    self.filters.push(FilterEntry {
+                        label: entry.expr.clone(),
+                        expr: parsed,
+                        exclude: entry.exclude,
+                    });
+                }
+                Err(e) => {
+                    self.set_status(format!(
+                        "Warning: filter '{}' failed to parse: {}",
+                        entry.expr, e
+                    ));
+                }
+            }
+        }
+
+        // Load level filter
+        if let Some(ref level_str) = preset.level_filter {
+            match level_str.as_str() {
+                "ALL" => self.level_filter = None,
+                "DEBUG+" => self.level_filter = Some(LevelFilterPreset::DebugPlus),
+                "INFO+" => self.level_filter = Some(LevelFilterPreset::InfoPlus),
+                "WARN+" => self.level_filter = Some(LevelFilterPreset::WarnPlus),
+                "ERROR+" => self.level_filter = Some(LevelFilterPreset::ErrorPlus),
+                _ => {}
+            }
+        } else {
+            self.level_filter = None;
+        }
+
+        self.reapply_filters();
+        self.set_status(format!(
+            "Preset '{}' loaded ({} filters)",
+            name,
+            self.filters.len()
+        ));
     }
 
     pub fn apply_field_filter(&mut self) {
@@ -1625,6 +1714,9 @@ mod tests {
             theme: Theme::default(),
             level_filter: None,
             level_filter_cursor: 0,
+            preset_name_input: TextInput::new(),
+            preset_list: Vec::new(),
+            preset_list_cursor: 0,
         }
     }
 
@@ -1680,6 +1772,9 @@ mod tests {
             theme: Theme::default(),
             level_filter: None,
             level_filter_cursor: 0,
+            preset_name_input: TextInput::new(),
+            preset_list: Vec::new(),
+            preset_list_cursor: 0,
         }
     }
 
@@ -1732,6 +1827,9 @@ mod tests {
             theme: Theme::default(),
             level_filter: None,
             level_filter_cursor: 0,
+            preset_name_input: TextInput::new(),
+            preset_list: Vec::new(),
+            preset_list_cursor: 0,
         }
     }
 
@@ -2238,6 +2336,9 @@ mod field_filter_v2_tests {
             theme: Theme::default(),
             level_filter: None,
             level_filter_cursor: 0,
+            preset_name_input: TextInput::new(),
+            preset_list: Vec::new(),
+            preset_list_cursor: 0,
         }
     }
 
@@ -2415,6 +2516,9 @@ mod column_follow_tests {
             theme: Theme::default(),
             level_filter: None,
             level_filter_cursor: 0,
+            preset_name_input: TextInput::new(),
+            preset_list: Vec::new(),
+            preset_list_cursor: 0,
         }
     }
 
@@ -2606,6 +2710,9 @@ mod copy_tests {
             theme: Theme::default(),
             level_filter: None,
             level_filter_cursor: 0,
+            preset_name_input: TextInput::new(),
+            preset_list: Vec::new(),
+            preset_list_cursor: 0,
         }
     }
 
@@ -2768,6 +2875,9 @@ mod time_jump_tests {
             theme: Theme::default(),
             level_filter: None,
             level_filter_cursor: 0,
+            preset_name_input: TextInput::new(),
+            preset_list: Vec::new(),
+            preset_list_cursor: 0,
         }
     }
 
@@ -2893,6 +3003,9 @@ mod command_tests {
             theme: Theme::default(),
             level_filter: None,
             level_filter_cursor: 0,
+            preset_name_input: TextInput::new(),
+            preset_list: Vec::new(),
+            preset_list_cursor: 0,
         }
     }
     #[test]

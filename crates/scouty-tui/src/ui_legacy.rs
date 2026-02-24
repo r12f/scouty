@@ -117,6 +117,21 @@ pub fn render(frame: &mut Frame, app: &mut App) {
         let window = LevelFilterWindow::from_app(app);
         UiComponent::render(&window, frame, area);
     }
+
+    if app.input_mode == InputMode::SavePreset {
+        use crate::ui::windows::save_preset_window::SavePresetWindow;
+        use crate::ui::UiComponent;
+        let mut window = SavePresetWindow::new();
+        window.input = app.preset_name_input.clone();
+        UiComponent::render(&window, frame, area);
+    }
+
+    if app.input_mode == InputMode::LoadPreset {
+        use crate::ui::windows::load_preset_window::LoadPresetWindow;
+        use crate::ui::UiComponent;
+        let window = LoadPresetWindow::new(app.preset_list.clone());
+        UiComponent::render(&window, frame, area);
+    }
 }
 
 fn render_log_table(frame: &mut Frame, app: &App, area: Rect) {
