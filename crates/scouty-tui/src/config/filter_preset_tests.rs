@@ -108,4 +108,31 @@ mod tests {
             assert!(loaded.level_filter.is_none());
         });
     }
+
+    #[test]
+    fn test_round_trip_with_expressions() {
+        with_test_home("roundtrip_expr", || {
+            let preset = FilterPreset {
+                filters: vec![
+                    FilterPresetEntry {
+                        expr: "message contains \"timeout\"".to_string(),
+                        exclude: true,
+                    },
+                    FilterPresetEntry {
+                        expr: "message contains \"error\"".to_string(),
+                        exclude: false,
+                    },
+                ],
+                level_filter: Some("WARN+".to_string()),
+            };
+            super::super::save_preset("roundtrip_expr", &preset).unwrap();
+            let loaded = super::super::load_preset("roundtrip_expr").unwrap();
+            assert_eq!(loaded.filters.len(), 2);
+            assert_eq!(loaded.filters[0].expr, "message contains \"timeout\"");
+            assert!(loaded.filters[0].exclude);
+            assert_eq!(loaded.filters[1].expr, "message contains \"error\"");
+            assert!(!loaded.filters[1].exclude);
+            assert_eq!(loaded.level_filter, Some("WARN+".to_string()));
+        });
+    }
 }
