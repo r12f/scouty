@@ -130,10 +130,8 @@ mod tests {
     #[test]
     fn test_local_config_overridden_by_cli_merge() {
         // CLI config layer should override local config layer
-        let local_yaml: serde_yaml::Value =
-            serde_yaml::from_str("theme: solarized").unwrap();
-        let cli_yaml: serde_yaml::Value =
-            serde_yaml::from_str("theme: dark").unwrap();
+        let local_yaml: serde_yaml::Value = serde_yaml::from_str("theme: solarized").unwrap();
+        let cli_yaml: serde_yaml::Value = serde_yaml::from_str("theme: dark").unwrap();
         let merged = super::super::deep_merge(local_yaml, cli_yaml);
         let cfg: Config = serde_yaml::from_value(merged).unwrap();
         assert_eq!(cfg.theme, "dark"); // CLI wins
