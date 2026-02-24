@@ -58,6 +58,82 @@ Shared dialog component, differing only in initial action (exclude vs include):
 - Add new, delete individual, clear all
 - j/k navigation, PageUp/PageDown
 
+### Log Level Quick Filter (`l`)
+
+Press `l` to open a level selector overlay:
+
+```
+┌─ Level Filter ──────────┐
+│                         │
+│  1. ALL (no filter)     │
+│  2. DEBUG+              │
+│  3. INFO+               │
+│  4. WARN+               │
+│  5. ERROR+              │
+│                         │
+│  Current: ALL           │
+└─────────────────────────┘
+```
+
+**Behavior:**
+- Press `1`-`5` to instantly apply level filter (overlay closes immediately)
+- Or use `↑`/`↓`/`j`/`k` to navigate, `Enter` to confirm
+- `Esc` closes without changing
+- Level filter is additive — it combines with other active filters
+- Applied filter shown in filter manager as a level filter entry
+- Selecting a new level replaces the previous level filter (not stacked)
+- Level mappings:
+  - `1` ALL: no level filter
+  - `2` DEBUG+: TRACE excluded
+  - `3` INFO+: TRACE, DEBUG excluded
+  - `4` WARN+: TRACE, DEBUG, INFO excluded
+  - `5` ERROR+: TRACE, DEBUG, INFO, WARN, NOTICE excluded
+- Current active level shown in the overlay
+
+### Filter Presets (Save/Load)
+
+Filter presets are stored in `~/.scouty/filters/` as YAML files.
+
+**Save preset** — in filter manager (`F`), press `s`:
+```
+┌─ Save Filter Preset ────────────────┐
+│                                     │
+│  Name: my-error-filters█            │
+│                                     │
+│         [Enter] Save  [Esc] Cancel  │
+└─────────────────────────────────────┘
+```
+
+**Load preset** — in filter manager (`F`), press `l`:
+```
+┌─ Load Filter Preset ────────────────┐
+│                                     │
+│  > my-error-filters                 │
+│    network-debug                    │
+│    production-noise                 │
+│                                     │
+│  [Enter] Load  [d] Delete  [Esc]   │
+└─────────────────────────────────────┘
+```
+
+**Behavior:**
+- Save: saves all current active filters (exclude + include + level) as a named preset
+- File format: `~/.scouty/filters/<name>.yaml`
+- Load: replaces all current filters with the preset's filters
+- Delete: `d` key deletes the selected preset (with confirmation)
+- Preset YAML format:
+  ```yaml
+  # ~/.scouty/filters/my-error-filters.yaml
+  filters:
+    - type: include
+      expression: 'level == "Error" OR level == "Fatal"'
+    - type: exclude
+      expression: 'component == "healthcheck"'
+  level_filter: 4    # WARN+ (0=ALL, 1=TRACE+, 2=DEBUG+, 3=INFO+, 4=WARN+, 5=ERROR+)
+  ```
+- Empty filter list: show "No presets found" in load dialog
+- Name collision on save: overwrite with confirmation prompt
+
 ### Time Range Filtering
 
 Via the field filter dialog's time options:
@@ -73,3 +149,5 @@ Via the field filter dialog's time options:
 | 2026-02-20 | Search, filter expression, quick exclude/include, field dialog, filter manager |
 | 2026-02-22 | Time range options in field filter dialog |
 | 2026-02-23 | Filter preserves cursor position (stay on same record or nearest preceding) |
+| 2026-02-24 | Log level quick filter (l key, 1-5 selection) |
+| 2026-02-24 | Filter presets save/load in filter manager (s/l keys, stored in ~/.scouty/filters/) |
