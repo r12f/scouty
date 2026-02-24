@@ -321,34 +321,46 @@ pub struct App {
 pub enum LevelFilterPreset {
     /// Show all levels.
     All,
+    /// TRACE and above.
+    TracePlus,
     /// DEBUG and above.
     DebugPlus,
     /// INFO and above.
     InfoPlus,
+    /// NOTICE and above.
+    NoticePlus,
     /// WARN and above.
     WarnPlus,
     /// ERROR and above.
     ErrorPlus,
+    /// FATAL only.
+    FatalOnly,
 }
 
 impl LevelFilterPreset {
     pub fn label(&self) -> &'static str {
         match self {
             Self::All => "ALL",
+            Self::TracePlus => "TRACE+",
             Self::DebugPlus => "DEBUG+",
             Self::InfoPlus => "INFO+",
+            Self::NoticePlus => "NOTICE+",
             Self::WarnPlus => "WARN+",
             Self::ErrorPlus => "ERROR+",
+            Self::FatalOnly => "FATAL",
         }
     }
 
     pub fn from_number(n: u8) -> Option<Self> {
         match n {
             1 => Some(Self::All),
-            2 => Some(Self::DebugPlus),
-            3 => Some(Self::InfoPlus),
-            4 => Some(Self::WarnPlus),
-            5 => Some(Self::ErrorPlus),
+            2 => Some(Self::TracePlus),
+            3 => Some(Self::DebugPlus),
+            4 => Some(Self::InfoPlus),
+            5 => Some(Self::NoticePlus),
+            6 => Some(Self::WarnPlus),
+            7 => Some(Self::ErrorPlus),
+            8 => Some(Self::FatalOnly),
             _ => None,
         }
     }
@@ -356,10 +368,13 @@ impl LevelFilterPreset {
     pub fn as_number(&self) -> u8 {
         match self {
             Self::All => 1,
-            Self::DebugPlus => 2,
-            Self::InfoPlus => 3,
-            Self::WarnPlus => 4,
-            Self::ErrorPlus => 5,
+            Self::TracePlus => 2,
+            Self::DebugPlus => 3,
+            Self::InfoPlus => 4,
+            Self::NoticePlus => 5,
+            Self::WarnPlus => 6,
+            Self::ErrorPlus => 7,
+            Self::FatalOnly => 8,
         }
     }
 
@@ -368,6 +383,18 @@ impl LevelFilterPreset {
         use scouty::record::LogLevel;
         match self {
             Self::All => true,
+            Self::TracePlus => matches!(
+                level,
+                Some(
+                    LogLevel::Trace
+                        | LogLevel::Debug
+                        | LogLevel::Info
+                        | LogLevel::Notice
+                        | LogLevel::Warn
+                        | LogLevel::Error
+                        | LogLevel::Fatal
+                )
+            ),
             Self::DebugPlus => matches!(
                 level,
                 Some(
@@ -389,11 +416,16 @@ impl LevelFilterPreset {
                         | LogLevel::Fatal
                 )
             ),
+            Self::NoticePlus => matches!(
+                level,
+                Some(LogLevel::Notice | LogLevel::Warn | LogLevel::Error | LogLevel::Fatal)
+            ),
             Self::WarnPlus => matches!(
                 level,
                 Some(LogLevel::Warn | LogLevel::Error | LogLevel::Fatal)
             ),
             Self::ErrorPlus => matches!(level, Some(LogLevel::Error | LogLevel::Fatal)),
+            Self::FatalOnly => matches!(level, Some(LogLevel::Fatal)),
         }
     }
 }
@@ -1031,10 +1063,13 @@ impl App {
         if let Some(ref level_str) = preset.level_filter {
             match level_str.as_str() {
                 "ALL" => self.level_filter = None,
+                "TRACE+" => self.level_filter = Some(LevelFilterPreset::TracePlus),
                 "DEBUG+" => self.level_filter = Some(LevelFilterPreset::DebugPlus),
                 "INFO+" => self.level_filter = Some(LevelFilterPreset::InfoPlus),
+                "NOTICE+" => self.level_filter = Some(LevelFilterPreset::NoticePlus),
                 "WARN+" => self.level_filter = Some(LevelFilterPreset::WarnPlus),
                 "ERROR+" => self.level_filter = Some(LevelFilterPreset::ErrorPlus),
+                "FATAL" => self.level_filter = Some(LevelFilterPreset::FatalOnly),
                 _ => {}
             }
         } else {
