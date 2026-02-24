@@ -306,12 +306,8 @@ pub struct DensityCache {
 
 impl App {
     /// Load log records from file paths.
-    pub fn load_files(paths: &[&str]) -> Result<Self, Box<dyn std::error::Error>> {
-        Self::load_files_with_ssh(paths, 10)
-    }
-
     /// Load log records from file paths and/or SSH URLs.
-    pub fn load_files_with_ssh(
+    pub fn load_files(
         paths: &[&str],
         ssh_connect_timeout: u32,
     ) -> Result<Self, Box<dyn std::error::Error>> {

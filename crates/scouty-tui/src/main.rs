@@ -201,7 +201,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         }
     } else {
-        match App::load_files_with_ssh(&files, cfg.ssh.connect_timeout) {
+        match App::load_files(&files, cfg.ssh.connect_timeout) {
             Ok(app) => app,
             Err(e) => {
                 let _ = disable_raw_mode();

@@ -5,7 +5,6 @@
 mod ssh_tests;
 
 use crate::traits::{LoaderInfo, LoaderType, LogLoader, Result, ScoutyError};
-use std::io::{BufRead, BufReader};
 use std::process::{Command, Stdio};
 
 /// Parsed SSH URL components.
@@ -216,10 +215,7 @@ impl LogLoader for SshLoader {
                     stderr.trim()
                 )
             };
-            return Err(ScoutyError::Io(std::io::Error::new(
-                std::io::ErrorKind::Other,
-                msg,
-            )));
+            return Err(ScoutyError::Io(std::io::Error::other(msg)));
         }
 
         let content = String::from_utf8(output.stdout).map_err(|e| {
