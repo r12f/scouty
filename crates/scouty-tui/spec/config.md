@@ -88,7 +88,7 @@ keybindings:
   # Copy & Export (saving via "s" dialog)
   copy_raw: "y"
   copy_format: "Y"
-  save_export: "s"
+  save: "s"
 
   # Level & Density
   level_filter: "l"
