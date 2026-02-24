@@ -675,14 +675,15 @@ impl App {
     fn density_source_indices(&self) -> Vec<usize> {
         match &self.density_source {
             DensitySource::All => self.filtered_indices.clone(),
-            DensitySource::Level(level) => {
-                let target_level = scouty::record::LogLevel::from_str_loose(level);
-                self.filtered_indices
+            DensitySource::Level(level) => match scouty::record::LogLevel::from_str_loose(level) {
+                Some(ref lvl) => self
+                    .filtered_indices
                     .iter()
                     .copied()
-                    .filter(|&i| self.records[i].level == target_level)
-                    .collect()
-            }
+                    .filter(|&i| self.records[i].level.as_ref() == Some(lvl))
+                    .collect(),
+                None => Vec::new(),
+            },
             DensitySource::Highlight(pattern) => {
                 if let Some(rule) = self.highlight_rules.iter().find(|r| r.pattern == *pattern) {
                     let regex = rule.regex.clone();
@@ -715,8 +716,10 @@ impl App {
     pub fn density_source_options(&self) -> Vec<DensitySource> {
         let mut options = vec![
             DensitySource::All,
+            DensitySource::Level("FATAL".to_string()),
             DensitySource::Level("ERROR".to_string()),
             DensitySource::Level("WARN".to_string()),
+            DensitySource::Level("INFO".to_string()),
         ];
         for rule in &self.highlight_rules {
             options.push(DensitySource::Highlight(rule.pattern.clone()));

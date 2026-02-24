@@ -337,7 +337,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                     app.cycle_density_source();
                                 }
                                 Action::DensitySelector => {
-                                    app.density_selector_cursor = 0;
+                                    app.density_selector_cursor = app
+                                        .density_source_options()
+                                        .iter()
+                                        .position(|s| *s == app.density_source)
+                                        .unwrap_or(0);
                                     app.input_mode = InputMode::DensitySelector;
                                 }
                                 Action::GotoLine => {

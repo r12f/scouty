@@ -134,7 +134,10 @@ impl StatusBarWidget {
                     let full_label = if source_label == "All" {
                         label
                     } else {
-                        format!("{} {}", &label[..label.len() - 1], source_label) + "]"
+                        match label.strip_suffix(']') {
+                            Some(prefix) => format!("{prefix} {source_label}]"),
+                            None => format!("{label} {source_label}"),
+                        }
                     };
                     spans.push(Span::styled(
                         full_label,
