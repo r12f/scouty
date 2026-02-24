@@ -4,7 +4,8 @@
 //! 1. Built-in defaults (compiled in)
 //! 2. `/etc/scouty/config.yaml` (system-wide, if exists)
 //! 3. `~/.scouty/config.yaml` (per-user, if exists)
-//! 4. CLI flags (`--theme`, `--config`, file arguments)
+//! 4. `./scouty.yaml` (local/project-level, if exists)
+//! 5. CLI flags (`--theme`, `--config`, file arguments)
 
 pub mod color;
 pub mod theme;
@@ -129,7 +130,12 @@ fn load_yaml_file(path: &Path) -> Option<serde_yaml::Value> {
     }
 }
 
-/// Load config with layered merge: defaults → /etc/scouty → ~/.scouty → optional CLI path.
+/// Return the local/project config path: `./scouty.yaml` in the current working directory.
+pub fn local_config_path() -> PathBuf {
+    PathBuf::from("./scouty.yaml")
+}
+
+/// Load config with layered merge: defaults → /etc/scouty → ~/.scouty → ./scouty.yaml → optional CLI path.
 /// `cli_config_path` corresponds to `--config <path>`.
 pub fn load_config_layered(cli_config_path: Option<&str>) -> Config {
     // Start with defaults as YAML value
@@ -149,7 +155,13 @@ pub fn load_config_layered(cli_config_path: Option<&str>) -> Config {
         }
     }
 
-    // Layer 4: CLI --config override
+    // Layer 4: local/project config — ./scouty.yaml in current working directory
+    let local_path = local_config_path();
+    if let Some(local_val) = load_yaml_file(&local_path) {
+        merged = deep_merge(merged, local_val);
+    }
+
+    // Layer 5: CLI --config override
     if let Some(cli_path) = cli_config_path {
         let path = Path::new(cli_path);
         if let Some(cli_val) = load_yaml_file(path) {
