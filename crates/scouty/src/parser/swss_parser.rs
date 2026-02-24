@@ -100,6 +100,7 @@ impl SwssParser {
                 raw: raw.to_string(),
                 metadata: None,
                 loader_id: Arc::clone(loader_id),
+                expanded: None,
             });
         }
 
@@ -126,6 +127,7 @@ impl SwssParser {
             raw: raw.to_string(),
             metadata: None,
             loader_id: Arc::clone(loader_id),
+            expanded: None,
         })
     }
 }

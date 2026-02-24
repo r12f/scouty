@@ -30,6 +30,7 @@ mod tests {
             raw: "2025-05-18 INFO orchagent hello world".into(),
             metadata: None,
             loader_id: "test".into(),
+            expanded: None,
         }
     }
 

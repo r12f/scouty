@@ -121,6 +121,30 @@ pub struct LogRecord {
     pub metadata: Option<HashMap<String, String>>,
     /// Which loader produced this record.
     pub loader_id: Arc<str>,
+    /// Parser-provided structured expansion for the detail panel.
+    /// `None` for simple/unstructured logs (zero allocation).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expanded: Option<Vec<ExpandedField>>,
+}
+
+/// A labelled expanded field produced by a parser.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ExpandedField {
+    /// Display label (e.g. "Operation", "Attributes").
+    pub label: String,
+    /// The structured value.
+    pub value: ExpandedValue,
+}
+
+/// Recursive tree value for structured log expansion.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub enum ExpandedValue {
+    /// Plain text leaf.
+    Text(String),
+    /// Ordered key-value pairs (preserves parser ordering).
+    KeyValue(Vec<(String, ExpandedValue)>),
+    /// Ordered list of values.
+    List(Vec<ExpandedValue>),
 }
 
 #[cfg(test)]
