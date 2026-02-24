@@ -274,7 +274,7 @@ impl DetailPanelWidget {
         let left_title = if has_expanded {
             " Expanded "
         } else {
-            " Log Content "
+            " Message "
         };
         let left_border_style = if app.detail_tree_focus && has_expanded {
             theme
@@ -304,11 +304,12 @@ impl DetailPanelWidget {
                 theme,
             );
         } else {
-            // Fallback: show raw log text for plain (non-expanded) records
-            let content = if record.raw.is_empty() {
-                record.message.clone()
-            } else {
+            // Show message field (not raw line — raw duplicates fields already in right pane).
+            // Fall back to raw only if message is empty.
+            let content = if record.message.is_empty() {
                 record.raw.clone()
+            } else {
+                record.message.clone()
             };
             let raw_text = Paragraph::new(content)
                 .block(left_block)
@@ -450,13 +451,13 @@ impl DetailPanelWidget {
             }
         } else {
             lines.push(Line::styled(
-                "Log Content:",
+                "Message:",
                 theme.detail_panel.section_header.to_style(),
             ));
-            let content = if record.raw.is_empty() {
-                &record.message
-            } else {
+            let content = if record.message.is_empty() {
                 &record.raw
+            } else {
+                &record.message
             };
             lines.push(Line::from(content.clone()));
         }
