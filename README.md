@@ -57,6 +57,7 @@ Each source gets its own loader, and a single session can combine multiple loade
 - **Level filter** — `l` opens level selector (1=ALL through 8=FATAL only, covers all 7 levels)
 - **Filter presets** — save/load filter sets in `~/.scouty/filters/` via filter manager
 - **Density chart modes** — `d`/`D` to show density by level or highlight group
+- **Pipe output mode** — `scouty-tui --filter 'level=="Error"' --format json file.log | jq .` for scripting
 - **Pipe input** — `cat log | scouty-tui` with auto follow mode
 - **Copy to clipboard** — Raw, JSON, or YAML format via OSC 52
 - **Component architecture** — Unified `UiComponent` trait with standardized keyboard dispatch

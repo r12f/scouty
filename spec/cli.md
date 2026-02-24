@@ -21,6 +21,76 @@ scouty-tui [OPTIONS] [file1] [file2] ...
 | `--config <path>` | Load additional config file (overrides system and user configs) |
 | `--generate-config` | Generate default config file to stdout |
 | `--generate-theme <name>` | Generate a built-in theme file to stdout |
+| `--filter <expr>` | Apply filter expression (pipe mode, can repeat) |
+| `--level <level>` | Minimum log level filter (pipe mode): trace/debug/info/notice/warn/error/fatal |
+| `--format <fmt>` | Output format (pipe mode): `raw` (default), `json`, `yaml`, `csv` |
+| `--fields <list>` | Comma-separated fields to include in structured output (pipe mode) |
+| `--no-tui` | Force pipe mode even when stdout is a TTY |
+
+### Pipe Output Mode (Non-interactive)
+
+When stdout is not a TTY (piped to another command or file), or when `--no-tui` is specified, scouty runs in **pipe mode**: no TUI, just parse → filter → output to stdout. This exposes scouty's parser and filter engine for scripting and automation.
+
+**Auto-detection:** `!isatty(stdout)` → pipe mode. Use `--no-tui` to force pipe mode even when stdout is a TTY.
+
+> Note: `!isatty(stdin)` controls **input** (read from stdin pipe). `!isatty(stdout)` controls **output** (pipe mode). They are independent — you can pipe in AND out, or just one direction.
+
+**Examples:**
+
+```bash
+# Filter errors from a log file, output as JSON
+scouty-tui --filter 'level == "Error"' /var/log/syslog | jq .
+
+# Chain with grep/awk — scouty parses, downstream processes
+scouty-tui --level warn --format json app.log | jq '.message'
+
+# Multiple filters (AND logic)
+scouty-tui --filter 'component == "orchagent"' --filter 'level == "Error"' swss.log
+
+# Specific fields only
+scouty-tui --format csv --fields timestamp,level,message /var/log/syslog > filtered.csv
+
+# Pipe in from another command
+journalctl -u myservice | scouty-tui --level error --format json
+
+# Force pipe mode to terminal (for quick inspection without TUI)
+scouty-tui --no-tui --level error app.log
+
+# SSH remote + pipe mode
+scouty-tui --format json ssh://prod:/var/log/app.log | jq '.message'
+```
+
+**Output formats:**
+
+| Format | Description |
+|--------|-------------|
+| `raw` | Original log line as-is (default) |
+| `json` | One JSON object per line (NDJSON), all parsed fields |
+| `yaml` | YAML document per record (separated by `---`) |
+| `csv` | CSV with header row, all fields or `--fields` subset |
+
+**`--fields` option** (for `json`, `yaml`, `csv`):
+- Comma-separated list of field names: `timestamp,level,message,component,hostname,...`
+- Special value `all` (default): include all non-empty fields
+- Metadata keys accessible by name (e.g., `--fields timestamp,level,message,request_id`)
+- `raw` format ignores `--fields` (always outputs the original line)
+
+**`--filter` option:**
+- Uses the same filter expression syntax as the TUI `f` key (see filter spec)
+- Multiple `--filter` flags are combined with AND logic
+- Applied after parsing, before output
+
+**`--level` option:**
+- Shorthand for level filtering: `--level warn` is equivalent to `--filter 'level >= "Warn"'`
+- Values: `trace`, `debug`, `info`, `notice`, `warn`, `error`, `fatal` (case-insensitive)
+
+**Behavior:**
+- Records are output as they are parsed (streaming, not buffered to completion)
+- Exit code 0 on success, non-zero on parse/IO error
+- Stderr used for progress/error messages (e.g., `Parsed 10,000 records from 3 files`)
+- Follow mode works in pipe mode: `cat /var/log/syslog | scouty-tui --format json` streams continuously
+- Parser auto-detection works the same as TUI mode
+- Config files (`~/.scouty/config.yaml`, `./scouty.yaml`) are still loaded for parser settings, but TUI-specific settings (theme, keybindings) are ignored
 
 ### Config Generation
 
@@ -112,3 +182,4 @@ When `name` is `list`, prints all available built-in theme names (one per line).
 | 2026-02-22 | Multi-file support, Linux default syslog, stdin pipe input |
 | 2026-02-23 | Added --theme and --config CLI flags |
 | 2026-02-24 | Added --generate-config and --generate-theme for default config generation |
+| 2026-02-24 | Pipe output mode: --filter, --level, --format, --fields, --no-tui for non-interactive use |
