@@ -2,7 +2,9 @@
 
 ## Overview
 
-Scouty parsers transform raw log lines into `LogRecord` structs. The system supports multiple parser types: a unified hand-written syslog parser (zero-regex), SONiC SWSS parser, sairedis parser, and user-defined regex parsers.
+Scouty parsers transform raw log lines into `LogRecord` structs. The system supports multiple parser types: a unified hand-written syslog parser (zero-regex), SONiC SWSS parser, sairedis parser, JSON log parser, and user-defined regex parsers.
+
+All parsers may optionally populate the `expanded` field on `LogRecord` to provide structured expansion of log content for the detail panel (see log-record spec for `ExpandedField` structure).
 
 
 ## Design
@@ -55,6 +57,8 @@ Parses `|`-delimited SWSS logs: `YYYY-MM-DD.HH:MM:SS.ffffff|<content...>`
 | OP (SET/DEL) | `function` |
 | KV pairs | `message` |
 
+**Structured expansion:** Populates `expanded` with Operation, Table, Key, and Attributes (KV pairs as ordered key-value tree).
+
 **Parsing logic:** Split by `|`, locate SET/DEL position, determine TABLE:Key vs TABLE|SubKey format. Key may contain `:` (e.g., IPv6), so only split at first `:`.
 
 ### SONiC Sairedis Log Parser
@@ -68,6 +72,37 @@ Parses SAI Redis operation logs: `YYYY-MM-DD.HH:MM:SS.ffffff|<op>|<detail...>`
 - Bulk operations stored as single record (not split into multiple)
 - Auto-detection: second `|`-segment is single char op code (vs SWSS multi-char TABLE_NAME)
 - Unknown op codes gracefully fall back (op as function, detail as message)
+
+**Structured expansion:** Populates `expanded` with Operation (human-readable name), Object Type, OID, and Attributes. For stateful `G`/`Q` responses, expansion includes the correlated request context.
+
+### JSON Log Parser
+
+Parses log lines that are complete JSON objects (one object per line, i.e., NDJSON/JSON Lines).
+
+**Auto-detection:** Line starts with `{` and is valid JSON.
+
+**Field mapping (well-known keys):**
+
+| JSON key (case-insensitive) | LogRecord field |
+|----|-----|
+| `timestamp`, `time`, `ts`, `@timestamp` | `timestamp` |
+| `level`, `severity`, `loglevel` | `level` |
+| `message`, `msg`, `log` | `message` |
+| `hostname`, `host` | `hostname` |
+| `service`, `component`, `logger`, `name` | `component_name` |
+| `pid` | `pid` |
+| `tid`, `thread` | `tid` |
+
+All other keys go to `metadata`.
+
+**Structured expansion:** Populates `expanded` with a "Payload" `KeyValue` tree, recursively expanding nested objects and arrays. Well-known fields already mapped to LogRecord top-level fields are excluded from expansion to avoid duplication. Nested objects become nested `KeyValue`, arrays become `List`.
+
+**Key decisions:**
+- Well-known field names are case-insensitive for broad compatibility
+- Numeric/boolean JSON values converted to string for `metadata`
+- Nested JSON preserved in structured expansion (not flattened)
+- Very deep nesting (>10 levels): truncated with `...` marker
+- Invalid JSON lines: fall through to next parser in the group
 
 ### Regex Parser Optimization
 
@@ -84,6 +119,7 @@ Parses SAI Redis operation logs: `YYYY-MM-DD.HH:MM:SS.ffffff|<op>|<detail...>`
 | UnifiedSyslogParser (all 3 formats) | ≥ 10M rec/sec | Zero-regex, byte-level |
 | SWSS Parser | ≥ 1M rec/sec | Hand-written |
 | Sairedis Parser | ≥ 1M rec/sec | Hand-written |
+| JSON Parser | ≥ 500K rec/sec | `serde_json` + field mapping |
 | Regex Parser (syslog) | ≥ 1M rec/sec | Optimized regex |
 
 ## Change Log
@@ -95,3 +131,5 @@ Parses SAI Redis operation logs: `YYYY-MM-DD.HH:MM:SS.ffffff|<op>|<detail...>`
 | 2026-02-21 | UnifiedSyslogParser consolidating 4 parsers |
 | 2026-02-21 | SONiC SWSS log parser with context/function fields |
 | 2026-02-22 | SONiC sairedis log parser with stateful G/Q context |
+| 2026-02-24 | JSON log parser with well-known field mapping |
+| 2026-02-24 | Structured expansion (expanded field) for SWSS, sairedis, and JSON parsers |
