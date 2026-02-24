@@ -165,7 +165,9 @@ mod tests {
         assert_eq!(StatusBarWidget::snap_to_standard(8_000.0), 15_000.0);
         assert_eq!(StatusBarWidget::snap_to_standard(20_000.0), 30_000.0);
         // Minutes
-        assert_eq!(StatusBarWidget::snap_to_standard(40_000.0), 300_000.0); // 40s → 5m
+        assert_eq!(StatusBarWidget::snap_to_standard(40_000.0), 60_000.0); // 40s → 1m
+        assert_eq!(StatusBarWidget::snap_to_standard(60_000.0), 60_000.0); // 1m exact
+        assert_eq!(StatusBarWidget::snap_to_standard(120_000.0), 300_000.0); // 2m → 5m
         assert_eq!(StatusBarWidget::snap_to_standard(480_000.0), 900_000.0); // 8m → 15m
         assert_eq!(StatusBarWidget::snap_to_standard(2_700_000.0), 3_600_000.0); // 45m → 1h
                                                                                  // Hours
