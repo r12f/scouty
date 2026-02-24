@@ -60,6 +60,7 @@ The help dialog shows keybindings organized by **context** (where they are activ
 | `c` | Column selector |
 | `d` / `D` | Cycle / select density chart source |
 | `h` / `H` | Add highlight / highlight manager |
+| `r` / `R` | Region manager / jump to next region start |
 | `S` | Stats summary |
 
 #### Log Table View — Bookmarks
