@@ -51,6 +51,10 @@ pub enum Action {
     PrevBookmark,
     BookmarkManager,
 
+    // Regions
+    RegionManager,
+    NextRegion,
+
     // Copy & Export
     CopyRaw,
     CopyFormat,
@@ -167,6 +171,8 @@ pub struct KeybindingConfig {
     pub next_bookmark: Option<KeyOrKeys>,
     pub prev_bookmark: Option<KeyOrKeys>,
     pub bookmark_manager: Option<KeyOrKeys>,
+    pub region_manager: Option<KeyOrKeys>,
+    pub next_region: Option<KeyOrKeys>,
     pub copy_raw: Option<KeyOrKeys>,
     pub copy_format: Option<KeyOrKeys>,
     pub save: Option<KeyOrKeys>,
@@ -279,6 +285,8 @@ impl KeybindingConfig {
             Action::NextBookmark => self.next_bookmark.as_ref(),
             Action::PrevBookmark => self.prev_bookmark.as_ref(),
             Action::BookmarkManager => self.bookmark_manager.as_ref(),
+            Action::RegionManager => self.region_manager.as_ref(),
+            Action::NextRegion => self.next_region.as_ref(),
             Action::CopyRaw => self.copy_raw.as_ref(),
             Action::CopyFormat => self.copy_format.as_ref(),
             Action::Save => self.save.as_ref(),
@@ -330,6 +338,8 @@ fn default_bindings() -> Vec<(Action, Vec<&'static str>)> {
         (Action::NextBookmark, vec!["'"]),
         (Action::PrevBookmark, vec!["\""]),
         (Action::BookmarkManager, vec!["M"]),
+        (Action::RegionManager, vec!["r"]),
+        (Action::NextRegion, vec!["R"]),
         // Copy
         (Action::CopyRaw, vec!["y"]),
         (Action::CopyFormat, vec!["Y"]),

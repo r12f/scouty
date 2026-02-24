@@ -74,6 +74,8 @@ impl<'a> HelpWindow<'a> {
             Line::from("  '                Jump to next bookmark"),
             Line::from("  \"                Jump to prev bookmark"),
             Line::from("  M                Bookmark manager"),
+            Line::from("  r                Region manager"),
+            Line::from("  R                Jump to next region"),
             Line::from(""),
             section("Highlight"),
             Line::from("  h                Quick highlight word"),

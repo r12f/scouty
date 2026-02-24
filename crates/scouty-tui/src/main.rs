@@ -649,6 +649,22 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                     app.input_mode = InputMode::BookmarkManager;
                                     app.bookmark_manager_cursor = 0;
                                 }
+                                Action::RegionManager => {
+                                    if !app.regions.is_empty() {
+                                        app.input_mode = InputMode::RegionManager;
+                                    }
+                                }
+                                Action::NextRegion => {
+                                    // Jump to the next region start after current position
+                                    if let Some(record_idx) = app.filtered_indices.get(app.selected)
+                                    {
+                                        if let Some(region) =
+                                            app.regions.iter().find(|r| r.start_index > *record_idx)
+                                        {
+                                            app.jump_to_record_index(region.start_index);
+                                        }
+                                    }
+                                }
                                 Action::Stats => {
                                     use ui::windows::stats_window::StatsData;
                                     app.cached_stats = Some(StatsData::compute(&app));
@@ -955,6 +971,30 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 crate::text_input::TextInput::with_text("./scouty-export.log");
                             app.save_format_cursor = 0;
                             app.save_dialog_focus = ui::windows::save_dialog_window::Focus::Path;
+                        }
+                    }
+                    InputMode::RegionManager => {
+                        use ui::windows::region_manager_window::RegionManagerWindow;
+                        let mut window = RegionManagerWindow::from_app(&app);
+                        let result = ui::dispatch_key(&mut window, key);
+                        app.region_manager_cursor = window.cursor;
+                        if result == ui::ComponentResult::Close {
+                            if let Some(action) = window.action {
+                                match action {
+                                    ui::windows::region_manager_window::RegionAction::Jump(idx) => {
+                                        app.jump_to_record_index(idx);
+                                    }
+                                    ui::windows::region_manager_window::RegionAction::Filter(
+                                        _start,
+                                        _end,
+                                    ) => {
+                                        let def_name = &app.regions[window.cursor].definition_name;
+                                        let expr = format!("_region_type == \"{}\"", def_name);
+                                        app.add_filter_expr(&expr);
+                                    }
+                                }
+                            }
+                            app.input_mode = InputMode::Normal;
                         }
                     }
                 }

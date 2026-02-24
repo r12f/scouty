@@ -96,6 +96,8 @@ mod tests {
             preset_list_cursor: 0,
             density_source: DensitySource::All,
             density_selector_cursor: 0,
+            regions: Vec::new(),
+            region_manager_cursor: 0,
         }
     }
 

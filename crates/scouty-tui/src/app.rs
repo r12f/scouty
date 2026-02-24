@@ -40,6 +40,7 @@ pub enum InputMode {
     LoadPreset,
     DensitySelector,
     SaveDialog,
+    RegionManager,
 }
 
 /// Column identifiers for the log table.
@@ -329,6 +330,10 @@ pub struct App {
     pub density_source: DensitySource,
     /// Density selector cursor.
     pub density_selector_cursor: usize,
+    /// Detected regions from region processor.
+    pub regions: Vec<scouty::region::Region>,
+    /// Region manager cursor position.
+    pub region_manager_cursor: usize,
 }
 
 /// Level filter presets.
@@ -587,6 +592,8 @@ impl App {
             preset_list_cursor: 0,
             density_source: DensitySource::All,
             density_selector_cursor: 0,
+            regions: Vec::new(),
+            region_manager_cursor: 0,
         })
     }
 
@@ -1729,6 +1736,21 @@ impl App {
         }
     }
 
+    /// Jump to a record by its original index in the records array.
+    /// Finds the corresponding filtered index and selects it.
+    pub fn jump_to_record_index(&mut self, record_idx: usize) {
+        if let Some(filtered_idx) = self.filtered_indices.iter().position(|&i| i == record_idx) {
+            self.selected = filtered_idx;
+            self.ensure_selected_visible();
+        }
+    }
+
+    /// Add a filter expression string.
+    pub fn add_filter_expr(&mut self, expr: &str) {
+        self.filter_input = crate::text_input::TextInput::with_text(expr);
+        self.apply_filter();
+    }
+
     pub fn visible_records(&self) -> Vec<&LogRecord> {
         let end = (self.scroll_offset + self.visible_rows).min(self.total());
         self.filtered_indices[self.scroll_offset..end]
@@ -1975,6 +1997,8 @@ mod tests {
             preset_list_cursor: 0,
             density_source: DensitySource::All,
             density_selector_cursor: 0,
+            regions: Vec::new(),
+            region_manager_cursor: 0,
         }
     }
 
@@ -2041,6 +2065,8 @@ mod tests {
             preset_list_cursor: 0,
             density_source: DensitySource::All,
             density_selector_cursor: 0,
+            regions: Vec::new(),
+            region_manager_cursor: 0,
         }
     }
 
@@ -2104,6 +2130,8 @@ mod tests {
             preset_list_cursor: 0,
             density_source: DensitySource::All,
             density_selector_cursor: 0,
+            regions: Vec::new(),
+            region_manager_cursor: 0,
         }
     }
 
@@ -2622,6 +2650,8 @@ mod field_filter_v2_tests {
             preset_list_cursor: 0,
             density_source: DensitySource::All,
             density_selector_cursor: 0,
+            regions: Vec::new(),
+            region_manager_cursor: 0,
         }
     }
 
@@ -2811,6 +2841,8 @@ mod column_follow_tests {
             preset_list_cursor: 0,
             density_source: DensitySource::All,
             density_selector_cursor: 0,
+            regions: Vec::new(),
+            region_manager_cursor: 0,
         }
     }
 
@@ -3014,6 +3046,8 @@ mod copy_tests {
             preset_list_cursor: 0,
             density_source: DensitySource::All,
             density_selector_cursor: 0,
+            regions: Vec::new(),
+            region_manager_cursor: 0,
         }
     }
 
@@ -3188,6 +3222,8 @@ mod time_jump_tests {
             preset_list_cursor: 0,
             density_source: DensitySource::All,
             density_selector_cursor: 0,
+            regions: Vec::new(),
+            region_manager_cursor: 0,
         }
     }
 
@@ -3325,6 +3361,8 @@ mod command_tests {
             preset_list_cursor: 0,
             density_source: DensitySource::All,
             density_selector_cursor: 0,
+            regions: Vec::new(),
+            region_manager_cursor: 0,
         }
     }
     #[test]
