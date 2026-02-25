@@ -49,67 +49,77 @@ impl RegionProcessor {
     /// Process a batch of records from the store.
     /// Records are processed in order; call repeatedly for incremental processing.
     /// Returns the records that were tagged with region metadata (indices).
-    pub fn process_records(&mut self, records: &mut [LogRecord]) -> Vec<usize> {
-        let mut tagged_indices = Vec::new();
-
-        for i in 0..records.len() {
+    pub fn process_records(&mut self, records: &[LogRecord]) {
+        for (i, record) in records.iter().enumerate() {
             let absolute_index = self.next_index + i;
 
             for def_idx in 0..self.definitions.len() {
                 // Check END points first
                 if let Some((end_meta, end_reason)) =
-                    try_match_points(&self.definitions[def_idx].end_points, &records[i])
+                    try_match_points(&self.definitions[def_idx].end_points, record)
                 {
                     // Try correlation with pending starts
-                    if let Some(region) = self.try_correlate(
-                        def_idx,
-                        absolute_index,
-                        end_meta,
-                        end_reason,
-                        &records[i],
-                    ) {
-                        // Tag records between start and end
-                        let start_local = region.start_index.saturating_sub(self.next_index);
-                        let end_local = i;
-                        for j in start_local..=end_local.min(records.len() - 1) {
-                            let abs_j = self.next_index + j;
-                            if abs_j >= region.start_index && abs_j <= region.end_index {
-                                let pos =
-                                    if abs_j == region.start_index && abs_j == region.end_index {
-                                        "start+end"
-                                    } else if abs_j == region.start_index {
-                                        "start"
-                                    } else if abs_j == region.end_index {
-                                        "end"
-                                    } else {
-                                        "middle"
-                                    };
-                                tag_record(
-                                    &mut records[j],
-                                    &region.definition_name,
-                                    &region.name,
-                                    pos,
-                                );
-                                tagged_indices.push(abs_j);
-                            }
-                        }
+                    if let Some(region) =
+                        self.try_correlate(def_idx, absolute_index, end_meta, end_reason, record)
+                    {
                         self.regions.push(region);
                     }
                 }
 
                 // Check START points
                 if let Some((start_meta, start_reason)) =
-                    try_match_points(&self.definitions[def_idx].start_points, &records[i])
+                    try_match_points(&self.definitions[def_idx].start_points, record)
                 {
-                    // Purge timed-out pending starts
+                    // Create timed-out regions for expired pending starts
                     if let Some(timeout) = self.definitions[def_idx].timeout {
                         let ts = records[i].timestamp;
-                        self.pending[def_idx].retain(|p| {
-                            let elapsed = ts.signed_duration_since(p.timestamp);
-                            elapsed
-                                < chrono::Duration::from_std(timeout)
-                                    .unwrap_or(chrono::Duration::MAX)
-                        });
+                        let timeout_chrono =
+                            chrono::Duration::from_std(timeout).unwrap_or(chrono::Duration::MAX);
+                        let (expired, remaining): (Vec<_>, Vec<_>) = self.pending[def_idx]
+                            .drain(..)
+                            .partition(|p| ts.signed_duration_since(p.timestamp) >= timeout_chrono);
+                        self.pending[def_idx] = remaining;
+
+                        // Create timed-out regions for expired starts
+                        let def = &self.definitions[def_idx];
+                        for pending in expired {
+                            let timeout_reason = def
+                                .timeout_reason
+                                .as_ref()
+                                .map(|t| super::config::render_template(t, &pending.metadata));
+
+                            let mut metadata = pending.metadata.clone();
+                            if let Some(tr) = &timeout_reason {
+                                metadata.insert("end_reason".to_string(), tr.clone());
+                            }
+                            if let Some(sr) = &pending.reason {
+                                let rendered =
+                                    super::config::render_template(sr, &pending.metadata);
+                                metadata.insert("start_reason".to_string(), rendered.clone());
+                            }
+
+                            let name =
+                                super::config::render_template(&def.name_template, &metadata);
+                            let description = def
+                                .description_template
+                                .as_ref()
+                                .map(|t| super::config::render_template(t, &metadata));
+
+                            self.regions.push(Region {
+                                definition_name: def.name.clone(),
+                                name,
+                                description,
+                                start_reason: pending
+                                    .reason
+                                    .as_ref()
+                                    .map(|r| super::config::render_template(r, &pending.metadata)),
+                                end_reason: timeout_reason,
+                                start_index: pending.record_index,
+                                end_index: pending.record_index, // timed-out: end = start
+                                metadata,
+                                timed_out: true,
+                            });
+                        }
                     }
 
                     self.pending[def_idx].push(PendingStart {
@@ -123,7 +133,6 @@ impl RegionProcessor {
         }
 
         self.next_index += records.len();
-        tagged_indices
     }
 
     /// Try to correlate an end match with a pending start.
@@ -211,6 +220,7 @@ impl RegionProcessor {
             start_index: pending.record_index,
             end_index,
             metadata,
+            timed_out: false,
         })
     }
 
@@ -257,10 +267,4 @@ fn try_match_points(
     None
 }
 
-/// Tag a record with region metadata.
-fn tag_record(record: &mut LogRecord, def_name: &str, region_name: &str, pos: &str) {
-    let meta = record.metadata.get_or_insert_with(HashMap::new);
-    meta.insert("_region".to_string(), region_name.to_string());
-    meta.insert("_region_type".to_string(), def_name.to_string());
-    meta.insert("_region_pos".to_string(), pos.to_string());
-}
+// tag_record removed: region metadata now lives in RegionStore, not on LogRecord.

@@ -94,7 +94,7 @@ mod tests {
             preset_list_cursor: 0,
             density_source: crate::app::DensitySource::All,
             density_selector_cursor: 0,
-            regions: Vec::new(),
+            regions: scouty::region::store::RegionStore::default(),
             region_manager_cursor: 0,
         }
     }
@@ -197,7 +197,7 @@ mod tests {
             preset_list_cursor: 0,
             density_source: crate::app::DensitySource::All,
             density_selector_cursor: 0,
-            regions: Vec::new(),
+            regions: scouty::region::store::RegionStore::default(),
             region_manager_cursor: 0,
         };
         let stats = StatsData::compute(&app);

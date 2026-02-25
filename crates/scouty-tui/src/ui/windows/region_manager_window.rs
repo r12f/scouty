@@ -45,6 +45,7 @@ impl RegionManagerWindow {
     pub fn from_app(app: &App) -> Self {
         let entries: Vec<RegionEntry> = app
             .regions
+            .regions()
             .iter()
             .map(|region| {
                 let start_ts = app

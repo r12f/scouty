@@ -12,7 +12,7 @@ use ratatui::style::{Color, Modifier, Style};
 use ratatui::widgets::{Cell, Row, Table};
 use ratatui::Frame;
 use scouty::record::LogLevel;
-use scouty::region::Region;
+use scouty::region::store::RegionStore;
 
 /// Region gutter marker colors (matching RegionManagerWindow palette).
 const REGION_COLORS: &[Color] = &[
@@ -25,22 +25,28 @@ const REGION_COLORS: &[Color] = &[
 ];
 
 /// Build a gutter cell showing region markers for a record.
-fn region_gutter_marker(record_idx: usize, regions: &[Region]) -> Cell<'static> {
-    // Find which region(s) this record belongs to
-    for (i, region) in regions.iter().enumerate() {
-        if record_idx >= region.start_index && record_idx <= region.end_index {
-            let color = REGION_COLORS[i % REGION_COLORS.len()];
-            let marker = if record_idx == region.start_index {
-                "▶ "
-            } else if record_idx == region.end_index {
-                "◀ "
-            } else {
-                "│ "
-            };
-            return Cell::from(marker.to_string()).style(Style::default().fg(color));
-        }
+/// When overlapping, shows the innermost (shortest) region marker.
+fn region_gutter_marker(record_idx: usize, store: &RegionStore) -> Cell<'static> {
+    if let Some(region) = store.innermost_at(record_idx) {
+        // Determine color by definition name hash for consistency
+        let color_idx = region
+            .definition_name
+            .bytes()
+            .fold(0usize, |acc, b| acc.wrapping_add(b as usize));
+        let color = REGION_COLORS[color_idx % REGION_COLORS.len()];
+        let marker = if region.timed_out {
+            "░ "
+        } else if record_idx == region.start_index {
+            "▶ "
+        } else if record_idx == region.end_index {
+            "◀ "
+        } else {
+            "│ "
+        };
+        Cell::from(marker.to_string()).style(Style::default().fg(color))
+    } else {
+        Cell::from("  ".to_string())
     }
-    Cell::from("  ".to_string())
 }
 
 pub fn level_style(level: Option<LogLevel>, theme: &Theme) -> Style {

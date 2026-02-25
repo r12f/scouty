@@ -658,8 +658,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                     // Jump to the next region start after current position
                                     if let Some(record_idx) = app.filtered_indices.get(app.selected)
                                     {
-                                        if let Some(region) =
-                                            app.regions.iter().find(|r| r.start_index > *record_idx)
+                                        if let Some(region) = app
+                                            .regions
+                                            .regions()
+                                            .iter()
+                                            .find(|r| r.start_index > *record_idx)
                                         {
                                             app.jump_to_record_index(region.start_index);
                                         }
@@ -988,7 +991,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                         _start,
                                         _end,
                                     ) => {
-                                        let def_name = &app.regions[window.cursor].definition_name;
+                                        let def_name =
+                                            &app.regions.regions()[window.cursor].definition_name;
                                         let expr = format!("_region_type == \"{}\"", def_name);
                                         app.add_filter_expr(&expr);
                                     }
