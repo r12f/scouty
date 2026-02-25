@@ -66,6 +66,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut config_override: Option<String> = None;
     let mut file_args: Vec<String> = Vec::new();
     let mut no_tui = false;
+    let mut regions_path: Option<String> = None;
     let mut pipe_filters: Vec<String> = Vec::new();
     let mut pipe_level: Option<String> = None;
     let mut pipe_format: Option<String> = None;
@@ -110,6 +111,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     "  --theme <name>    Override theme (default, dark, light, solarized, or custom)"
                 );
                 eprintln!("  --config <path>   Load additional config file (overrides file-based configs)");
+                eprintln!("  --regions <path>  Load region definitions (file or directory)");
                 eprintln!("  --generate-config          Generate default config to stdout");
                 eprintln!(
                     "  --generate-theme <name>    Generate built-in theme to stdout (or 'list')"
@@ -182,6 +184,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
             "--no-tui" => {
                 no_tui = true;
+                i += 1;
+            }
+            "--regions" => {
+                if i + 1 < args.len() {
+                    regions_path = Some(args[i + 1].clone());
+                    i += 2;
+                } else {
+                    eprintln!("Error: --regions requires a path");
+                    std::process::exit(1);
+                }
+            }
+            arg if arg.starts_with("--regions=") => {
+                regions_path = Some(arg.trim_start_matches("--regions=").to_string());
                 i += 1;
             }
             "--filter" => {
@@ -404,6 +419,35 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         }
     };
+
+    // Load and process region definitions
+    {
+        let region_defs = if let Some(ref path) = regions_path {
+            let p = std::path::Path::new(path);
+            if p.is_dir() {
+                scouty::region::config::load_from_dir(p).unwrap_or_else(|e| {
+                    eprintln!("Warning: failed to load regions from {}: {}", path, e);
+                    Vec::new()
+                })
+            } else {
+                scouty::region::config::load_from_file(p).unwrap_or_else(|e| {
+                    eprintln!("Warning: failed to load regions from {}: {}", path, e);
+                    Vec::new()
+                })
+            }
+        } else {
+            scouty::region::config::load_all()
+        };
+
+        if !region_defs.is_empty() {
+            let mut processor = scouty::region::processor::RegionProcessor::new(region_defs);
+            let records_vec: Vec<scouty::record::LogRecord> =
+                app.records.iter().map(|r| (**r).clone()).collect();
+            processor.process_records(&records_vec);
+            app.regions =
+                scouty::region::store::RegionStore::from_regions(processor.regions().to_vec());
+        }
+    }
 
     // Apply config settings
     {
@@ -650,9 +694,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                     app.bookmark_manager_cursor = 0;
                                 }
                                 Action::RegionManager => {
-                                    if !app.regions.is_empty() {
-                                        app.input_mode = InputMode::RegionManager;
-                                    }
+                                    app.input_mode = InputMode::RegionManager;
                                 }
                                 Action::NextRegion => {
                                     // Jump to the next region start after current position
