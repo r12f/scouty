@@ -6,6 +6,7 @@ mod region_tests;
 
 pub mod config;
 pub mod processor;
+pub mod store;
 
 use std::collections::HashMap;
 
@@ -28,4 +29,6 @@ pub struct Region {
     pub end_index: usize,
     /// Merged metadata from start + end.
     pub metadata: HashMap<String, String>,
+    /// Whether this region was created due to timeout.
+    pub timed_out: bool,
 }

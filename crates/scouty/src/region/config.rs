@@ -26,6 +26,8 @@ pub struct RegionDefinition {
     pub description_template: Option<String>,
     /// Max duration between start and end (None = unlimited).
     pub timeout: Option<Duration>,
+    /// Template for timeout end reason.
+    pub timeout_reason: Option<String>,
 }
 
 /// A compiled match point (filter + optional regex).
@@ -59,6 +61,8 @@ pub struct RawRegionDef {
     pub template: RawTemplate,
     #[serde(default)]
     pub timeout: Option<String>,
+    #[serde(default)]
+    pub timeout_reason: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -151,6 +155,7 @@ fn compile_definition(raw: &RawRegionDef) -> Result<RegionDefinition, String> {
         name_template: raw.template.name.clone(),
         description_template: raw.template.description.clone(),
         timeout,
+        timeout_reason: raw.timeout_reason.clone(),
     })
 }
 

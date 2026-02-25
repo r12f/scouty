@@ -331,7 +331,7 @@ pub struct App {
     /// Density selector cursor.
     pub density_selector_cursor: usize,
     /// Detected regions from region processor.
-    pub regions: Vec<scouty::region::Region>,
+    pub regions: scouty::region::store::RegionStore,
     /// Region manager cursor position.
     pub region_manager_cursor: usize,
 }
@@ -592,7 +592,7 @@ impl App {
             preset_list_cursor: 0,
             density_source: DensitySource::All,
             density_selector_cursor: 0,
-            regions: Vec::new(),
+            regions: scouty::region::store::RegionStore::default(),
             region_manager_cursor: 0,
         })
     }
@@ -1997,7 +1997,7 @@ mod tests {
             preset_list_cursor: 0,
             density_source: DensitySource::All,
             density_selector_cursor: 0,
-            regions: Vec::new(),
+            regions: scouty::region::store::RegionStore::default(),
             region_manager_cursor: 0,
         }
     }
@@ -2065,7 +2065,7 @@ mod tests {
             preset_list_cursor: 0,
             density_source: DensitySource::All,
             density_selector_cursor: 0,
-            regions: Vec::new(),
+            regions: scouty::region::store::RegionStore::default(),
             region_manager_cursor: 0,
         }
     }
@@ -2130,7 +2130,7 @@ mod tests {
             preset_list_cursor: 0,
             density_source: DensitySource::All,
             density_selector_cursor: 0,
-            regions: Vec::new(),
+            regions: scouty::region::store::RegionStore::default(),
             region_manager_cursor: 0,
         }
     }
@@ -2650,7 +2650,7 @@ mod field_filter_v2_tests {
             preset_list_cursor: 0,
             density_source: DensitySource::All,
             density_selector_cursor: 0,
-            regions: Vec::new(),
+            regions: scouty::region::store::RegionStore::default(),
             region_manager_cursor: 0,
         }
     }
@@ -2841,7 +2841,7 @@ mod column_follow_tests {
             preset_list_cursor: 0,
             density_source: DensitySource::All,
             density_selector_cursor: 0,
-            regions: Vec::new(),
+            regions: scouty::region::store::RegionStore::default(),
             region_manager_cursor: 0,
         }
     }
@@ -3046,7 +3046,7 @@ mod copy_tests {
             preset_list_cursor: 0,
             density_source: DensitySource::All,
             density_selector_cursor: 0,
-            regions: Vec::new(),
+            regions: scouty::region::store::RegionStore::default(),
             region_manager_cursor: 0,
         }
     }
@@ -3222,7 +3222,7 @@ mod time_jump_tests {
             preset_list_cursor: 0,
             density_source: DensitySource::All,
             density_selector_cursor: 0,
-            regions: Vec::new(),
+            regions: scouty::region::store::RegionStore::default(),
             region_manager_cursor: 0,
         }
     }
@@ -3361,7 +3361,7 @@ mod command_tests {
             preset_list_cursor: 0,
             density_source: DensitySource::All,
             density_selector_cursor: 0,
-            regions: Vec::new(),
+            regions: scouty::region::store::RegionStore::default(),
             region_manager_cursor: 0,
         }
     }
