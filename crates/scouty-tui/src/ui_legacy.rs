@@ -9,51 +9,115 @@ pub fn render(frame: &mut Frame, app: &mut App) {
 
     // Footer is always 2 lines: line 1 = density/position, line 2 = mode/shortcuts or input
     let footer_height = 2;
+    // Tab bar is always 1 line
+    let tab_bar_height = 1;
 
-    let main_chunks = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([Constraint::Min(1), Constraint::Length(footer_height)])
-        .split(area);
+    let panel_expanded = app.panel_state.expanded;
+    let panel_maximized = app.panel_state.maximized;
 
-    // Body: log table + optional detail panel
-    let table_area;
-    if app.detail_open {
-        let detail_height = if let Some(record) = app.selected_record() {
-            use crate::ui::widgets::detail_panel_widget::field_count;
-            let fc = field_count(record);
-            // For split layout, ensure enough height for left-side content
-            // (raw text or expanded tree). Minimum 8 rows for usable detail.
-            let left_min = if record.expanded.is_some() || !record.raw.is_empty() {
-                8
-            } else {
-                4
-            };
-            // +1 for top border
-            let raw_height = (fc.min(u16::MAX as usize) as u16)
-                .saturating_add(1)
-                .max(left_min);
-            // Cap detail panel height using the configurable ratio
-            let max_detail = (main_chunks[0].height as f64 * app.detail_panel_ratio) as u16;
-            raw_height.min(max_detail).max(left_min)
-        } else {
-            4 // "No record selected" + border
-        };
-        let body_chunks = Layout::default()
-            .direction(Direction::Vertical)
-            .constraints([Constraint::Min(3), Constraint::Length(detail_height)])
-            .split(main_chunks[0]);
-        table_area = body_chunks[0];
-        render_log_table(frame, app, body_chunks[0]);
-        render_detail_panel(frame, app, body_chunks[1]);
+    // Calculate panel content height
+    let panel_content_height = if panel_expanded {
+        use crate::panel::PanelHeight;
+        let body_height = area.height.saturating_sub(footer_height + tab_bar_height);
+        match app.panel_state.active.default_height() {
+            PanelHeight::FitContent => {
+                // Detail panel: fit content
+                if let Some(record) = app.selected_record() {
+                    use crate::ui::widgets::detail_panel_widget::field_count;
+                    let fc = field_count(record);
+                    let left_min: u16 = if record.expanded.is_some() || !record.raw.is_empty() {
+                        8
+                    } else {
+                        4
+                    };
+                    let raw_height = (fc.min(u16::MAX as usize) as u16)
+                        .saturating_add(1)
+                        .max(left_min);
+                    let max_detail = (body_height as f64 * app.detail_panel_ratio) as u16;
+                    if panel_maximized {
+                        body_height
+                    } else {
+                        raw_height.min(max_detail).max(left_min)
+                    }
+                } else if panel_maximized {
+                    body_height
+                } else {
+                    4
+                }
+            }
+            PanelHeight::Percentage(pct) => {
+                if panel_maximized {
+                    body_height
+                } else {
+                    (body_height as u32 * pct as u32 / 100) as u16
+                }
+            }
+        }
     } else {
-        table_area = main_chunks[0];
-        render_log_table(frame, app, main_chunks[0]);
+        0
+    };
+
+    // Layout: [log table] [tab bar] [panel content?] [footer]
+    let main_chunks = if panel_content_height > 0 {
+        Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([
+                Constraint::Min(if panel_maximized { 0 } else { 3 }),
+                Constraint::Length(tab_bar_height),
+                Constraint::Length(panel_content_height),
+                Constraint::Length(footer_height),
+            ])
+            .split(area)
+    } else {
+        Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([
+                Constraint::Min(3),
+                Constraint::Length(tab_bar_height),
+                Constraint::Length(0),
+                Constraint::Length(footer_height),
+            ])
+            .split(area)
+    };
+
+    let table_area = main_chunks[0];
+    let tab_bar_area = main_chunks[1];
+    let panel_area = main_chunks[2];
+    let footer_area = main_chunks[3];
+
+    // Render log table (skip if maximized)
+    if !panel_maximized {
+        render_log_table(frame, app, table_area);
     }
 
-    // Compute visible_rows once from the actual table area (height - 1 for header row)
-    app.visible_rows = table_area.height.saturating_sub(1).max(1) as usize;
+    // Compute visible_rows
+    app.visible_rows = if panel_maximized {
+        0
+    } else {
+        table_area.height.saturating_sub(1).max(1) as usize
+    };
 
-    render_footer(frame, app, main_chunks[1]);
+    // Render tab bar
+    render_panel_tab_bar(frame, app, tab_bar_area);
+
+    // Render panel content
+    if panel_content_height > 0 {
+        use crate::panel::PanelId;
+        match app.panel_state.active {
+            PanelId::Detail => {
+                // Sync legacy state
+                app.detail_open = true;
+                render_detail_panel(frame, app, panel_area);
+            }
+            PanelId::Region => {
+                render_region_panel(frame, app, panel_area);
+            }
+        }
+    } else {
+        app.detail_open = false;
+    }
+
+    render_footer(frame, app, footer_area);
 
     // Help overlay
     if app.input_mode == InputMode::Help {
@@ -162,6 +226,57 @@ pub fn render(frame: &mut Frame, app: &mut App) {
         let window = RegionManagerWindow::from_app(app);
         window.render_with_app(frame, area, app);
     }
+}
+
+fn render_panel_tab_bar(frame: &mut Frame, app: &App, area: Rect) {
+    use crate::panel::PanelId;
+
+    let indicator = if app.panel_state.expanded {
+        "▾"
+    } else {
+        "▸"
+    };
+
+    let mut spans: Vec<Span> = vec![Span::raw(format!(" {} ", indicator))];
+
+    for panel_id in PanelId::all() {
+        let is_active = *panel_id == app.panel_state.active;
+        let name = panel_id.name();
+
+        if is_active {
+            spans.push(Span::styled(
+                format!(" {} ", name),
+                Style::default()
+                    .fg(Color::Black)
+                    .bg(Color::White)
+                    .add_modifier(Modifier::BOLD),
+            ));
+        } else {
+            spans.push(Span::styled(
+                format!(" {} ", name),
+                Style::default().fg(Color::DarkGray),
+            ));
+        }
+        spans.push(Span::raw(" │"));
+    }
+
+    let line = Paragraph::new(Line::from(spans)).style(
+        Style::default().bg(app
+            .theme
+            .status_bar
+            .line1_bg
+            .to_style()
+            .bg
+            .unwrap_or(Color::Reset)),
+    );
+    frame.render_widget(line, area);
+}
+
+fn render_region_panel(frame: &mut Frame, app: &App, area: Rect) {
+    // Render region manager content directly in the panel area
+    use crate::ui::windows::region_manager_window::RegionManagerWindow;
+    let window = RegionManagerWindow::from_app(app);
+    window.render_with_app(frame, area, app);
 }
 
 fn render_log_table(frame: &mut Frame, app: &App, area: Rect) {
