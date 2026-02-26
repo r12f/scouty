@@ -104,4 +104,35 @@ mod tests {
         state.open(PanelId::Detail);
         assert!(state.is_content_visible());
     }
+
+    #[test]
+    fn test_maximize_hides_log_table() {
+        // When maximized, panel_state should indicate the log table should be hidden
+        let mut state = PanelState::default();
+        state.open(PanelId::Detail);
+        assert!(state.expanded);
+        assert!(!state.maximized);
+
+        state.toggle_maximize();
+        assert!(state.maximized);
+        assert!(state.expanded);
+        assert!(state.has_focus());
+
+        // Verify restore
+        state.toggle_maximize();
+        assert!(!state.maximized);
+        assert!(state.expanded);
+    }
+
+    #[test]
+    fn test_close_clears_maximize() {
+        let mut state = PanelState::default();
+        state.open(PanelId::Detail);
+        state.toggle_maximize();
+        assert!(state.maximized);
+
+        state.close();
+        assert!(!state.maximized);
+        assert!(!state.expanded);
+    }
 }
