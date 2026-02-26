@@ -3,25 +3,29 @@
 use crate::app::{App, InputMode};
 use ratatui::{prelude::*, widgets::Paragraph};
 
-/// Render the full UI.
-pub fn render(frame: &mut Frame, app: &mut App) {
-    let area = frame.area();
+/// Layout heights for the main UI areas.
+#[derive(Debug, Clone, PartialEq)]
+pub struct LayoutHeights {
+    pub log_table: u16,
+    pub tab_bar: u16,
+    pub panel_content: u16,
+    pub footer: u16,
+}
 
-    // Footer is always 2 lines: line 1 = density/position, line 2 = mode/shortcuts or input
-    let footer_height = 2;
-    // Tab bar is always 1 line
-    let tab_bar_height = 1;
+/// Compute the panel content height for the current state.
+/// Extracted for testability.
+pub fn compute_panel_content_height(app: &App, area_height: u16) -> LayoutHeights {
+    let footer_height: u16 = 2;
+    let tab_bar_height: u16 = 1;
 
     let panel_expanded = app.panel_state.expanded;
     let panel_maximized = app.panel_state.maximized;
 
-    // Calculate panel content height
     let panel_content_height = if panel_expanded {
         use crate::panel::PanelHeight;
-        let body_height = area.height.saturating_sub(footer_height + tab_bar_height);
+        let body_height = area_height.saturating_sub(footer_height + tab_bar_height);
         match app.panel_state.active.default_height() {
             PanelHeight::FitContent => {
-                // Detail panel: fit content
                 if let Some(record) = app.selected_record() {
                     use crate::ui::widgets::detail_panel_widget::field_count;
                     let fc = field_count(record);
@@ -57,15 +61,37 @@ pub fn render(frame: &mut Frame, app: &mut App) {
         0
     };
 
+    let log_table = if panel_maximized && panel_expanded {
+        0
+    } else {
+        area_height.saturating_sub(footer_height + tab_bar_height + panel_content_height)
+    };
+
+    LayoutHeights {
+        log_table,
+        tab_bar: tab_bar_height,
+        panel_content: panel_content_height,
+        footer: footer_height,
+    }
+}
+
+/// Render the full UI.
+pub fn render(frame: &mut Frame, app: &mut App) {
+    let area = frame.area();
+
+    let layout = compute_panel_content_height(app, area.height);
+    let panel_maximized = app.panel_state.maximized;
+    let panel_content_height = layout.panel_content;
+
     // Layout: [log table] [tab bar] [panel content?] [footer]
     let main_chunks = if panel_content_height > 0 {
         Layout::default()
             .direction(Direction::Vertical)
             .constraints([
                 Constraint::Min(if panel_maximized { 0 } else { 3 }),
-                Constraint::Length(tab_bar_height),
+                Constraint::Length(layout.tab_bar),
                 Constraint::Length(panel_content_height),
-                Constraint::Length(footer_height),
+                Constraint::Length(layout.footer),
             ])
             .split(area)
     } else {
@@ -73,9 +99,9 @@ pub fn render(frame: &mut Frame, app: &mut App) {
             .direction(Direction::Vertical)
             .constraints([
                 Constraint::Min(3),
-                Constraint::Length(tab_bar_height),
+                Constraint::Length(layout.tab_bar),
                 Constraint::Length(0),
-                Constraint::Length(footer_height),
+                Constraint::Length(layout.footer),
             ])
             .split(area)
     };
@@ -389,4 +415,135 @@ fn render_input_line2(
 
     let input_line = Paragraph::new(Line::from(spans)).style(theme.input.background.to_style());
     frame.render_widget(input_line, area);
+}
+
+#[cfg(test)]
+mod ui_legacy_tests {
+    use super::*;
+    use crate::app::{ColumnConfig, DensitySource, InputMode};
+    use crate::config::Theme;
+    use crate::panel::PanelId;
+    use crate::text_input::TextInput;
+
+    fn make_test_app() -> App {
+        App {
+            records: vec![],
+            total_records: 0,
+            filtered_indices: vec![],
+            scroll_offset: 0,
+            selected: 0,
+            visible_rows: 10,
+            detail_open: false,
+            detail_panel_ratio: 0.3,
+            detail_tree_cursor: 0,
+            detail_tree_collapsed: std::collections::HashSet::new(),
+            detail_tree_focus: false,
+            panel_state: crate::panel::PanelState::default(),
+            input_mode: InputMode::Normal,
+            filter_input: TextInput::new(),
+            filter_error: None,
+            filters: Vec::new(),
+            quick_filter_input: TextInput::new(),
+            field_filter: None,
+            filter_manager_cursor: 0,
+            search_input: TextInput::new(),
+            search_matches: vec![],
+            search_match_idx: None,
+            time_input: TextInput::new(),
+            goto_input: TextInput::new(),
+            status_message: None,
+            status_message_at: None,
+            col_widths: [19, 5, 11, 3, 3, 9],
+            column_config: ColumnConfig::default(),
+            follow_mode: false,
+            should_quit: false,
+            copy_format_cursor: 0,
+            save_path_input: TextInput::with_text("./scouty-export.log"),
+            save_format_cursor: 0,
+            save_dialog_focus: crate::ui::windows::save_dialog_window::Focus::Path,
+            help_scroll: 0,
+            command_input: TextInput::new(),
+            filter_version: 0,
+            density_cache: None,
+            highlight_rules: Vec::new(),
+            highlight_input: TextInput::new(),
+            highlight_manager_cursor: 0,
+            cached_stats: None,
+            bookmarks: std::collections::HashSet::new(),
+            bookmark_manager_cursor: 0,
+            theme: Theme::default(),
+            level_filter: None,
+            level_filter_cursor: 0,
+            preset_name_input: TextInput::new(),
+            preset_list: Vec::new(),
+            preset_list_cursor: 0,
+            density_source: DensitySource::All,
+            density_selector_cursor: 0,
+            regions: scouty::region::store::RegionStore::default(),
+            region_manager_cursor: 0,
+            region_panel_sort: crate::ui::widgets::region_panel_widget::RegionSortMode::StartTime,
+            region_panel_type_filter: None,
+        }
+    }
+
+    #[test]
+    fn test_layout_collapsed_panel() {
+        let app = make_test_app();
+        assert!(!app.panel_state.expanded);
+        let layout = compute_panel_content_height(&app, 40);
+        assert_eq!(layout.panel_content, 0);
+        assert_eq!(layout.footer, 2);
+        assert_eq!(layout.tab_bar, 1);
+    }
+
+    #[test]
+    fn test_layout_expanded_detail_no_record() {
+        let mut app = make_test_app();
+        app.panel_state.open(PanelId::Detail);
+        let layout = compute_panel_content_height(&app, 40);
+        assert_eq!(layout.panel_content, 4);
+        assert_eq!(layout.log_table, 40 - 2 - 1 - 4);
+    }
+
+    #[test]
+    fn test_layout_maximized_detail_no_record() {
+        let mut app = make_test_app();
+        app.panel_state.open(PanelId::Detail);
+        app.panel_state.toggle_maximize();
+        assert!(app.panel_state.maximized);
+        let layout = compute_panel_content_height(&app, 40);
+        let body_height: u16 = 40 - 2 - 1;
+        assert_eq!(layout.panel_content, body_height);
+        assert_eq!(layout.log_table, 0);
+    }
+
+    #[test]
+    fn test_layout_maximized_region() {
+        let mut app = make_test_app();
+        app.panel_state.open(PanelId::Region);
+        app.panel_state.toggle_maximize();
+        assert!(app.panel_state.maximized);
+        let layout = compute_panel_content_height(&app, 50);
+        let body_height: u16 = 50 - 2 - 1;
+        assert_eq!(layout.panel_content, body_height);
+        assert_eq!(layout.log_table, 0);
+    }
+
+    #[test]
+    fn test_layout_restore_after_maximize() {
+        let mut app = make_test_app();
+        app.panel_state.open(PanelId::Region);
+        let normal_layout = compute_panel_content_height(&app, 50);
+        assert!(normal_layout.panel_content > 0);
+        assert!(normal_layout.log_table > 0);
+
+        app.panel_state.toggle_maximize();
+        let max_layout = compute_panel_content_height(&app, 50);
+        assert_eq!(max_layout.log_table, 0);
+        assert_eq!(max_layout.panel_content, 50 - 3);
+
+        app.panel_state.toggle_maximize();
+        let restored_layout = compute_panel_content_height(&app, 50);
+        assert_eq!(restored_layout, normal_layout);
+    }
 }
