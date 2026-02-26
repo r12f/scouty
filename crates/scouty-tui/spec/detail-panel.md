@@ -2,7 +2,9 @@
 
 ## Overview
 
-The detail panel displays the full content of the currently selected log record in a left-right split layout: log content on the left, structured fields on the right. When the log record has parser-provided structured expansion, the left side renders an interactive tree view.
+The detail panel is part of the [panel system](panel-system.md) and displays the full content of the currently selected log record in a left-right split layout: log content on the left, structured fields on the right. When the log record has parser-provided structured expansion, the left side renders an interactive tree view.
+
+**Panel properties:** Tab name `Detail`, shortcut `Enter`, height `FitContent` (adapts to content, same as current behavior).
 
 
 ## Design
@@ -80,3 +82,4 @@ Level shows `-` when empty. Source always shown even if hidden in table columns.
 | 2026-02-20 | Initial detail panel (single column) |
 | 2026-02-22 | Left-right split layout redesign |
 | 2026-02-24 | Structured expansion tree rendering with interactive navigation and quick filter |
+| 2026-02-26 | Migrated to panel system — collapsible, tab-switchable, FitContent height |
