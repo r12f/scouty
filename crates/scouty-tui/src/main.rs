@@ -517,13 +517,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                         // Detail panel tree navigation (when focused)
                         if app.detail_open && app.detail_tree_focus {
-                            use crossterm::event::KeyCode;
+                            use crossterm::event::{KeyCode, KeyModifiers};
+                            let ctrl = key.modifiers.contains(KeyModifiers::CONTROL);
                             let handled = match key.code {
-                                KeyCode::Char('j') | KeyCode::Down => {
+                                KeyCode::Char('j') | KeyCode::Down if !ctrl => {
                                     app.detail_tree_move_down();
                                     true
                                 }
-                                KeyCode::Char('k') | KeyCode::Up => {
+                                KeyCode::Char('k') | KeyCode::Up if !ctrl => {
                                     app.detail_tree_move_up();
                                     true
                                 }
@@ -577,19 +578,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                             && app.panel_state.active == crate::panel::PanelId::Region
                         {
                             use crate::ui::widgets::region_panel_widget::RegionPanelWidget;
-                            use crossterm::event::KeyCode;
+                            use crossterm::event::{KeyCode, KeyModifiers};
 
                             let entries = RegionPanelWidget::build_entries(&app);
                             let max_cursor = entries.len().saturating_sub(1);
+                            let ctrl = key.modifiers.contains(KeyModifiers::CONTROL);
 
                             let handled = match key.code {
-                                KeyCode::Char('j') | KeyCode::Down => {
+                                KeyCode::Char('j') | KeyCode::Down if !ctrl => {
                                     if app.region_manager_cursor < max_cursor {
                                         app.region_manager_cursor += 1;
                                     }
                                     true
                                 }
-                                KeyCode::Char('k') | KeyCode::Up => {
+                                KeyCode::Char('k') | KeyCode::Up if !ctrl => {
                                     if app.region_manager_cursor > 0 {
                                         app.region_manager_cursor -= 1;
                                     }

@@ -274,7 +274,7 @@ impl DetailPanelWidget {
         let left_title = if has_expanded {
             " Expanded "
         } else {
-            " Message "
+            " Log Content "
         };
         let left_border_style = if app.detail_tree_focus && has_expanded {
             theme
@@ -451,7 +451,7 @@ impl DetailPanelWidget {
             }
         } else {
             lines.push(Line::styled(
-                "Message:",
+                "Log Content:",
                 theme.detail_panel.section_header.to_style(),
             ));
             let content = if record.message.is_empty() {
