@@ -336,6 +336,10 @@ pub struct App {
     pub regions: scouty::region::store::RegionStore,
     /// Region manager cursor position.
     pub region_manager_cursor: usize,
+    /// Region panel sort mode.
+    pub region_panel_sort: crate::ui::widgets::region_panel_widget::RegionSortMode,
+    /// Region panel type filter (None = show all).
+    pub region_panel_type_filter: Option<String>,
 }
 
 /// Level filter presets.
@@ -597,6 +601,8 @@ impl App {
             density_selector_cursor: 0,
             regions: scouty::region::store::RegionStore::default(),
             region_manager_cursor: 0,
+            region_panel_sort: crate::ui::widgets::region_panel_widget::RegionSortMode::StartTime,
+            region_panel_type_filter: None,
         })
     }
 
@@ -2005,6 +2011,8 @@ mod tests {
             density_selector_cursor: 0,
             regions: scouty::region::store::RegionStore::default(),
             region_manager_cursor: 0,
+            region_panel_sort: crate::ui::widgets::region_panel_widget::RegionSortMode::StartTime,
+            region_panel_type_filter: None,
         }
     }
 
@@ -2074,6 +2082,8 @@ mod tests {
             density_selector_cursor: 0,
             regions: scouty::region::store::RegionStore::default(),
             region_manager_cursor: 0,
+            region_panel_sort: crate::ui::widgets::region_panel_widget::RegionSortMode::StartTime,
+            region_panel_type_filter: None,
         }
     }
 
@@ -2140,6 +2150,8 @@ mod tests {
             density_selector_cursor: 0,
             regions: scouty::region::store::RegionStore::default(),
             region_manager_cursor: 0,
+            region_panel_sort: crate::ui::widgets::region_panel_widget::RegionSortMode::StartTime,
+            region_panel_type_filter: None,
         }
     }
 
@@ -2661,6 +2673,8 @@ mod field_filter_v2_tests {
             density_selector_cursor: 0,
             regions: scouty::region::store::RegionStore::default(),
             region_manager_cursor: 0,
+            region_panel_sort: crate::ui::widgets::region_panel_widget::RegionSortMode::StartTime,
+            region_panel_type_filter: None,
         }
     }
 
@@ -2853,6 +2867,8 @@ mod column_follow_tests {
             density_selector_cursor: 0,
             regions: scouty::region::store::RegionStore::default(),
             region_manager_cursor: 0,
+            region_panel_sort: crate::ui::widgets::region_panel_widget::RegionSortMode::StartTime,
+            region_panel_type_filter: None,
         }
     }
 
@@ -3059,6 +3075,8 @@ mod copy_tests {
             density_selector_cursor: 0,
             regions: scouty::region::store::RegionStore::default(),
             region_manager_cursor: 0,
+            region_panel_sort: crate::ui::widgets::region_panel_widget::RegionSortMode::StartTime,
+            region_panel_type_filter: None,
         }
     }
 
@@ -3236,6 +3254,8 @@ mod time_jump_tests {
             density_selector_cursor: 0,
             regions: scouty::region::store::RegionStore::default(),
             region_manager_cursor: 0,
+            region_panel_sort: crate::ui::widgets::region_panel_widget::RegionSortMode::StartTime,
+            region_panel_type_filter: None,
         }
     }
 
@@ -3376,6 +3396,8 @@ mod command_tests {
             density_selector_cursor: 0,
             regions: scouty::region::store::RegionStore::default(),
             region_manager_cursor: 0,
+            region_panel_sort: crate::ui::widgets::region_panel_widget::RegionSortMode::StartTime,
+            region_panel_type_filter: None,
         }
     }
     #[test]

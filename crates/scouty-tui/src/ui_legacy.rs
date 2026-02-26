@@ -273,10 +273,9 @@ fn render_panel_tab_bar(frame: &mut Frame, app: &App, area: Rect) {
 }
 
 fn render_region_panel(frame: &mut Frame, app: &App, area: Rect) {
-    // Render region manager content directly in the panel area
-    use crate::ui::windows::region_manager_window::RegionManagerWindow;
-    let window = RegionManagerWindow::from_app(app);
-    window.render_with_app(frame, area, app);
+    use crate::ui::widgets::region_panel_widget::RegionPanelWidget;
+    let widget = RegionPanelWidget;
+    widget.render_with_app(frame, area, app);
 }
 
 fn render_log_table(frame: &mut Frame, app: &App, area: Rect) {
