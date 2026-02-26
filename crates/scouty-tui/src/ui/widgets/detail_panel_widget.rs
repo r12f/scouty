@@ -474,3 +474,28 @@ impl UiComponent for DetailPanelWidget {
         false
     }
 }
+
+impl crate::panel::Panel for DetailPanelWidget {
+    fn name(&self) -> &str {
+        "Detail"
+    }
+
+    fn shortcut(&self) -> Option<char> {
+        // Enter key opens the Detail panel (handled as KeyCode::Enter in main.rs)
+        Some('\r')
+    }
+
+    fn default_height(&self) -> crate::panel::PanelHeight {
+        crate::panel::PanelHeight::FitContent
+    }
+
+    fn is_available(&self) -> bool {
+        // Detail panel is always available when there are records
+        true
+    }
+
+    fn on_log_cursor_changed(&mut self, _index: usize) {
+        // Detail panel content auto-updates via App::selected_record(),
+        // so no explicit action is needed here.
+    }
+}

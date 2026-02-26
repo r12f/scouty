@@ -6,6 +6,30 @@
 #[path = "panel_tests.rs"]
 mod panel_tests;
 
+/// Trait for panel implementations.
+///
+/// Each panel provides metadata (name, shortcut, height strategy) and
+/// rendering. Panels that need access to shared application state use
+/// `render_with_app` for rendering while still implementing the trait
+/// for registration and dispatch.
+pub trait Panel {
+    /// Display name for the tab bar (e.g. "Detail").
+    fn name(&self) -> &str;
+
+    /// Keyboard shortcut to open this panel directly (e.g. Some('\r') for Enter).
+    /// Returns `None` if no direct shortcut.
+    fn shortcut(&self) -> Option<char>;
+
+    /// Default height strategy for this panel.
+    fn default_height(&self) -> PanelHeight;
+
+    /// Whether this panel has content available to display.
+    fn is_available(&self) -> bool;
+
+    /// Called when the log table cursor changes to a new index.
+    fn on_log_cursor_changed(&mut self, index: usize);
+}
+
 /// Height strategy for a panel.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum PanelHeight {
