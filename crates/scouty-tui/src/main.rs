@@ -572,6 +572,80 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                             }
                         }
 
+                        // Region panel key handling (when focused)
+                        if app.panel_state.has_focus()
+                            && app.panel_state.active == crate::panel::PanelId::Region
+                        {
+                            use crossterm::event::KeyCode;
+                            use crate::ui::widgets::region_panel_widget::RegionPanelWidget;
+
+                            let entries = RegionPanelWidget::build_entries(&app);
+                            let max_cursor = entries.len().saturating_sub(1);
+
+                            let handled = match key.code {
+                                KeyCode::Char('j') | KeyCode::Down => {
+                                    if app.region_manager_cursor < max_cursor {
+                                        app.region_manager_cursor += 1;
+                                    }
+                                    true
+                                }
+                                KeyCode::Char('k') | KeyCode::Up => {
+                                    if app.region_manager_cursor > 0 {
+                                        app.region_manager_cursor -= 1;
+                                    }
+                                    true
+                                }
+                                KeyCode::Enter => {
+                                    // Jump to region start record
+                                    if let Some(entry) = entries.get(app.region_manager_cursor) {
+                                        app.jump_to_record_index(entry.start_index);
+                                        app.panel_state.focus_log_table();
+                                    }
+                                    true
+                                }
+                                KeyCode::Char('f') => {
+                                    // Filter to selected region's records
+                                    if let Some(entry) = entries.get(app.region_manager_cursor) {
+                                        let expr = format!(
+                                            "_region_type == \"{}\"",
+                                            entry.definition_name
+                                        );
+                                        app.add_filter_expr(&expr);
+                                    }
+                                    true
+                                }
+                                KeyCode::Char('t') => {
+                                    // Toggle type filter
+                                    if let Some(entry) = entries.get(app.region_manager_cursor) {
+                                        if app.region_panel_type_filter.as_deref()
+                                            == Some(&entry.definition_name)
+                                        {
+                                            app.region_panel_type_filter = None;
+                                        } else {
+                                            app.region_panel_type_filter =
+                                                Some(entry.definition_name.clone());
+                                        }
+                                        // Reset cursor when filter changes
+                                        app.region_manager_cursor = 0;
+                                    }
+                                    true
+                                }
+                                KeyCode::Char('s') => {
+                                    // Toggle sort mode
+                                    app.region_panel_sort = app.region_panel_sort.toggle();
+                                    true
+                                }
+                                KeyCode::Esc => {
+                                    app.panel_state.focus_log_table();
+                                    true
+                                }
+                                _ => false,
+                            };
+                            if handled {
+                                continue;
+                            }
+                        }
+
                         // Panel system keybindings (Ctrl+arrows, z)
                         {
                             use crossterm::event::{KeyCode, KeyModifiers};
@@ -732,7 +806,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 }
                                 Action::RegionManager => {
                                     app.panel_state.open(crate::panel::PanelId::Region);
-                                    app.input_mode = InputMode::RegionManager;
                                 }
                                 Action::NextRegion => {
                                     // Jump to the next region start after current position
