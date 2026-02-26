@@ -4,6 +4,7 @@ mod app;
 pub mod config;
 mod density;
 pub mod keybinding;
+pub mod panel;
 mod pipe;
 pub mod text_input;
 mod ui;
@@ -571,6 +572,42 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                             }
                         }
 
+                        // Panel system keybindings (Ctrl+arrows, z)
+                        {
+                            use crossterm::event::{KeyCode, KeyModifiers};
+                            let ctrl = key.modifiers.contains(KeyModifiers::CONTROL);
+                            let handled = match key.code {
+                                KeyCode::Down if ctrl => {
+                                    app.panel_state.focus_panel();
+                                    // Sync legacy detail_open
+                                    app.detail_open = app.panel_state.expanded;
+                                    true
+                                }
+                                KeyCode::Up if ctrl => {
+                                    app.panel_state.focus_log_table();
+                                    true
+                                }
+                                KeyCode::Right if ctrl => {
+                                    app.panel_state.next_panel();
+                                    true
+                                }
+                                KeyCode::Left if ctrl => {
+                                    app.panel_state.prev_panel();
+                                    true
+                                }
+                                KeyCode::Char('z')
+                                    if key.modifiers.is_empty() && app.panel_state.expanded =>
+                                {
+                                    app.panel_state.toggle_maximize();
+                                    true
+                                }
+                                _ => false,
+                            };
+                            if handled {
+                                continue;
+                            }
+                        }
+
                         if let Some(action) = keymap.action(&key) {
                             match action {
                                 Action::Quit => {
@@ -694,6 +731,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                     app.bookmark_manager_cursor = 0;
                                 }
                                 Action::RegionManager => {
+                                    app.panel_state.open(crate::panel::PanelId::Region);
                                     app.input_mode = InputMode::RegionManager;
                                 }
                                 Action::NextRegion => {

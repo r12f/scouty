@@ -251,6 +251,8 @@ pub struct App {
     pub detail_tree_collapsed: std::collections::HashSet<String>,
     /// Detail panel: whether left pane (tree/content) has focus.
     pub detail_tree_focus: bool,
+    /// Panel system state.
+    pub panel_state: crate::panel::PanelState,
     /// Current input mode.
     pub input_mode: InputMode,
     /// Filter input buffer (for expression mode).
@@ -552,6 +554,7 @@ impl App {
             detail_tree_cursor: 0,
             detail_tree_collapsed: std::collections::HashSet::new(),
             detail_tree_focus: false,
+            panel_state: crate::panel::PanelState::default(),
             input_mode: InputMode::Normal,
             filter_input: TextInput::new(),
             filter_error: None,
@@ -1592,6 +1595,7 @@ impl App {
     pub fn toggle_detail(&mut self) {
         self.detail_open = !self.detail_open;
         if self.detail_open {
+            self.panel_state.open(crate::panel::PanelId::Detail);
             // Auto-focus tree if expanded data is available
             if let Some(record) = self.selected_record() {
                 if record.expanded.as_ref().is_some_and(|e| !e.is_empty()) {
@@ -1601,6 +1605,7 @@ impl App {
             }
         } else {
             self.detail_tree_focus = false;
+            self.panel_state.close();
         }
     }
 
@@ -1957,6 +1962,7 @@ mod tests {
             detail_tree_cursor: 0,
             detail_tree_collapsed: std::collections::HashSet::new(),
             detail_tree_focus: false,
+            panel_state: crate::panel::PanelState::default(),
             input_mode: InputMode::Normal,
             filter_input: TextInput::new(),
             filter_error: None,
@@ -2025,6 +2031,7 @@ mod tests {
             detail_tree_cursor: 0,
             detail_tree_collapsed: std::collections::HashSet::new(),
             detail_tree_focus: false,
+            panel_state: crate::panel::PanelState::default(),
             input_mode: InputMode::Normal,
             filter_input: TextInput::new(),
             filter_error: None,
@@ -2090,6 +2097,7 @@ mod tests {
             detail_tree_cursor: 0,
             detail_tree_collapsed: std::collections::HashSet::new(),
             detail_tree_focus: false,
+            panel_state: crate::panel::PanelState::default(),
             input_mode: InputMode::Normal,
             filter_input: TextInput::new(),
             filter_error: None,
@@ -2610,6 +2618,7 @@ mod field_filter_v2_tests {
             detail_tree_cursor: 0,
             detail_tree_collapsed: std::collections::HashSet::new(),
             detail_tree_focus: false,
+            panel_state: crate::panel::PanelState::default(),
             input_mode: InputMode::Normal,
             filter_input: TextInput::new(),
             filter_error: None,
@@ -2801,6 +2810,7 @@ mod column_follow_tests {
             detail_tree_cursor: 0,
             detail_tree_collapsed: std::collections::HashSet::new(),
             detail_tree_focus: false,
+            panel_state: crate::panel::PanelState::default(),
             input_mode: InputMode::Normal,
             filter_input: TextInput::new(),
             filter_error: None,
@@ -3006,6 +3016,7 @@ mod copy_tests {
             detail_tree_cursor: 0,
             detail_tree_collapsed: std::collections::HashSet::new(),
             detail_tree_focus: false,
+            panel_state: crate::panel::PanelState::default(),
             input_mode: InputMode::Normal,
             filter_input: TextInput::new(),
             filter_error: None,
@@ -3182,6 +3193,7 @@ mod time_jump_tests {
             detail_tree_cursor: 0,
             detail_tree_collapsed: std::collections::HashSet::new(),
             detail_tree_focus: false,
+            panel_state: crate::panel::PanelState::default(),
             input_mode: InputMode::Normal,
             filter_input: TextInput::new(),
             filter_error: None,
@@ -3321,6 +3333,7 @@ mod command_tests {
             detail_tree_cursor: 0,
             detail_tree_collapsed: std::collections::HashSet::new(),
             detail_tree_focus: false,
+            panel_state: crate::panel::PanelState::default(),
             input_mode: InputMode::Normal,
             filter_input: TextInput::new(),
             filter_error: None,

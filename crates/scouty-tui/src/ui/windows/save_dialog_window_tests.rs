@@ -56,6 +56,7 @@ mod tests {
             detail_tree_cursor: 0,
             detail_tree_collapsed: std::collections::HashSet::new(),
             detail_tree_focus: false,
+            panel_state: crate::panel::PanelState::default(),
             input_mode: InputMode::Normal,
             filter_input: TextInput::new(),
             filter_error: None,
