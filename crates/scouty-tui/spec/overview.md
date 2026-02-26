@@ -15,16 +15,16 @@
 ├──────────────────────────────────┼────────────────────────────────────────┤
 │                                  │                                        │
 │  (Log Table — scrollable main area)                                       │
-├──────────────────────────────────┴────────────────────────────────────────┤
+├─── ▾ Detail ── Region ───────────┴────────────────────────────────────────┤
 │ [Log Content]                          │ [Fields]                          │
-│ (Detail Panel — left/right split)      │ Timestamp: ...                    │
+│ (Panel Area — collapsible)             │ Timestamp: ...                    │
 ├────────────────────────────────────────┴──────────────────────────────────-┤
 │ ▁▂▃▅▇█▇▅▃▂▁▁▂▃▄▅▆▇ │ 1,234/5,678 (Total: 10,000)  ← Line 1: density   │
 │ [VIEW] /: Search │ f: Filter │ ?: Help                  ← Line 2: status  │
 └───────────────────────────────────────────────────────────────────────────-┘
 ```
 
-> **Note:** Default columns are **Time** and **Log** only. Additional columns (Level, ProcessName, Pid, Tid, Component, etc.) can be toggled via the `c` column selector.
+> **Note:** Default columns are **Time** and **Log** only. Additional columns (Level, ProcessName, Pid, Tid, Component, etc.) can be toggled via the `c` column selector. Panel area is collapsible — see [panel-system.md](panel-system.md) for details.
 
 ### UiComponent Trait
 
@@ -62,6 +62,8 @@ crates/scouty-tui/src/ui/
 └── widgets/            # Persistent components
     ├── log_table_widget.rs
     ├── detail_panel_widget.rs
+    ├── region_panel_widget.rs
+    ├── panel_manager.rs
     ├── search_input_widget.rs
     ├── filter_input_widget.rs
     └── status_bar_widget.rs
@@ -76,7 +78,8 @@ crates/scouty-tui/src/ui/
 KeyEvent arrives
     ├─ Global shortcut? (q exit) → handle directly
     ├─ Active window? → dispatch to window's UiComponent callbacks
-    └─ No active window → dispatch to focused widget
+    ├─ Panel has focus? → dispatch to active panel's UiComponent callbacks
+    └─ No active window/panel → dispatch to focused widget (log table)
 ```
 
 ### Component Communication
@@ -118,7 +121,11 @@ Components notify App via return values or callbacks. App updates shared state (
 | `'`/`"` | Next/prev bookmark |
 | `M` | Bookmark manager |
 | `S` | Stats summary |
-| `r` / `R` | Region manager / jump to next region start |
+| `r` / `R` | Region panel / jump to next region start |
+| `Ctrl+↓` | Focus panel (expand if collapsed) |
+| `Ctrl+↑` | Focus log table (from panel) |
+| `Ctrl+←`/`Ctrl+→` | Switch between panels |
+| `z` | Toggle panel maximize/restore |
 | `]`/`[` | Relative time jump (forward/backward) |
 | `Ctrl+]` | Toggle follow mode |
 
@@ -138,3 +145,4 @@ Components notify App via return values or callbacks. App updates shared state (
 |------|--------|
 | 2026-02-20 | TUI log viewer full interaction design |
 | 2026-02-21 | Architecture refactor to UiComponent trait + windows/widgets structure |
+| 2026-02-26 | Panel system: collapsible panels with tab bar, Ctrl+arrow focus/switch, maximize |

@@ -295,71 +295,17 @@ impl RegionStore {
 
 | Key | Function |
 |-----|----------|
-| `r` | Region manager — list all detected regions |
+| `r` | Open Region panel (see [panel-system.md](../../scouty-tui/spec/panel-system.md)) |
 | `R` | Jump to next region start |
 
-**Region Manager (`r`):**
+**Region Panel (`r`):**
 
-```
-┌─ Regions ───────────────────────────────────────────┐
-│                                                     │
-│  Port Startup Ethernet0          10:30:45 → 10:30:47│
-│  Port Startup Ethernet4          10:30:45 → 10:30:48│
-│  SAI Create ROUTE_ENTRY          10:30:46 → 10:30:46│
-│  HTTP GET /api/status            10:31:02 → 10:31:02│
-│                                                     │
-│  Total: 4 regions (2 types)                         │
-│                                                     │
-│  [Enter] Jump  [f] Filter  [Esc] Close              │
-└─────────────────────────────────────────────────────┘
-```
+Region panel uses a left-right split layout within the collapsible panel system:
 
-- `Enter` — jump to region start record
-- `f` — filter to show only records in selected region
-- `j`/`k` navigation
+- **Left (~70%)** — Region list: each row shows name, start→end time, duration, description. Sorted by start time then end time.
+- **Right (~30%, min 40 chars)** — Timeline: one row per region type with mini Gantt bars. Selected region highlighted.
 
-#### Region Density Chart (Floating Window)
-
-Region density chart is a **standalone floating window** (not part of the log density bar). It visualizes region distribution over time using a Gantt-style timeline.
-
-**Open:** `r` → region manager → `d` on a region type, or directly via `Shift+D` from log table.
-
-**Layout:** Floating window, 95% of log table width, 70% of log table height, centered.
-
-```
-┌─ Region Density: port_startup ─────────────────────────────────────────────────┐
-│                                                                                │
-│  Time     10:30:00    10:30:15    10:30:30    10:30:45    10:31:00             │
-│           ┊           ┊           ┊           ┊           ┊                    │
-│  Eth0     ████████████████████                                                 │
-│  Eth4     ████████████████████████████                                         │
-│  Eth8              ███████████                                                 │
-│  Eth12                    █████████████████████████████                         │
-│  Eth16                              ██████████                                 │
-│  Eth20    ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ (timeout)                     │
-│                                                                                │
-│  Total: 6 regions │ 5 completed │ 1 timed out                                  │
-│                                                                                │
-│  [j/k] Navigate  [Enter] Jump  [f] Filter  [t] Type  [Esc] Close              │
-└────────────────────────────────────────────────────────────────────────────────┘
-```
-
-**Features:**
-- Each row = one region instance, labeled by the primary correlate field value (e.g., port name)
-- `████` bars show region duration; bar length proportional to time span
-- Color: completed regions use region type color; timed-out regions use `░` (dimmed)
-- Time axis auto-scales to fit all visible regions
-- `j`/`k` to navigate rows
-- `Enter` — jump to selected region's start record in log table
-- `f` — filter log table to selected region
-- `t` — switch between region types (if multiple types defined)
-- Sorted by start time (default), `s` to toggle sort by duration
-- `Esc` closes the floating window
-
-**Behavior:**
-- Does NOT replace or modify the existing log density chart in the status bar
-- The log density chart (`d`/`D` keys) continues to work as before (level/highlight modes only)
-- Region density is its own independent visualization
+See [panel-system.md](../../scouty-tui/spec/panel-system.md) for full panel system specification including keybindings, focus model, and maximize.
 
 ### CLI Integration (Pipe Mode)
 
@@ -391,3 +337,4 @@ scouty-tui --filter '_region == "Port Startup Ethernet0"' app.log
 | 2026-02-25 | Timeout creates timed-out regions (not silently discarded); timeout_reason template for end_reason |
 | 2026-02-25 | Filter engine: each start/end point has include+exclude filters; extract rules separated from matching |
 | 2026-02-25 | FIFO matching (oldest pending start first); unmatched end points discarded; no metadata stored on created regions |
+| 2026-02-26 | Region TUI moved to panel system — left-right split (list + timeline), replaces floating window |
