@@ -246,4 +246,41 @@ mod tests {
         };
         assert_eq!(content2, "hello world");
     }
+
+    // --- Panel trait tests ---
+
+    use crate::panel::{Panel, PanelHeight, PanelId};
+
+    #[test]
+    fn test_detail_panel_trait_name() {
+        let widget = DetailPanelWidget;
+        assert_eq!(Panel::name(&widget), "Detail");
+        assert_eq!(Panel::name(&widget), PanelId::Detail.name());
+    }
+
+    #[test]
+    fn test_detail_panel_trait_shortcut() {
+        let widget = DetailPanelWidget;
+        assert_eq!(widget.shortcut(), Some('\r'));
+    }
+
+    #[test]
+    fn test_detail_panel_trait_default_height() {
+        let widget = DetailPanelWidget;
+        assert_eq!(widget.default_height(), PanelHeight::FitContent);
+        assert_eq!(widget.default_height(), PanelId::Detail.default_height());
+    }
+
+    #[test]
+    fn test_detail_panel_trait_is_available() {
+        let widget = DetailPanelWidget;
+        assert!(widget.is_available());
+    }
+
+    #[test]
+    fn test_detail_panel_trait_on_cursor_changed() {
+        let mut widget = DetailPanelWidget;
+        // Should not panic
+        widget.on_log_cursor_changed(42);
+    }
 }
