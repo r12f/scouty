@@ -104,10 +104,7 @@ impl RegionPanelWidget {
                     format_duration(duration_ms)
                 };
 
-                let description = region
-                    .description
-                    .clone()
-                    .unwrap_or_default();
+                let description = region.description.clone().unwrap_or_default();
 
                 RegionDisplayEntry {
                     name: region.name.clone(),
@@ -169,10 +166,8 @@ impl RegionPanelWidget {
         }
 
         // Collect unique type names for color mapping and type count
-        let mut type_names: Vec<String> = entries
-            .iter()
-            .map(|e| e.definition_name.clone())
-            .collect();
+        let mut type_names: Vec<String> =
+            entries.iter().map(|e| e.definition_name.clone()).collect();
         type_names.sort();
         type_names.dedup();
 
@@ -190,7 +185,14 @@ impl RegionPanelWidget {
                 Layout::horizontal([Constraint::Percentage(70), Constraint::Percentage(30)])
                     .split(inner);
             self.render_list(frame, chunks[0], &entries, &type_color_map, app);
-            self.render_timeline(frame, chunks[1], &entries, &type_names, &type_color_map, app);
+            self.render_timeline(
+                frame,
+                chunks[1],
+                &entries,
+                &type_names,
+                &type_color_map,
+                app,
+            );
         } else {
             self.render_list(frame, inner, &entries, &type_color_map, app);
         }
@@ -204,20 +206,26 @@ impl RegionPanelWidget {
         type_color_map: &std::collections::HashMap<&str, Color>,
         app: &App,
     ) {
-        let has_focus = app.panel_state.has_focus()
-            && app.panel_state.active == crate::panel::PanelId::Region;
+        let has_focus =
+            app.panel_state.has_focus() && app.panel_state.active == crate::panel::PanelId::Region;
 
         // Determine cursor: manual when focused, auto-follow when not
         let cursor = if has_focus {
-            app.region_manager_cursor.min(entries.len().saturating_sub(1))
+            app.region_manager_cursor
+                .min(entries.len().saturating_sub(1))
         } else {
             // Auto-follow: find region containing the current log cursor
             let record_idx = app.filtered_indices.get(app.selected).copied();
             record_idx
                 .and_then(|idx| {
-                    entries.iter().position(|e| e.start_index <= idx && idx <= e.end_index)
+                    entries
+                        .iter()
+                        .position(|e| e.start_index <= idx && idx <= e.end_index)
                 })
-                .unwrap_or(app.region_manager_cursor.min(entries.len().saturating_sub(1)))
+                .unwrap_or(
+                    app.region_manager_cursor
+                        .min(entries.len().saturating_sub(1)),
+                )
         };
 
         // Reserve 1 line for summary footer
@@ -248,7 +256,8 @@ impl RegionPanelWidget {
 
             // Format: ▸ Name  HH:MM:SS→HH:MM:SS  duration
             let time_range = format!("{}→{}", entry.start_ts, entry.end_ts);
-            let name_max = width.saturating_sub(time_range.len() + entry.duration.len() + timeout_mark.len() + 8);
+            let name_max = width
+                .saturating_sub(time_range.len() + entry.duration.len() + timeout_mark.len() + 8);
             let name: String = entry.name.chars().take(name_max).collect();
 
             let style = if is_selected {
@@ -324,7 +333,9 @@ impl RegionPanelWidget {
             return;
         }
 
-        let cursor = app.region_manager_cursor.min(entries.len().saturating_sub(1));
+        let cursor = app
+            .region_manager_cursor
+            .min(entries.len().saturating_sub(1));
         let selected_type = entries.get(cursor).map(|e| e.definition_name.as_str());
 
         // Compute global time range
@@ -351,9 +362,7 @@ impl RegionPanelWidget {
 
             // Type name line
             let name_style = if is_selected_type {
-                Style::default()
-                    .fg(color)
-                    .add_modifier(Modifier::BOLD)
+                Style::default().fg(color).add_modifier(Modifier::BOLD)
             } else {
                 Style::default().fg(Color::DarkGray)
             };
@@ -373,10 +382,10 @@ impl RegionPanelWidget {
             let mut bar = vec![' '; bar_width];
 
             for entry in &type_entries {
-                let start_pos =
-                    ((entry.start_epoch_ms - global_min) as f64 / time_span as f64 * bar_width as f64) as usize;
-                let end_pos =
-                    ((entry.end_epoch_ms - global_min) as f64 / time_span as f64 * bar_width as f64) as usize;
+                let start_pos = ((entry.start_epoch_ms - global_min) as f64 / time_span as f64
+                    * bar_width as f64) as usize;
+                let end_pos = ((entry.end_epoch_ms - global_min) as f64 / time_span as f64
+                    * bar_width as f64) as usize;
 
                 let start_pos = start_pos.min(bar_width.saturating_sub(1));
                 let end_pos = end_pos.min(bar_width).max(start_pos + 1);
@@ -398,12 +407,11 @@ impl RegionPanelWidget {
                 // Color the bar, with the selected region's segment in bright
                 if let Some(sel) = selected_entry {
                     if sel.definition_name == *type_name {
-                        let sel_start =
-                            ((sel.start_epoch_ms - global_min) as f64 / time_span as f64 * bar_width as f64)
-                                as usize;
-                        let sel_end =
-                            ((sel.end_epoch_ms - global_min) as f64 / time_span as f64 * bar_width as f64)
-                                as usize;
+                        let sel_start = ((sel.start_epoch_ms - global_min) as f64
+                            / time_span as f64
+                            * bar_width as f64) as usize;
+                        let sel_end = ((sel.end_epoch_ms - global_min) as f64 / time_span as f64
+                            * bar_width as f64) as usize;
                         let sel_start = sel_start.min(bar_width.saturating_sub(1));
                         let sel_end = sel_end.min(bar_width).max(sel_start + 1);
 
@@ -433,10 +441,7 @@ impl RegionPanelWidget {
                     spans.push(Span::styled(bar_str.clone(), Style::default().fg(color)));
                 }
             } else {
-                spans.push(Span::styled(
-                    bar_str,
-                    Style::default().fg(Color::DarkGray),
-                ));
+                spans.push(Span::styled(bar_str, Style::default().fg(Color::DarkGray)));
             }
 
             lines.push(Line::from(spans));

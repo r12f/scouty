@@ -576,8 +576,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         if app.panel_state.has_focus()
                             && app.panel_state.active == crate::panel::PanelId::Region
                         {
-                            use crossterm::event::KeyCode;
                             use crate::ui::widgets::region_panel_widget::RegionPanelWidget;
+                            use crossterm::event::KeyCode;
 
                             let entries = RegionPanelWidget::build_entries(&app);
                             let max_cursor = entries.len().saturating_sub(1);
