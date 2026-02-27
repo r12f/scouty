@@ -648,7 +648,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                             }
                         }
 
-                        // Panel system keybindings (Ctrl+arrows, z)
+                        // Panel system keybindings (Ctrl+arrows, Tab/BackTab, z)
                         {
                             use crossterm::event::{KeyCode, KeyModifiers};
                             let ctrl = key.modifiers.contains(KeyModifiers::CONTROL);
@@ -669,6 +669,38 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 }
                                 KeyCode::Left if ctrl => {
                                     app.panel_state.prev_panel();
+                                    true
+                                }
+                                // Tab cycles forward: log table → panel content → next panel → ... → log table
+                                KeyCode::Tab if key.modifiers.is_empty() && app.panel_state.expanded => {
+                                    if app.panel_state.focus == crate::panel::PanelFocus::LogTable {
+                                        app.panel_state.focus_panel();
+                                    } else {
+                                        // On last panel, cycle back to log table; otherwise next panel
+                                        let all = crate::panel::PanelId::all();
+                                        if app.panel_state.active == *all.last().unwrap() {
+                                            app.panel_state.focus_log_table();
+                                        } else {
+                                            app.panel_state.next_panel();
+                                        }
+                                    }
+                                    true
+                                }
+                                // Shift+Tab (BackTab) cycles backward
+                                KeyCode::BackTab if app.panel_state.expanded => {
+                                    if app.panel_state.focus == crate::panel::PanelFocus::LogTable {
+                                        // Focus last panel
+                                        let all = crate::panel::PanelId::all();
+                                        app.panel_state.active = *all.last().unwrap();
+                                        app.panel_state.focus_panel();
+                                    } else {
+                                        let all = crate::panel::PanelId::all();
+                                        if app.panel_state.active == all[0] {
+                                            app.panel_state.focus_log_table();
+                                        } else {
+                                            app.panel_state.prev_panel();
+                                        }
+                                    }
                                     true
                                 }
                                 KeyCode::Char('z')
