@@ -672,7 +672,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                     true
                                 }
                                 // Tab cycles forward: log table → panel content → next panel → ... → log table
-                                KeyCode::Tab if key.modifiers.is_empty() && app.panel_state.expanded => {
+                                KeyCode::Tab
+                                    if key.modifiers.is_empty() && app.panel_state.expanded =>
+                                {
                                     if app.panel_state.focus == crate::panel::PanelFocus::LogTable {
                                         app.panel_state.focus_panel();
                                     } else {
