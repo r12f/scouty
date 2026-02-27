@@ -559,7 +559,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 _ => false,
                             };
                             if handled {
-                                continue;
+                                break;
                             }
                         }
 
@@ -568,7 +568,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                             if let Some(record) = app.selected_record() {
                                 if record.expanded.as_ref().is_some_and(|e| !e.is_empty()) {
                                     app.detail_tree_focus = !app.detail_tree_focus;
-                                    continue;
+                                    break;
                                 }
                             }
                         }
@@ -644,7 +644,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 _ => false,
                             };
                             if handled {
-                                continue;
+                                break;
                             }
                         }
 
@@ -714,7 +714,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 _ => false,
                             };
                             if handled {
-                                continue;
+                                break;
                             }
                         }
 
