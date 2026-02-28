@@ -275,4 +275,52 @@ mod tests {
         state.close();
         assert!(!state.expanded);
     }
+
+    /// toggle_expand opens panel without changing focus
+    #[test]
+    fn test_toggle_expand_no_focus_change() {
+        let mut state = PanelState::default();
+        assert_eq!(state.focus, PanelFocus::LogTable);
+
+        // Expand Detail — focus should stay on LogTable
+        state.toggle_expand(PanelId::Detail);
+        assert!(state.expanded);
+        assert_eq!(state.active, PanelId::Detail);
+        assert_eq!(state.focus, PanelFocus::LogTable);
+
+        // Collapse Detail
+        state.toggle_expand(PanelId::Detail);
+        assert!(!state.expanded);
+        assert_eq!(state.focus, PanelFocus::LogTable);
+    }
+
+    /// toggle_expand switches active panel without focus change
+    #[test]
+    fn test_toggle_expand_switch_panel() {
+        let mut state = PanelState::default();
+
+        state.toggle_expand(PanelId::Detail);
+        assert!(state.expanded);
+        assert_eq!(state.active, PanelId::Detail);
+
+        // Switch to Region — stays expanded, focus unchanged
+        state.toggle_expand(PanelId::Region);
+        assert!(state.expanded);
+        assert_eq!(state.active, PanelId::Region);
+        assert_eq!(state.focus, PanelFocus::LogTable);
+    }
+
+    /// toggle_expand while panel focused keeps focus in panel
+    #[test]
+    fn test_toggle_expand_preserves_panel_focus() {
+        let mut state = PanelState::default();
+        state.open(PanelId::Detail); // opens AND focuses
+        assert_eq!(state.focus, PanelFocus::PanelContent);
+
+        // Switch to Region via toggle_expand — focus should stay as PanelContent
+        state.toggle_expand(PanelId::Region);
+        assert!(state.expanded);
+        assert_eq!(state.active, PanelId::Region);
+        assert_eq!(state.focus, PanelFocus::PanelContent);
+    }
 }
