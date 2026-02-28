@@ -255,7 +255,7 @@ pub fn render(frame: &mut Frame, app: &mut App) {
 }
 
 fn render_panel_tab_bar(frame: &mut Frame, app: &App, area: Rect) {
-    use crate::panel::PanelId;
+    use crate::panel::{PanelFocus, PanelId};
 
     let indicator = if app.panel_state.expanded {
         "▾"
@@ -263,19 +263,24 @@ fn render_panel_tab_bar(frame: &mut Frame, app: &App, area: Rect) {
         "▸"
     };
 
+    let panel_has_focus = app.panel_state.focus == PanelFocus::PanelContent;
+    let tab_theme = &app.theme.panel_tab;
+
     let mut spans: Vec<Span> = vec![Span::raw(format!(" {} ", indicator))];
 
     for panel_id in PanelId::all() {
         let is_active = *panel_id == app.panel_state.active;
         let name = panel_id.name();
 
-        if is_active {
+        if is_active && panel_has_focus {
             spans.push(Span::styled(
                 format!(" {} ", name),
-                Style::default()
-                    .fg(Color::Black)
-                    .bg(Color::White)
-                    .add_modifier(Modifier::BOLD),
+                tab_theme.focused.to_style(),
+            ));
+        } else if is_active {
+            spans.push(Span::styled(
+                format!(" {} ", name),
+                tab_theme.unfocused.to_style(),
             ));
         } else {
             spans.push(Span::styled(
@@ -286,15 +291,13 @@ fn render_panel_tab_bar(frame: &mut Frame, app: &App, area: Rect) {
         spans.push(Span::raw(" │"));
     }
 
-    let line = Paragraph::new(Line::from(spans)).style(
-        Style::default().bg(app
-            .theme
-            .status_bar
-            .line1_bg
-            .to_style()
-            .bg
-            .unwrap_or(Color::Reset)),
-    );
+    let bar_bg = tab_theme
+        .bar_bg
+        .to_style()
+        .bg
+        .or(app.theme.status_bar.line1_bg.to_style().bg)
+        .unwrap_or(Color::Reset);
+    let line = Paragraph::new(Line::from(spans)).style(Style::default().bg(bar_bg));
     frame.render_widget(line, area);
 }
 

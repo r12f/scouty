@@ -330,6 +330,36 @@ impl Default for GeneralTheme {
     }
 }
 
+/// Panel tab bar styling.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
+pub struct PanelTabTheme {
+    /// Active tab when panel has keyboard focus.
+    pub focused: StyleEntry,
+    /// Active tab when panel does NOT have focus (gray/muted).
+    pub unfocused: StyleEntry,
+    /// Tab bar background.
+    pub bar_bg: StyleEntry,
+}
+
+impl Default for PanelTabTheme {
+    fn default() -> Self {
+        Self {
+            focused: StyleEntry {
+                fg: Some(ThemeColor(Color::Rgb(27, 40, 56))), // #1B2838
+                bg: Some(ThemeColor(Color::Rgb(79, 195, 247))), // #4FC3F7 accent
+                bold: Some(true),
+            },
+            unfocused: StyleEntry {
+                fg: Some(ThemeColor(Color::Rgb(107, 123, 141))), // #6B7B8D gray
+                bg: Some(ThemeColor(Color::Rgb(27, 40, 56))),    // #1B2838
+                bold: None,
+            },
+            bar_bg: StyleEntry::bg(Color::Rgb(13, 17, 23)), // #0D1117
+        }
+    }
+}
+
 /// The full theme.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
@@ -343,6 +373,7 @@ pub struct Theme {
     pub input: InputTheme,
     pub highlight_palette: Vec<ThemeColor>,
     pub general: GeneralTheme,
+    pub panel_tab: PanelTabTheme,
 }
 
 impl Default for Theme {
@@ -364,6 +395,7 @@ impl Default for Theme {
                 ThemeColor(Color::Rgb(77, 208, 225)),  // teal
             ],
             general: GeneralTheme::default(),
+            panel_tab: PanelTabTheme::default(),
         }
     }
 }
@@ -447,6 +479,19 @@ impl Theme {
                 muted: StyleEntry::fg(DarkGray),
                 border: StyleEntry::fg(Rgb(60, 60, 80)),
             },
+            panel_tab: PanelTabTheme {
+                focused: StyleEntry {
+                    fg: Some(ThemeColor(Black)),
+                    bg: Some(ThemeColor(Rgb(100, 160, 180))),
+                    bold: Some(true),
+                },
+                unfocused: StyleEntry {
+                    fg: Some(ThemeColor(Rgb(85, 85, 85))),
+                    bg: Some(ThemeColor(Rgb(30, 30, 40))),
+                    bold: None,
+                },
+                bar_bg: StyleEntry::bg(Rgb(20, 20, 30)),
+            },
             ..Self::default()
         }
     }
@@ -506,6 +551,19 @@ impl Theme {
                 accent: StyleEntry::fg(Rgb(0, 120, 150)),
                 muted: StyleEntry::fg(Rgb(150, 150, 150)),
                 border: StyleEntry::fg(Rgb(180, 180, 190)),
+            },
+            panel_tab: PanelTabTheme {
+                focused: StyleEntry {
+                    fg: Some(ThemeColor(White)),
+                    bg: Some(ThemeColor(Rgb(0, 120, 150))),
+                    bold: Some(true),
+                },
+                unfocused: StyleEntry {
+                    fg: Some(ThemeColor(Rgb(153, 153, 153))),
+                    bg: Some(ThemeColor(Rgb(230, 230, 235))),
+                    bold: None,
+                },
+                bar_bg: StyleEntry::bg(Rgb(240, 240, 245)),
             },
             ..Self::default()
         }
@@ -578,6 +636,19 @@ impl Theme {
                 accent: StyleEntry::fg(blue),
                 muted: StyleEntry::fg(base01),
                 border: StyleEntry::fg(base01),
+            },
+            panel_tab: PanelTabTheme {
+                focused: StyleEntry {
+                    fg: Some(ThemeColor(base03)),
+                    bg: Some(ThemeColor(blue)),
+                    bold: Some(true),
+                },
+                unfocused: StyleEntry {
+                    fg: Some(ThemeColor(Rgb(101, 123, 131))),
+                    bg: Some(ThemeColor(base02)),
+                    bold: None,
+                }, // #657B83
+                bar_bg: StyleEntry::bg(base03),
             },
             ..Self::default()
         }
@@ -678,6 +749,19 @@ impl Theme {
                 accent: StyleEntry::fg(rose_pink),
                 muted: StyleEntry::fg(dark_plum),
                 border: StyleEntry::fg(border_fg),
+            },
+            panel_tab: PanelTabTheme {
+                focused: StyleEntry {
+                    fg: Some(ThemeColor(deep_black)),
+                    bg: Some(ThemeColor(rose_pink)),
+                    bold: Some(true),
+                },
+                unfocused: StyleEntry {
+                    fg: Some(ThemeColor(Rgb(107, 74, 94))),
+                    bg: Some(ThemeColor(dark_wine)),
+                    bold: None,
+                }, // #6B4A5E
+                bar_bg: StyleEntry::bg(deep_black),
             },
         }
     }
