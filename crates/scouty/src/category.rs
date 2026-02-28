@@ -204,3 +204,106 @@ fn category_config_dirs() -> Vec<std::path::PathBuf> {
 
     dirs
 }
+
+// ── Categorization Processor ────────────────────────────────────────
+
+use crate::filter::eval;
+use crate::record::LogRecord;
+use chrono::{DateTime, Utc};
+
+/// Categorization processor — evaluates log records against all category
+/// definitions and updates per-category stats (count + density histogram).
+pub struct CategoryProcessor {
+    pub store: CategoryStore,
+    bucket_count: usize,
+}
+
+impl CategoryProcessor {
+    /// Create a new processor from definitions with a given density bucket count.
+    pub fn new(definitions: Vec<CategoryDefinition>, bucket_count: usize) -> Self {
+        Self {
+            store: CategoryStore::from_definitions(definitions, bucket_count),
+            bucket_count,
+        }
+    }
+
+    /// Process a batch of records, updating all category stats.
+    ///
+    /// The time range is derived from the first and last record timestamps
+    /// to compute density histogram bucket indices.
+    pub fn process_records(&mut self, records: &[LogRecord]) {
+        if records.is_empty() || self.store.categories.is_empty() {
+            return;
+        }
+
+        // Compute time range for density bucketing
+        let (time_min, time_max) = Self::time_range(records);
+        let range_ms = (time_max - time_min).num_milliseconds().max(1) as f64;
+        let bucket_count = self.bucket_count;
+
+        for record in records {
+            for cat in &mut self.store.categories {
+                if eval::eval(&cat.definition.filter, record) {
+                    let bucket = Self::compute_bucket(record.timestamp, time_min, range_ms, bucket_count);
+                    cat.record_match(Some(bucket));
+                }
+            }
+        }
+
+        tracing::debug!(
+            categories = self.store.categories.len(),
+            records = records.len(),
+            "Categorization complete"
+        );
+    }
+
+    /// Process a single record (for streaming/tailing).
+    /// Requires pre-computed time range; caller should provide current min/max.
+    pub fn process_record(
+        &mut self,
+        record: &LogRecord,
+        time_min: DateTime<Utc>,
+        range_ms: f64,
+    ) {
+        let bucket_count = self.bucket_count;
+        for cat in &mut self.store.categories {
+            if eval::eval(&cat.definition.filter, record) {
+                let bucket = Self::compute_bucket(record.timestamp, time_min, range_ms, bucket_count);
+                cat.record_match(Some(bucket));
+            }
+        }
+    }
+
+    /// Resize all density histograms.
+    pub fn resize_density(&mut self, new_len: usize) {
+        self.bucket_count = new_len;
+        for cat in &mut self.store.categories {
+            cat.resize_density(new_len);
+        }
+    }
+
+    /// Reset all stats (e.g., on reload).
+    pub fn reset(&mut self) {
+        self.store.reset();
+    }
+
+    fn time_range(records: &[LogRecord]) -> (DateTime<Utc>, DateTime<Utc>) {
+        let mut min = records[0].timestamp;
+        let mut max = records[0].timestamp;
+        for r in records.iter().skip(1) {
+            if r.timestamp < min {
+                min = r.timestamp;
+            }
+            if r.timestamp > max {
+                max = r.timestamp;
+            }
+        }
+        (min, max)
+    }
+
+    fn compute_bucket(ts: DateTime<Utc>, time_min: DateTime<Utc>, range_ms: f64, bucket_count: usize) -> usize {
+        let offset = (ts - time_min).num_milliseconds().max(0) as f64;
+        let idx = (offset / range_ms * (bucket_count as f64 - 1.0)) as usize;
+        idx.min(bucket_count.saturating_sub(1))
+    }
+}
