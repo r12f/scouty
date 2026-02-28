@@ -50,11 +50,7 @@ impl CategoryPanelWidget {
             && app.panel_state.active == crate::panel::PanelId::Category;
 
         // Use theme-driven border style matching other panels (Detail, Region).
-        let theme = &app.theme;
-        let block = Block::default()
-            .title(" Category ")
-            .borders(Borders::TOP)
-            .border_style(theme.detail_panel.border.to_style());
+        let block = Block::default().borders(Borders::NONE);
 
         let inner = block.inner(area);
         frame.render_widget(block, area);
