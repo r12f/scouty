@@ -17,6 +17,32 @@ pub fn file_size(path: &Path) -> std::io::Result<u64> {
     Ok(std::fs::metadata(path)?.len())
 }
 
+/// Get the inode number of a file (Unix only, returns 0 on other platforms).
+#[cfg(unix)]
+fn file_inode(path: &Path) -> std::io::Result<u64> {
+    use std::os::unix::fs::MetadataExt;
+    Ok(std::fs::metadata(path)?.ino())
+}
+
+#[cfg(not(unix))]
+fn file_inode(_path: &Path) -> std::io::Result<u64> {
+    Ok(0)
+}
+
+/// Result of a single poll cycle.
+pub enum PollResult {
+    /// No new data.
+    NoChange,
+    /// New records parsed from appended bytes.
+    NewRecords(Vec<Arc<LogRecord>>),
+    /// File was truncated — caller should clear and reload.
+    Truncated,
+    /// File was rotated (inode changed) — caller should clear and reload.
+    Rotated,
+    /// File was deleted — caller should show warning.
+    Deleted,
+}
+
 /// File watcher that tracks read position and yields new parsed records on poll.
 pub struct FileFollower {
     path: PathBuf,
@@ -27,6 +53,8 @@ pub struct FileFollower {
     info: LoaderInfo,
     /// Next record ID to assign.
     next_record_id: u64,
+    /// Inode at last successful read (for rotation detection).
+    inode: u64,
 }
 
 impl FileFollower {
@@ -38,23 +66,82 @@ impl FileFollower {
         info: LoaderInfo,
         start_record_id: u64,
     ) -> Self {
+        let path = path.into();
+        let inode = file_inode(&path).unwrap_or(0);
         Self {
-            path: path.into(),
+            path,
             offset: start_offset,
             partial: String::new(),
             info,
             next_record_id: start_record_id,
+            inode,
         }
     }
 
-    /// Poll for new complete lines, parse them into LogRecords.
-    /// Returns empty vec if no new data.
-    pub fn poll(&mut self) -> std::io::Result<Vec<Arc<LogRecord>>> {
-        let lines = self.poll_lines()?;
-        if lines.is_empty() {
-            return Ok(Vec::new());
+    /// Poll for new data, handling truncation, rotation, and deletion.
+    pub fn poll(&mut self) -> PollResult {
+        // Check for inode change (rotation) — must happen before metadata check
+        // because a rotated file may be smaller, which would look like truncation.
+        let current_inode = file_inode(&self.path).unwrap_or(0);
+        if current_inode != 0 && self.inode != 0 && current_inode != self.inode {
+            tracing::info!(
+                path = %self.path.display(),
+                old_inode = self.inode,
+                new_inode = current_inode,
+                "File rotated (inode changed)"
+            );
+            self.inode = current_inode;
+            self.offset = 0;
+            self.partial.clear();
+            return PollResult::Rotated;
         }
 
+        let metadata = match std::fs::metadata(&self.path) {
+            Ok(m) => m,
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+                tracing::warn!(path = %self.path.display(), "File deleted");
+                return PollResult::Deleted;
+            }
+            Err(e) => {
+                // Transient error (permission, I/O) — don't stop following
+                tracing::warn!(%e, path = %self.path.display(), "Transient error reading file metadata");
+                return PollResult::NoChange;
+            }
+        };
+        let current_size = metadata.len();
+
+        // File truncated — reset to beginning
+        if current_size < self.offset {
+            tracing::info!(
+                path = %self.path.display(),
+                old_offset = self.offset,
+                new_size = current_size,
+                "File truncated, resetting"
+            );
+            self.offset = 0;
+            self.partial.clear();
+            return PollResult::Truncated;
+        }
+
+        // No new data
+        if current_size == self.offset {
+            return PollResult::NoChange;
+        }
+
+        // Read new bytes
+        let lines = match self.read_new_lines() {
+            Ok(lines) => lines,
+            Err(e) => {
+                tracing::warn!(%e, "Error reading new lines");
+                return PollResult::NoChange;
+            }
+        };
+
+        if lines.is_empty() {
+            return PollResult::NoChange;
+        }
+
+        // Parse new lines
         let group = ParserFactory::create_parser_group(&self.info);
         let mut records = Vec::new();
 
@@ -68,31 +155,15 @@ impl FileFollower {
             }
         }
 
-        Ok(records)
+        if records.is_empty() {
+            PollResult::NoChange
+        } else {
+            PollResult::NewRecords(records)
+        }
     }
 
-    /// Poll for new raw lines (without parsing).
-    fn poll_lines(&mut self) -> std::io::Result<Vec<String>> {
-        let metadata = std::fs::metadata(&self.path)?;
-        let current_size = metadata.len();
-
-        // File truncated — reset to beginning
-        if current_size < self.offset {
-            tracing::info!(
-                path = %self.path.display(),
-                old_offset = self.offset,
-                new_size = current_size,
-                "File truncated, resetting"
-            );
-            self.offset = 0;
-            self.partial.clear();
-        }
-
-        // No new data
-        if current_size == self.offset {
-            return Ok(Vec::new());
-        }
-
+    /// Read new complete lines from the file.
+    fn read_new_lines(&mut self) -> std::io::Result<Vec<String>> {
         let mut file = File::open(&self.path)?;
         file.seek(SeekFrom::Start(self.offset))?;
         let mut reader = BufReader::new(file);
@@ -134,5 +205,21 @@ impl FileFollower {
     /// Current byte offset.
     pub fn offset(&self) -> u64 {
         self.offset
+    }
+
+    /// Reset offset to 0 (for reload after truncation/rotation).
+    /// Preserves `next_record_id` so new records don't collide with old IDs.
+    pub fn reset(&mut self) {
+        self.offset = 0;
+        self.partial.clear();
+        self.inode = file_inode(&self.path).unwrap_or(0);
+    }
+
+    /// Reset offset and set a new starting record ID (for full reload after clear).
+    pub fn reset_with_id(&mut self, start_record_id: u64) {
+        self.offset = 0;
+        self.partial.clear();
+        self.next_record_id = start_record_id;
+        self.inode = file_inode(&self.path).unwrap_or(0);
     }
 }

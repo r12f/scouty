@@ -1771,6 +1771,24 @@ impl App {
         // No-op if already disabled — cannot re-enable from TUI
     }
 
+    /// Clear all records (for follow mode reload after truncation/rotation).
+    pub fn clear_records(&mut self) {
+        self.records.clear();
+        self.total_records = 0;
+        self.filtered_indices.clear();
+        self.selected = 0;
+        self.scroll_offset = 0;
+        self.follow_new_count = 0;
+        self.density_cache = None;
+        // Reset category stats
+        if let Some(ref mut proc) = self.category_processor {
+            for cat in &mut proc.store.categories {
+                cat.count = 0;
+                cat.density.fill(0);
+            }
+        }
+    }
+
     /// Append new records from follow mode. Incrementally updates
     /// filtered_indices and auto-scrolls if follow_mode is active.
     pub fn append_records(&mut self, new_records: Vec<Arc<LogRecord>>) {
