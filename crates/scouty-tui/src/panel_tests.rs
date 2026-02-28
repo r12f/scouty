@@ -57,7 +57,11 @@ mod tests {
         state.next_panel();
         assert_eq!(state.active, PanelId::Stats);
         state.next_panel();
+        assert_eq!(state.active, PanelId::Category);
+        state.next_panel();
         assert_eq!(state.active, PanelId::Detail);
+        state.prev_panel();
+        assert_eq!(state.active, PanelId::Category);
         state.prev_panel();
         assert_eq!(state.active, PanelId::Stats);
         state.prev_panel();
@@ -87,10 +91,11 @@ mod tests {
     #[test]
     fn test_panel_id_all() {
         let all = PanelId::all();
-        assert_eq!(all.len(), 3);
+        assert_eq!(all.len(), 4);
         assert_eq!(all[0], PanelId::Detail);
         assert_eq!(all[1], PanelId::Region);
         assert_eq!(all[2], PanelId::Stats);
+        assert_eq!(all[3], PanelId::Category);
     }
 
     #[test]
@@ -101,6 +106,10 @@ mod tests {
             PanelHeight::Percentage(40)
         );
         assert_eq!(PanelId::Stats.default_height(), PanelHeight::Percentage(40));
+        assert_eq!(
+            PanelId::Category.default_height(),
+            PanelHeight::Percentage(40)
+        );
     }
 
     #[test]
@@ -159,6 +168,9 @@ mod tests {
         state.next_panel();
         assert_eq!(state.active, PanelId::Stats);
 
+        state.next_panel();
+        assert_eq!(state.active, PanelId::Category);
+
         assert_eq!(state.active, *all.last().unwrap());
         state.focus_log_table();
         assert_eq!(state.focus, PanelFocus::LogTable);
@@ -172,8 +184,11 @@ mod tests {
         state.focus_log_table();
 
         let all = PanelId::all();
-        state.active = *all.last().unwrap(); // Stats
+        state.active = *all.last().unwrap(); // Category
         state.focus_panel();
+        assert_eq!(state.active, PanelId::Category);
+
+        state.prev_panel();
         assert_eq!(state.active, PanelId::Stats);
 
         state.prev_panel();
@@ -242,13 +257,23 @@ mod tests {
 
         assert_eq!(
             forward_sequence,
-            vec![PanelId::Detail, PanelId::Region, PanelId::Stats],
-            "Tab forward sequence should be Detail → Region → Stats"
+            vec![
+                PanelId::Detail,
+                PanelId::Region,
+                PanelId::Stats,
+                PanelId::Category
+            ],
+            "Tab forward sequence should be Detail → Region → Stats → Category"
         );
         assert_eq!(
             backward_sequence,
-            vec![PanelId::Stats, PanelId::Region, PanelId::Detail],
-            "BackTab backward sequence should be Stats → Region → Detail"
+            vec![
+                PanelId::Category,
+                PanelId::Stats,
+                PanelId::Region,
+                PanelId::Detail
+            ],
+            "BackTab backward sequence should be Category → Stats → Region → Detail"
         );
 
         let mut reversed_forward = forward_sequence.clone();

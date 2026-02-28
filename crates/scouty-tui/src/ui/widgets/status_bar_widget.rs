@@ -51,6 +51,13 @@ impl StatusBarWidget {
                 crate::panel::PanelId::Stats => {
                     &[("Tab/S-Tab", "Switch"), ("z", "Max"), ("Esc", "Close")]
                 }
+                crate::panel::PanelId::Category => &[
+                    ("j/k", "↑↓"),
+                    ("Enter", "Filter"),
+                    ("Tab/S-Tab", "Switch"),
+                    ("z", "Max"),
+                    ("Esc", "Close"),
+                ],
             }
         } else {
             &[
@@ -270,6 +277,7 @@ impl StatusBarWidget {
                     crate::panel::PanelId::Detail => "[DETAIL]",
                     crate::panel::PanelId::Region => "[REGION]",
                     crate::panel::PanelId::Stats => "[STATS]",
+                    crate::panel::PanelId::Category => "[CATEGORY]",
                 };
                 (label, theme.status_bar.mode_view.to_style())
             } else if app.follow_mode {

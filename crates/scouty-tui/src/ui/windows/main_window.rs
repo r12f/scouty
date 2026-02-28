@@ -300,6 +300,11 @@ impl MainWindow {
                     .panel_state
                     .toggle_expand(crate::panel::PanelId::Stats);
             }
+            Action::Category => {
+                self.app
+                    .panel_state
+                    .toggle_expand(crate::panel::PanelId::Category);
+            }
         }
         Some(false)
     }
@@ -319,6 +324,15 @@ impl MainWindow {
         if self.app.panel_state.has_focus()
             && self.app.panel_state.active == crate::panel::PanelId::Region
             && self.handle_region_panel_key(key) == KeyAction::Handled
+        {
+            return WindowAction::Handled;
+        }
+
+        // 2b. Category panel focus
+        if self.app.panel_state.has_focus()
+            && self.app.panel_state.active == crate::panel::PanelId::Category
+            && crate::ui::widgets::category_panel_keys::handle_key(&mut self.app, key)
+                == KeyAction::Handled
         {
             return WindowAction::Handled;
         }
@@ -436,6 +450,9 @@ impl Window for MainWindow {
                 }
                 crate::panel::PanelId::Stats => {
                     crate::ui::widgets::stats_panel_keys::shortcut_hints()
+                }
+                crate::panel::PanelId::Category => {
+                    crate::ui::widgets::category_panel_keys::shortcut_hints()
                 }
             };
             // Common panel hints from MainWindow
