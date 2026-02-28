@@ -478,6 +478,7 @@ mod ui_legacy_tests {
             density_source: DensitySource::All,
             density_selector_cursor: 0,
             regions: scouty::region::store::RegionStore::default(),
+            category_processor: None,
             region_manager_cursor: 0,
             region_panel_sort: crate::ui::widgets::region_panel_widget::RegionSortMode::StartTime,
             region_panel_type_filter: None,

@@ -17,7 +17,7 @@ mod tests {
 
     #[test]
     fn test_category_stats_new() {
-        let def = make_definition("test", "level == \"error\"");
+        let def = make_definition("test", "level == \"ERROR\"");
         let stats = CategoryStats::new(def, 10);
         assert_eq!(stats.count, 0);
         assert_eq!(stats.density.len(), 10);
@@ -26,7 +26,7 @@ mod tests {
 
     #[test]
     fn test_category_stats_record_match() {
-        let def = make_definition("test", "level == \"error\"");
+        let def = make_definition("test", "level == \"ERROR\"");
         let mut stats = CategoryStats::new(def, 5);
 
         stats.record_match(Some(2));
@@ -48,7 +48,7 @@ mod tests {
 
     #[test]
     fn test_category_stats_resize_density() {
-        let def = make_definition("test", "level == \"error\"");
+        let def = make_definition("test", "level == \"ERROR\"");
         let mut stats = CategoryStats::new(def, 5);
         stats.density[0] = 10;
         stats.resize_density(8);
@@ -62,8 +62,8 @@ mod tests {
     #[test]
     fn test_store_from_definitions() {
         let defs = vec![
-            make_definition("errors", "level == \"error\""),
-            make_definition("warnings", "level == \"warning\""),
+            make_definition("errors", "level == \"ERROR\""),
+            make_definition("warnings", "level == \"WARNING\""),
         ];
         let store = CategoryStore::from_definitions(defs, 20);
         assert_eq!(store.categories.len(), 2);
@@ -73,7 +73,7 @@ mod tests {
 
     #[test]
     fn test_store_reset() {
-        let defs = vec![make_definition("test", "level == \"error\"")];
+        let defs = vec![make_definition("test", "level == \"ERROR\"")];
         let mut store = CategoryStore::from_definitions(defs, 5);
         store.categories[0].count = 42;
         store.categories[0].density[0] = 10;
@@ -172,5 +172,171 @@ mod tests {
         let (defs, warnings) = load_file(&file);
         assert!(warnings.is_empty(), "warnings: {:?}", warnings);
         assert_eq!(defs.len(), 3);
+    }
+
+    // ── CategoryProcessor tests ─────────────────────────────────────
+
+    use crate::record::{LogLevel, LogRecord};
+    use chrono::{Duration, Utc};
+
+    fn make_record(
+        level: LogLevel,
+        message: &str,
+        component: Option<&str>,
+        ts: chrono::DateTime<Utc>,
+    ) -> LogRecord {
+        LogRecord {
+            id: 0,
+            timestamp: ts,
+            level: Some(level),
+            source: "test".into(),
+            pid: None,
+            tid: None,
+            component_name: component.map(|s| s.to_string()),
+            process_name: None,
+            hostname: None,
+            container: None,
+            context: None,
+            function: None,
+            message: message.into(),
+            raw: message.into(),
+            metadata: None,
+            loader_id: "test".into(),
+            expanded: None,
+        }
+    }
+
+    #[test]
+    fn test_processor_single_match() {
+        let defs = vec![make_definition("errors", "level == \"ERROR\"")];
+        let mut proc = CategoryProcessor::new(defs, 10);
+        let now = Utc::now();
+
+        let records = vec![
+            make_record(LogLevel::Error, "boom", None, now),
+            make_record(LogLevel::Info, "ok", None, now + Duration::seconds(1)),
+            make_record(LogLevel::Error, "crash", None, now + Duration::seconds(2)),
+        ];
+
+        proc.process_records(&records);
+        assert_eq!(proc.store.categories[0].count, 2);
+    }
+
+    #[test]
+    fn test_processor_multi_category_match() {
+        let defs = vec![
+            make_definition("errors", "level == \"ERROR\""),
+            make_definition("bgp", "component == \"bgp\""),
+        ];
+        let mut proc = CategoryProcessor::new(defs, 10);
+        let now = Utc::now();
+
+        let records = vec![
+            // Matches both "errors" and "bgp"
+            make_record(LogLevel::Error, "bgp fail", Some("bgp"), now),
+            // Matches only "bgp"
+            make_record(
+                LogLevel::Info,
+                "bgp up",
+                Some("bgp"),
+                now + Duration::seconds(1),
+            ),
+            // Matches only "errors"
+            make_record(
+                LogLevel::Error,
+                "disk fail",
+                None,
+                now + Duration::seconds(2),
+            ),
+        ];
+
+        proc.process_records(&records);
+        assert_eq!(proc.store.categories[0].count, 2, "errors count");
+        assert_eq!(proc.store.categories[1].count, 2, "bgp count");
+    }
+
+    #[test]
+    fn test_processor_no_match() {
+        let defs = vec![make_definition("errors", "level == \"ERROR\"")];
+        let mut proc = CategoryProcessor::new(defs, 10);
+        let now = Utc::now();
+
+        let records = vec![make_record(LogLevel::Info, "ok", None, now)];
+
+        proc.process_records(&records);
+        assert_eq!(proc.store.categories[0].count, 0);
+    }
+
+    #[test]
+    fn test_processor_empty_records() {
+        let defs = vec![make_definition("errors", "level == \"ERROR\"")];
+        let mut proc = CategoryProcessor::new(defs, 10);
+        proc.process_records(&[] as &[LogRecord]);
+        assert_eq!(proc.store.categories[0].count, 0);
+    }
+
+    #[test]
+    fn test_processor_density_buckets() {
+        let defs = vec![make_definition("errors", "level == \"ERROR\"")];
+        let mut proc = CategoryProcessor::new(defs, 10);
+        let now = Utc::now();
+
+        let records = vec![
+            make_record(LogLevel::Error, "start", None, now),
+            make_record(LogLevel::Error, "end", None, now + Duration::seconds(9)),
+        ];
+
+        proc.process_records(&records);
+        assert_eq!(proc.store.categories[0].count, 2);
+        // First record → bucket 0, last → bucket 9
+        assert_eq!(proc.store.categories[0].density[0], 1);
+        assert_eq!(proc.store.categories[0].density[9], 1);
+    }
+
+    #[test]
+    fn test_processor_streaming_single_record() {
+        let defs = vec![make_definition("errors", "level == \"ERROR\"")];
+        let mut proc = CategoryProcessor::new(defs, 10);
+        let now = Utc::now();
+        let range_ms = 10_000.0; // 10 seconds
+
+        let record = make_record(LogLevel::Error, "boom", None, now);
+        proc.process_record(&record, now, range_ms);
+        assert_eq!(proc.store.categories[0].count, 1);
+
+        let record2 = make_record(LogLevel::Info, "ok", None, now + Duration::seconds(1));
+        proc.process_record(&record2, now, range_ms);
+        assert_eq!(proc.store.categories[0].count, 1); // no change
+    }
+
+    #[test]
+    fn test_processor_reset() {
+        let defs = vec![make_definition("errors", "level == \"ERROR\"")];
+        let mut proc = CategoryProcessor::new(defs, 10);
+        let now = Utc::now();
+
+        let records = vec![make_record(LogLevel::Error, "boom", None, now)];
+        proc.process_records(&records);
+        assert_eq!(proc.store.categories[0].count, 1);
+
+        proc.reset();
+        assert_eq!(proc.store.categories[0].count, 0);
+        assert!(proc.store.categories[0].density.iter().all(|&v| v == 0));
+    }
+
+    #[test]
+    fn test_processor_resize_density() {
+        let defs = vec![
+            make_definition("errors", "level == \"ERROR\""),
+            make_definition("warnings", "level == \"WARNING\""),
+        ];
+        let mut proc = CategoryProcessor::new(defs, 10);
+        assert_eq!(proc.bucket_count, 10);
+        assert_eq!(proc.store.categories[0].density.len(), 10);
+
+        proc.resize_density(20);
+        assert_eq!(proc.bucket_count, 20);
+        assert_eq!(proc.store.categories[0].density.len(), 20);
+        assert_eq!(proc.store.categories[1].density.len(), 20);
     }
 }

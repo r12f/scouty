@@ -147,6 +147,12 @@ pub enum ExpandedValue {
     List(Vec<ExpandedValue>),
 }
 
+impl AsRef<LogRecord> for LogRecord {
+    fn as_ref(&self) -> &LogRecord {
+        self
+    }
+}
+
 #[cfg(test)]
 #[path = "record_tests.rs"]
 mod record_tests;

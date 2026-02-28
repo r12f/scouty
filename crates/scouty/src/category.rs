@@ -8,7 +8,10 @@
 #[path = "category_tests.rs"]
 mod category_tests;
 
+use crate::filter::eval;
 use crate::filter::expr::{self, Expr};
+use crate::record::LogRecord;
+use chrono::{DateTime, Utc};
 use serde::Deserialize;
 use std::path::Path;
 
@@ -203,4 +206,108 @@ fn category_config_dirs() -> Vec<std::path::PathBuf> {
     dirs.push(std::path::PathBuf::from("./scouty-categories"));
 
     dirs
+}
+
+// ── Categorization Processor ────────────────────────────────────────
+
+/// Categorization processor — evaluates log records against all category
+/// definitions and updates per-category stats (count + density histogram).
+pub struct CategoryProcessor {
+    pub store: CategoryStore,
+    bucket_count: usize,
+}
+
+impl CategoryProcessor {
+    /// Create a new processor from definitions with a given density bucket count.
+    pub fn new(definitions: Vec<CategoryDefinition>, bucket_count: usize) -> Self {
+        Self {
+            store: CategoryStore::from_definitions(definitions, bucket_count),
+            bucket_count,
+        }
+    }
+
+    /// Process a batch of records, updating all category stats.
+    ///
+    /// The time range is derived from the min and max timestamps across all records
+    /// to compute density histogram bucket indices.
+    pub fn process_records<R: AsRef<LogRecord>>(&mut self, records: &[R]) {
+        if records.is_empty() || self.store.categories.is_empty() {
+            return;
+        }
+
+        // Compute time range for density bucketing
+        let (time_min, time_max) = Self::time_range(records);
+        let range_ms = (time_max - time_min).num_milliseconds().max(1) as f64;
+        let bucket_count = self.bucket_count;
+
+        for record in records {
+            let record = record.as_ref();
+            for cat in &mut self.store.categories {
+                if eval::eval(&cat.definition.filter, record) {
+                    let bucket =
+                        Self::compute_bucket(record.timestamp, time_min, range_ms, bucket_count);
+                    cat.record_match(Some(bucket));
+                }
+            }
+        }
+
+        tracing::debug!(
+            categories = self.store.categories.len(),
+            records = records.len(),
+            "Categorization complete"
+        );
+    }
+
+    /// Process a single record (for streaming/tailing).
+    /// Requires pre-computed time range; caller should provide `time_min` and `range_ms`.
+    pub fn process_record(&mut self, record: &LogRecord, time_min: DateTime<Utc>, range_ms: f64) {
+        let bucket_count = self.bucket_count;
+        for cat in &mut self.store.categories {
+            if eval::eval(&cat.definition.filter, record) {
+                let bucket =
+                    Self::compute_bucket(record.timestamp, time_min, range_ms, bucket_count);
+                cat.record_match(Some(bucket));
+            }
+        }
+    }
+
+    /// Resize all density histograms.
+    pub fn resize_density(&mut self, new_len: usize) {
+        self.bucket_count = new_len;
+        for cat in &mut self.store.categories {
+            cat.resize_density(new_len);
+        }
+    }
+
+    /// Reset all stats (e.g., on reload).
+    pub fn reset(&mut self) {
+        self.store.reset();
+    }
+
+    fn time_range<R: AsRef<LogRecord>>(records: &[R]) -> (DateTime<Utc>, DateTime<Utc>) {
+        let first = records[0].as_ref().timestamp;
+        let mut min = first;
+        let mut max = first;
+        for r in records.iter().skip(1) {
+            let ts = r.as_ref().timestamp;
+            if ts < min {
+                min = ts;
+            }
+            if ts > max {
+                max = ts;
+            }
+        }
+        (min, max)
+    }
+
+    fn compute_bucket(
+        ts: DateTime<Utc>,
+        time_min: DateTime<Utc>,
+        range_ms: f64,
+        bucket_count: usize,
+    ) -> usize {
+        let offset = (ts - time_min).num_milliseconds().max(0) as f64;
+        let idx = (offset / range_ms * (bucket_count as f64 - 1.0)) as usize;
+        idx.min(bucket_count.saturating_sub(1))
+    }
 }
