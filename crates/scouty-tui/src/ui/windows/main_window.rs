@@ -461,7 +461,7 @@ impl Window for MainWindow {
             hints.push(("Esc", "Close"));
             hints
         } else if self.app.follow_mode {
-            vec![("Esc", "Stop Follow"), ("?", "Help")]
+            vec![("F", "Stop Follow"), ("?", "Help")]
         } else {
             vec![
                 ("j/k", "↑↓"),
