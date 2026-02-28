@@ -1,3 +1,4 @@
+pub mod category;
 pub mod filter;
 pub mod loader;
 pub mod parser;
