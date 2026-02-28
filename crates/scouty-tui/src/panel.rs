@@ -137,27 +137,32 @@ impl PanelState {
     pub fn focus_panel(&mut self) {
         self.expanded = true;
         self.focus = PanelFocus::PanelContent;
+        tracing::debug!(active = ?self.active, "panel focus: entered panel content");
     }
 
     /// Focus back to log table.
     pub fn focus_log_table(&mut self) {
         self.focus = PanelFocus::LogTable;
+        tracing::debug!("panel focus: returned to log table");
     }
 
     /// Switch to next panel tab.
     pub fn next_panel(&mut self) {
         self.active = self.active.next();
+        tracing::debug!(active = ?self.active, "panel: switched to next tab");
     }
 
     /// Switch to previous panel tab.
     pub fn prev_panel(&mut self) {
         self.active = self.active.prev();
+        tracing::debug!(active = ?self.active, "panel: switched to prev tab");
     }
 
     /// Toggle maximize.
     pub fn toggle_maximize(&mut self) {
         if self.expanded {
             self.maximized = !self.maximized;
+            tracing::debug!(maximized = self.maximized, "panel: toggled maximize");
         }
     }
 

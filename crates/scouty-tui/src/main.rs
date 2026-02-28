@@ -562,6 +562,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                 app.clear_status();
 
+                tracing::debug!(
+                    key_code = ?key.code,
+                    modifiers = ?key.modifiers,
+                    input_mode = ?app.input_mode,
+                    "key event"
+                );
+
                 match app.input_mode {
                     InputMode::Normal => {
                         use keybinding::Action;
@@ -777,6 +784,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                         if !key_handled {
                             if let Some(action) = keymap.action(&key) {
+                                tracing::debug!(?action, "action dispatched");
                                 match action {
                                     Action::Quit => {
                                         should_break = true;
