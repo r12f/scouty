@@ -74,6 +74,7 @@ Expanded:   ▾ Detail │ Region
 - Selected panel name is highlighted (e.g., reverse video or bold)
 - Inactive panel names displayed normally
 - Tab bar is always visible (regardless of collapse/expand state)
+- **Focus indicator:** When the panel area has focus (as opposed to log table), the active panel's tab title uses a distinct highlight style (e.g., brighter color or underline) to clearly indicate that keyboard input is directed to the panel, not the log table
 
 #### Focus Model
 
