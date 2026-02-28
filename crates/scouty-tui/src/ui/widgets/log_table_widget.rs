@@ -67,6 +67,11 @@ pub struct LogTableWidget;
 impl LogTableWidget {
     pub fn render_with_app(&self, frame: &mut Frame, area: Rect, app: &App) {
         let theme = &app.theme;
+        tracing::trace!(
+            panel_focused = app.panel_state.expanded
+                && app.panel_state.focus == crate::panel::PanelFocus::PanelContent,
+            "rendering log table header"
+        );
         let visible = app.visible_records();
         let cw = &app.col_widths;
         let vis_cols = app.column_config.visible_columns();
@@ -123,7 +128,14 @@ impl LogTableWidget {
             }
         }));
 
-        let header = Row::new(header_cells).style(theme.table.header.to_style());
+        let panel_has_focus = app.panel_state.expanded
+            && app.panel_state.focus == crate::panel::PanelFocus::PanelContent;
+        let header_style = if panel_has_focus {
+            theme.table.header_unfocused.to_style()
+        } else {
+            theme.table.header.to_style()
+        };
+        let header = Row::new(header_cells).style(header_style);
 
         let rows: Vec<Row> = visible
             .iter()
