@@ -703,7 +703,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 KeyCode::Down if ctrl => {
                                     app.panel_state.focus_panel();
                                     // Sync legacy detail_open
-                                    app.detail_open = app.panel_state.expanded;
+                                    app.detail_open = app.panel_state.expanded
+                                        && app.panel_state.active == crate::panel::PanelId::Detail;
                                     true
                                 }
                                 KeyCode::Up if ctrl => {
@@ -719,12 +720,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                     true
                                 }
                                 // Tab cycles: Log Table → Detail → Region → Log Table
-                                KeyCode::Tab
-                                    if key.modifiers.is_empty() && app.panel_state.expanded =>
-                                {
+                                // Expands panels if collapsed (per spec)
+                                KeyCode::Tab if key.modifiers.is_empty() => {
                                     if app.panel_state.focus == crate::panel::PanelFocus::LogTable {
                                         app.panel_state.active = crate::panel::PanelId::all()[0];
                                         app.panel_state.focus_panel();
+                                        app.detail_open = app.panel_state.expanded
+                                            && app.panel_state.active
+                                                == crate::panel::PanelId::Detail;
                                         tracing::debug!(active = ?app.panel_state.active, "Tab: log table → panel");
                                     } else {
                                         let all = crate::panel::PanelId::all();
@@ -741,11 +744,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                     true
                                 }
                                 // Shift+Tab cycles backward: Log Table → Region → Detail → Log Table
-                                KeyCode::BackTab if app.panel_state.expanded => {
+                                // Expands panels if collapsed (per spec)
+                                KeyCode::BackTab => {
                                     if app.panel_state.focus == crate::panel::PanelFocus::LogTable {
                                         let all = crate::panel::PanelId::all();
                                         app.panel_state.active = *all.last().unwrap();
                                         app.panel_state.focus_panel();
+                                        app.detail_open = app.panel_state.expanded
+                                            && app.panel_state.active
+                                                == crate::panel::PanelId::Detail;
                                         tracing::debug!(active = ?app.panel_state.active, "Shift+Tab: log table → panel");
                                     } else {
                                         let all = crate::panel::PanelId::all();
