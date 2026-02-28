@@ -485,10 +485,12 @@ impl App {
         ssh_connect_timeout: u32,
         ssh_keepalive_interval: u32,
     ) -> Result<Self, Box<dyn std::error::Error>> {
+        tracing::info!(file_count = paths.len(), "loading files");
         let mut store = scouty::store::LogStore::new();
         let mut record_id: u64 = 0;
 
         for path in paths {
+            tracing::info!(%path, "loading file");
             if is_ssh_url(path) {
                 let url = SshUrl::parse(path).map_err(|e| {
                     Box::<dyn std::error::Error>::from(format!("Invalid SSH URL '{}': {}", path, e))
@@ -546,6 +548,7 @@ impl App {
         store.compact_ooo();
         let records: Vec<Arc<LogRecord>> = store.iter_arc().cloned().collect();
         let total_records = records.len();
+        tracing::info!(total_records, "files loaded, records parsed");
         let filtered_indices: Vec<usize> = (0..records.len()).collect();
         let col_widths = Self::compute_col_widths(&records, &filtered_indices);
 
@@ -878,7 +881,9 @@ impl App {
             self.filter_error = None;
             return;
         }
-        match expr::parse(self.filter_input.value()) {
+        let filter_text = self.filter_input.value().to_string();
+        tracing::info!(filter = %filter_text, "applying filter");
+        match expr::parse(&filter_text) {
             Ok(parsed_expr) => {
                 self.filters.push(FilterEntry {
                     label: self.filter_input.value().to_string(),
@@ -1249,6 +1254,7 @@ impl App {
     /// Clear all filters.
     #[instrument(skip(self))]
     pub fn clear_filters(&mut self) {
+        tracing::info!("clearing all filters");
         self.filters.clear();
         self.reapply_filters();
     }
@@ -1262,6 +1268,7 @@ impl App {
             self.clear_search();
             return;
         }
+        tracing::info!(pattern = %self.search_input.value(), "executing search");
         let pattern = match regex::RegexBuilder::new(self.search_input.value())
             .case_insensitive(true)
             .build()
@@ -1348,8 +1355,18 @@ impl App {
             let id = self.records[ri].id;
             if !self.bookmarks.remove(&id) {
                 self.bookmarks.insert(id);
+                tracing::debug!(
+                    record_id = id,
+                    total = self.bookmarks.len(),
+                    "bookmark added"
+                );
                 self.set_status(format!("Bookmark added (total: {})", self.bookmarks.len()));
             } else {
+                tracing::debug!(
+                    record_id = id,
+                    total = self.bookmarks.len(),
+                    "bookmark removed"
+                );
                 self.set_status(format!(
                     "Bookmark removed (total: {})",
                     self.bookmarks.len()
@@ -1611,6 +1628,7 @@ impl App {
 
     pub fn toggle_detail(&mut self) {
         self.detail_open = !self.detail_open;
+        tracing::debug!(detail_open = self.detail_open, "toggled detail panel");
         if self.detail_open {
             self.panel_state.open(crate::panel::PanelId::Detail);
             // Auto-focus tree if expanded data is available

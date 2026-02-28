@@ -69,6 +69,7 @@ impl SaveDialogWindow {
     pub fn execute_save(app: &App, path: &str, format: ExportFormat) -> String {
         use std::io::{BufWriter, Write};
 
+        tracing::info!(%path, ?format, records = app.filtered_indices.len(), "saving export");
         let count = app.filtered_indices.len();
 
         let file = match std::fs::File::create(path) {
