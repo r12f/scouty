@@ -10,7 +10,7 @@ mod status_bar_widget_tests;
 use crate::app::App;
 use crate::ui::UiComponent;
 use ratatui::layout::Rect;
-
+use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::Paragraph;
 use ratatui::Frame;
@@ -166,9 +166,39 @@ impl StatusBarWidget {
         let right_text = format!("{}{}", bookmark_text, position_text);
         let right_width = UnicodeWidthStr::width(right_text.as_str()) as u16;
 
-        let chart_width = area.width.saturating_sub(right_width + 2) as usize;
+        // Account for follow indicator width in chart space
+        let follow_width: u16 = if app.follow_mode {
+            if app.follow_new_count > 0 {
+                (format!("[FOLLOW ↓{}] ", app.follow_new_count).len() + 2) as u16
+            } else {
+                "[FOLLOW] ".len() as u16
+            }
+        } else {
+            0
+        };
+
+        let chart_width = area.width.saturating_sub(right_width + follow_width + 2) as usize;
 
         let mut spans: Vec<Span> = Vec::new();
+
+        // Follow mode indicator
+        if app.follow_mode {
+            if app.follow_new_count > 0 {
+                spans.push(Span::styled(
+                    format!("[FOLLOW ↓{}] ", app.follow_new_count),
+                    Style::default()
+                        .fg(Color::Yellow)
+                        .add_modifier(Modifier::BOLD),
+                ));
+            } else {
+                spans.push(Span::styled(
+                    "[FOLLOW] ".to_string(),
+                    Style::default()
+                        .fg(Color::Green)
+                        .add_modifier(Modifier::BOLD),
+                ));
+            }
+        }
 
         if chart_width >= 4 && app.total() > 0 {
             if let Some(cache) = &app.density_cache {

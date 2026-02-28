@@ -65,7 +65,7 @@ impl<'a> HelpWindow<'a> {
             Line::from("  g / G            First / last row"),
             Line::from("  Ctrl+G           Go to line number"),
             Line::from("  ] / [            Time jump forward / backward"),
-            Line::from("  Ctrl+]           Toggle follow mode"),
+            Line::from("  F                Stop follow mode"),
             Line::from("  Enter            Toggle detail panel"),
             Line::from(""),
             section("Log Table View — Search & Filter"),
