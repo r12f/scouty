@@ -740,6 +740,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                     if key.modifiers.is_empty() && app.panel_state.expanded =>
                                 {
                                     if app.panel_state.focus == crate::panel::PanelFocus::LogTable {
+                                        // Always start at first panel (Detail)
+                                        app.panel_state.active = crate::panel::PanelId::all()[0];
                                         app.panel_state.focus_panel();
                                     } else {
                                         let all = crate::panel::PanelId::all();
@@ -754,6 +756,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 // Shift+Tab cycles backward: Log Table → Region → Detail → Log Table
                                 KeyCode::BackTab if app.panel_state.expanded => {
                                     if app.panel_state.focus == crate::panel::PanelFocus::LogTable {
+                                        // Always start at last panel (Region)
                                         let all = crate::panel::PanelId::all();
                                         app.panel_state.active = *all.last().unwrap();
                                         app.panel_state.focus_panel();
