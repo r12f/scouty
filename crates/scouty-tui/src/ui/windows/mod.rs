@@ -12,6 +12,7 @@ pub mod highlight_manager_window;
 pub mod level_filter_window;
 pub mod load_preset_window;
 pub mod main_window;
+pub mod overlay_adapters;
 pub mod region_manager_window;
 pub mod save_dialog_window;
 pub mod save_preset_window;

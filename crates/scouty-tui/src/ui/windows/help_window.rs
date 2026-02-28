@@ -4,8 +4,11 @@
 #[path = "help_window_tests.rs"]
 mod help_window_tests;
 
+use crate::app::App;
 use crate::config::Theme;
+use crate::ui::framework::{OverlayWindow, WindowAction};
 use crate::ui::{ComponentResult, UiComponent};
+use crossterm::event::KeyEvent;
 use ratatui::layout::Rect;
 use ratatui::style::{Modifier, Style};
 use ratatui::text::Line;
@@ -170,5 +173,54 @@ impl UiComponent for HelpWindow<'_> {
         } else {
             ComponentResult::Consumed
         }
+    }
+}
+
+// ── OverlayWindow implementation ────────────────────────────────────
+
+/// Owned help overlay for use with OverlayStack.
+pub struct HelpOverlay {
+    pub scroll: u16,
+    pub visible_height: u16,
+}
+
+impl HelpOverlay {
+    pub fn new(app: &App) -> Self {
+        Self {
+            scroll: app.help_scroll,
+            visible_height: 20,
+        }
+    }
+}
+
+impl OverlayWindow for HelpOverlay {
+    fn name(&self) -> &str {
+        "HelpOverlay"
+    }
+
+    fn render(&self, frame: &mut Frame, area: Rect, app: &App) {
+        let mut window = HelpWindow::new(&app.theme);
+        window.scroll = self.scroll;
+        window.visible_height = self.visible_height;
+        <HelpWindow as UiComponent>::render(&window, frame, area);
+    }
+
+    fn handle_key(&mut self, app: &mut App, key: KeyEvent) -> WindowAction {
+        let mut window = HelpWindow::new(&app.theme);
+        window.scroll = self.scroll;
+        window.visible_height = self.visible_height;
+        let result = crate::ui::dispatch_key(&mut window, key);
+        self.scroll = window.scroll;
+        app.help_scroll = self.scroll;
+        if result == ComponentResult::Close {
+            app.input_mode = crate::app::InputMode::Normal;
+            WindowAction::Close
+        } else {
+            WindowAction::Handled
+        }
+    }
+
+    fn shortcut_hints(&self) -> Vec<(&str, &str)> {
+        vec![("j/k", "Scroll"), ("Esc/q", "Close")]
     }
 }

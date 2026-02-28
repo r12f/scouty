@@ -10,7 +10,7 @@ mod main_window_tests;
 
 use crate::app::{App, InputMode};
 use crate::keybinding::{Action, Keymap};
-use crate::ui::framework::{KeyAction, Window, WindowAction};
+use crate::ui::framework::{KeyAction, OverlayStack, Window, WindowAction};
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::layout::Rect;
 use ratatui::Frame;
@@ -19,11 +19,16 @@ use ratatui::Frame;
 pub struct MainWindow {
     pub app: App,
     pub keymap: Keymap,
+    pub overlay_stack: OverlayStack,
 }
 
 impl MainWindow {
     pub fn new(app: App, keymap: Keymap) -> Self {
-        Self { app, keymap }
+        Self {
+            app,
+            keymap,
+            overlay_stack: OverlayStack::new(),
+        }
     }
 
     /// Handle keys when detail tree has focus.
@@ -139,6 +144,9 @@ impl MainWindow {
             Action::FilterManager => {
                 self.app.input_mode = InputMode::FilterManager;
                 self.app.filter_manager_cursor = 0;
+                self.overlay_stack.push(Box::new(
+                    crate::ui::windows::overlay_adapters::FilterManagerOverlay::new(),
+                ));
             }
             Action::LevelFilter => {
                 self.app.input_mode = InputMode::LevelFilter;
@@ -147,6 +155,9 @@ impl MainWindow {
                     .level_filter
                     .map(|l| (l.as_number() - 1) as usize)
                     .unwrap_or(0);
+                self.overlay_stack.push(Box::new(
+                    crate::ui::windows::overlay_adapters::LevelFilterOverlay::new(),
+                ));
             }
             Action::DensityCycle => self.app.cycle_density_source(),
             Action::DensitySelector => {
@@ -157,6 +168,9 @@ impl MainWindow {
                     .position(|s| *s == self.app.density_source)
                     .unwrap_or(0);
                 self.app.input_mode = InputMode::DensitySelector;
+                self.overlay_stack.push(Box::new(
+                    crate::ui::windows::overlay_adapters::DensitySelectorOverlay::new(),
+                ));
             }
             Action::GotoLine => {
                 self.app.input_mode = InputMode::GotoLine;
@@ -174,14 +188,25 @@ impl MainWindow {
                 self.app.input_mode = InputMode::CopyFormat;
                 self.app.copy_format_cursor = 0;
             }
-            Action::Save => self.app.input_mode = InputMode::SaveDialog,
+            Action::Save => {
+                self.app.input_mode = InputMode::SaveDialog;
+                self.overlay_stack.push(Box::new(
+                    crate::ui::windows::overlay_adapters::SaveDialogOverlay::new(),
+                ));
+            }
             Action::ColumnSelector => {
                 self.app.input_mode = InputMode::ColumnSelector;
                 self.app.column_config.cursor = 0;
+                self.overlay_stack.push(Box::new(
+                    crate::ui::windows::overlay_adapters::ColumnSelectorOverlay::new(),
+                ));
             }
             Action::Help => {
                 self.app.input_mode = InputMode::Help;
                 self.app.help_scroll = 0;
+                self.overlay_stack.push(Box::new(
+                    crate::ui::windows::help_window::HelpOverlay::new(&self.app),
+                ));
             }
             Action::Command => {
                 self.app.command_input.clear();
@@ -194,6 +219,9 @@ impl MainWindow {
             Action::HighlightManager => {
                 self.app.input_mode = InputMode::HighlightManager;
                 self.app.highlight_manager_cursor = 0;
+                self.overlay_stack.push(Box::new(
+                    crate::ui::windows::overlay_adapters::HighlightManagerOverlay::new(),
+                ));
             }
             Action::ToggleBookmark => self.app.toggle_bookmark(),
             Action::NextBookmark => self.app.jump_next_bookmark(),
@@ -201,6 +229,9 @@ impl MainWindow {
             Action::BookmarkManager => {
                 self.app.input_mode = InputMode::BookmarkManager;
                 self.app.bookmark_manager_cursor = 0;
+                self.overlay_stack.push(Box::new(
+                    crate::ui::windows::overlay_adapters::BookmarkManagerOverlay::new(),
+                ));
             }
             Action::RegionManager => {
                 self.app
@@ -358,35 +389,12 @@ impl MainWindow {
                 }
             }
             InputMode::FilterManager => {
-                use crate::ui::windows::filter_manager_window::FilterManagerWindow;
-                let mut window = FilterManagerWindow::from_app(&self.app);
-                let result = crate::ui::dispatch_key(&mut window, key);
-                window.apply_to_app(&mut self.app);
-                if result == crate::ui::ComponentResult::Close {
-                    match window.action {
-                        Some("save_preset") => {
-                            self.app.preset_name_input.clear();
-                            self.app.input_mode = InputMode::SavePreset;
-                        }
-                        Some("load_preset") => {
-                            self.app.preset_list = crate::config::filter_preset::list_presets();
-                            self.app.preset_list_cursor = 0;
-                            self.app.input_mode = InputMode::LoadPreset;
-                        }
-                        _ => {
-                            self.app.input_mode = InputMode::Normal;
-                        }
-                    }
-                }
+                // Dispatched via overlay_stack
+                self.app.input_mode = InputMode::Normal;
             }
             InputMode::ColumnSelector => {
-                use crate::ui::windows::column_selector_window::ColumnSelectorWindow;
-                let mut window = ColumnSelectorWindow::from_app(&self.app);
-                let result = crate::ui::dispatch_key(&mut window, key);
-                window.sync_to_app(&mut self.app);
-                if result == crate::ui::ComponentResult::Close {
-                    self.app.input_mode = InputMode::Normal;
-                }
+                // Dispatched via overlay_stack
+                self.app.input_mode = InputMode::Normal;
             }
             InputMode::CopyFormat => {
                 use crate::ui::windows::copy_format_window::CopyFormatWindow;
@@ -402,14 +410,9 @@ impl MainWindow {
                 }
             }
             InputMode::Help => {
-                use crate::ui::windows::help_window::HelpWindow;
-                let mut window = HelpWindow::new(&self.app.theme);
-                window.scroll = self.app.help_scroll;
-                let result = crate::ui::dispatch_key(&mut window, key);
-                self.app.help_scroll = window.scroll;
-                if result == crate::ui::ComponentResult::Close {
-                    self.app.input_mode = InputMode::Normal;
-                }
+                // Dispatched via overlay_stack — shouldn't reach here.
+                // Fallback: close the mode.
+                self.app.input_mode = InputMode::Normal;
             }
             InputMode::Command => match key.code {
                 KeyCode::Enter => {
@@ -442,35 +445,16 @@ impl MainWindow {
                 }
             },
             InputMode::HighlightManager => {
-                use crate::ui::windows::highlight_manager_window::HighlightManagerWindow;
-                let mut window = HighlightManagerWindow::from_app(&self.app);
-                let result = crate::ui::dispatch_key(&mut window, key);
-                window.apply_to_app(&mut self.app);
-                if result == crate::ui::ComponentResult::Close {
-                    self.app.input_mode = InputMode::Normal;
-                }
+                // Dispatched via overlay_stack
+                self.app.input_mode = InputMode::Normal;
             }
             InputMode::BookmarkManager => {
-                use crate::ui::windows::bookmark_manager_window::BookmarkManagerWindow;
-                let mut window = BookmarkManagerWindow::from_app(&self.app);
-                let result = crate::ui::dispatch_key(&mut window, key);
-                window.apply_to_app(&mut self.app);
-                if result == crate::ui::ComponentResult::Close {
-                    self.app.input_mode = InputMode::Normal;
-                }
+                // Dispatched via overlay_stack
+                self.app.input_mode = InputMode::Normal;
             }
             InputMode::LevelFilter => {
-                use crate::ui::windows::level_filter_window::LevelFilterWindow;
-                let mut window = LevelFilterWindow::from_app(&self.app);
-                let result = crate::ui::dispatch_key(&mut window, key);
-                if result == crate::ui::ComponentResult::Close {
-                    if window.confirmed {
-                        if let Some(preset) = window.selected {
-                            self.app.apply_level_filter(preset);
-                        }
-                    }
-                    self.app.input_mode = InputMode::Normal;
-                }
+                // Dispatched via overlay_stack
+                self.app.input_mode = InputMode::Normal;
             }
             InputMode::SavePreset => {
                 use crate::ui::windows::save_preset_window::SavePresetWindow;
@@ -506,72 +490,16 @@ impl MainWindow {
                 }
             }
             InputMode::DensitySelector => {
-                use crate::ui::windows::density_selector_window::DensitySelectorWindow;
-                let options = self.app.density_source_options();
-                let mut window =
-                    DensitySelectorWindow::new(options, self.app.density_selector_cursor);
-                let result = crate::ui::dispatch_key(&mut window, key);
-                self.app.density_selector_cursor = window.cursor;
-                if result == crate::ui::ComponentResult::Close {
-                    if window.confirmed {
-                        if let Some(source) = window.selected {
-                            self.app.density_source = source;
-                            self.app.density_cache = None;
-                            self.app.set_status(format!(
-                                "Density: {}",
-                                self.app.density_source_label()
-                            ));
-                        }
-                    }
-                    self.app.input_mode = InputMode::Normal;
-                }
+                // Dispatched via overlay_stack
+                self.app.input_mode = InputMode::Normal;
             }
             InputMode::SaveDialog => {
-                use crate::ui::windows::save_dialog_window::SaveDialogWindow;
-                let mut window = SaveDialogWindow::from_app(&self.app);
-                let result = crate::ui::dispatch_key(&mut window, key);
-                self.app.save_path_input = window.path_input.clone();
-                self.app.save_format_cursor = window.format_cursor;
-                self.app.save_dialog_focus = window.focus;
-                if result == crate::ui::ComponentResult::Close {
-                    if window.confirmed {
-                        let path = window.expanded_path();
-                        let format = window.selected_format();
-                        let msg = SaveDialogWindow::execute_save(&self.app, &path, format);
-                        self.app.set_status(msg);
-                    }
-                    self.app.input_mode = InputMode::Normal;
-                    self.app.save_path_input =
-                        crate::text_input::TextInput::with_text("./scouty-export.log");
-                    self.app.save_format_cursor = 0;
-                    self.app.save_dialog_focus =
-                        crate::ui::windows::save_dialog_window::Focus::Path;
-                }
+                // Dispatched via overlay_stack
+                self.app.input_mode = InputMode::Normal;
             }
             InputMode::RegionManager => {
-                use crate::ui::windows::region_manager_window::RegionManagerWindow;
-                let mut window = RegionManagerWindow::from_app(&self.app);
-                let result = crate::ui::dispatch_key(&mut window, key);
-                self.app.region_manager_cursor = window.cursor;
-                if result == crate::ui::ComponentResult::Close {
-                    if let Some(action) = window.action {
-                        match action {
-                            crate::ui::windows::region_manager_window::RegionAction::Jump(idx) => {
-                                self.app.jump_to_record_index(idx);
-                            }
-                            crate::ui::windows::region_manager_window::RegionAction::Filter(
-                                _start,
-                                _end,
-                            ) => {
-                                let def_name =
-                                    &self.app.regions.regions()[window.cursor].definition_name;
-                                let expr = format!("_region_type == \"{}\"", def_name);
-                                self.app.add_filter_expr(&expr);
-                            }
-                        }
-                    }
-                    self.app.input_mode = InputMode::Normal;
-                }
+                // Dispatched via overlay_stack
+                self.app.input_mode = InputMode::Normal;
             }
         }
         false
@@ -595,8 +523,15 @@ impl Window for MainWindow {
             key_code = ?event.code,
             modifiers = ?event.modifiers,
             input_mode = ?self.app.input_mode,
+            overlay_active = !self.overlay_stack.is_empty(),
             "MainWindow: key event"
         );
+
+        // Overlay stack gets priority — input isolation
+        if !self.overlay_stack.is_empty() {
+            self.overlay_stack.handle_key(&mut self.app, event);
+            return WindowAction::Handled;
+        }
 
         match self.app.input_mode {
             InputMode::Normal => self.handle_normal_key(event),
@@ -611,6 +546,11 @@ impl Window for MainWindow {
     }
 
     fn shortcut_hints(&self) -> Vec<(&str, &str)> {
+        // Overlay gets priority for hints
+        if let Some(overlay) = self.overlay_stack.top() {
+            return overlay.shortcut_hints();
+        }
+
         let panel_focused = self.app.panel_state.expanded
             && self.app.panel_state.focus == crate::panel::PanelFocus::PanelContent;
 
