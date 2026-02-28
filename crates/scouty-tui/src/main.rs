@@ -616,19 +616,25 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     }
                     follow::PollResult::Truncated => {
                         tracing::info!("follow: file truncated, reloading");
-                        main_window.app.set_status("File truncated — reloading...".to_string());
+                        main_window
+                            .app
+                            .set_status("File truncated — reloading...".to_string());
                         follower.reset();
                         // Read new content on next poll cycle
                     }
                     follow::PollResult::Rotated => {
                         tracing::info!("follow: file rotated, reloading");
-                        main_window.app.set_status("File rotated — reloading...".to_string());
+                        main_window
+                            .app
+                            .set_status("File rotated — reloading...".to_string());
                         follower.reset();
                         // Read new content on next poll cycle
                     }
                     follow::PollResult::Deleted => {
                         tracing::warn!("follow: file deleted");
-                        main_window.app.set_status("⚠ File deleted — follow stopped".to_string());
+                        main_window
+                            .app
+                            .set_status("⚠ File deleted — follow stopped".to_string());
                         main_window.app.follow_mode = false;
                         main_window.app.follow_new_count = 0;
                     }

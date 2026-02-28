@@ -104,7 +104,10 @@ mod tests {
         follower.reset();
         match follower.poll() {
             PollResult::NewRecords(records) => assert_eq!(records.len(), 1),
-            other => panic!("expected NewRecords after reset, got {:?}", poll_name(&other)),
+            other => panic!(
+                "expected NewRecords after reset, got {:?}",
+                poll_name(&other)
+            ),
         }
     }
 
@@ -237,7 +240,10 @@ mod tests {
                 assert_eq!(records.len(), 1);
                 assert!(records[0].raw.contains("rotated"));
             }
-            other => panic!("expected NewRecords after rotation reset, got {:?}", poll_name(&other)),
+            other => panic!(
+                "expected NewRecords after rotation reset, got {:?}",
+                poll_name(&other)
+            ),
         }
     }
 
