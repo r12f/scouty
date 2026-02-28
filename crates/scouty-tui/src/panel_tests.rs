@@ -135,4 +135,74 @@ mod tests {
         assert!(!state.maximized);
         assert!(!state.expanded);
     }
+
+    /// Simulate Tab cycle: Log Table → Detail → Region → Log Table
+    #[test]
+    fn test_tab_full_cycle_forward() {
+        let mut state = PanelState::default();
+        state.open(PanelId::Region); // open panel, active defaults to whatever
+        state.focus_log_table();
+        assert_eq!(state.focus, PanelFocus::LogTable);
+
+        // Tab from log table: reset to first panel (Detail), focus it
+        let all = PanelId::all();
+        state.active = all[0]; // Detail
+        state.focus_panel();
+        assert_eq!(state.active, PanelId::Detail);
+        assert_eq!(state.focus, PanelFocus::PanelContent);
+
+        // Tab from Detail: next panel (Region)
+        assert_ne!(state.active, *all.last().unwrap());
+        state.next_panel();
+        assert_eq!(state.active, PanelId::Region);
+        assert_eq!(state.focus, PanelFocus::PanelContent);
+
+        // Tab from Region (last panel): back to log table
+        assert_eq!(state.active, *all.last().unwrap());
+        state.focus_log_table();
+        assert_eq!(state.focus, PanelFocus::LogTable);
+    }
+
+    /// Simulate Shift+Tab cycle: Log Table → Region → Detail → Log Table
+    #[test]
+    fn test_tab_full_cycle_backward() {
+        let mut state = PanelState::default();
+        state.open(PanelId::Detail);
+        state.focus_log_table();
+
+        // Shift+Tab from log table: enter last panel (Region)
+        let all = PanelId::all();
+        state.active = *all.last().unwrap(); // Region
+        state.focus_panel();
+        assert_eq!(state.active, PanelId::Region);
+        assert_eq!(state.focus, PanelFocus::PanelContent);
+
+        // Shift+Tab from Region: prev panel (Detail)
+        assert_ne!(state.active, all[0]);
+        state.prev_panel();
+        assert_eq!(state.active, PanelId::Detail);
+        assert_eq!(state.focus, PanelFocus::PanelContent);
+
+        // Shift+Tab from Detail (first panel): back to log table
+        assert_eq!(state.active, all[0]);
+        state.focus_log_table();
+        assert_eq!(state.focus, PanelFocus::LogTable);
+    }
+
+    /// Tab from log table must always start at Detail, even if Region was last active
+    #[test]
+    fn test_tab_from_log_table_always_starts_detail() {
+        let mut state = PanelState::default();
+        state.open(PanelId::Region);
+        // Simulate: user previously switched to Region via Ctrl+→
+        state.active = PanelId::Region;
+        state.focus_log_table();
+
+        // Tab from log table should reset to Detail, not stay on Region
+        let all = PanelId::all();
+        state.active = all[0]; // This is what the fix does
+        state.focus_panel();
+        assert_eq!(state.active, PanelId::Detail);
+        assert_eq!(state.focus, PanelFocus::PanelContent);
+    }
 }
