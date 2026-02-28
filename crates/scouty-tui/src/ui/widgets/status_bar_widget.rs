@@ -233,6 +233,7 @@ impl StatusBarWidget {
                 let label = match app.panel_state.active {
                     crate::panel::PanelId::Detail => "[DETAIL]",
                     crate::panel::PanelId::Region => "[REGION]",
+                    crate::panel::PanelId::Stats => "[STATS]",
                 };
                 (label, theme.status_bar.mode_view.to_style())
             } else if app.follow_mode {
@@ -264,6 +265,12 @@ impl StatusBarWidget {
                             ("Ctrl+↑", "Back"),
                             ("Esc", "Close"),
                             ("z", "Maximize"),
+                        ],
+                        crate::panel::PanelId::Stats => &[
+                            ("Tab", "Next Tab"),
+                            ("Ctrl+↑", "Back"),
+                            ("z", "Maximize"),
+                            ("Esc", "Close"),
                         ],
                     }
                 } else {

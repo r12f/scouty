@@ -86,7 +86,6 @@ mod tests {
             highlight_rules: Vec::new(),
             highlight_input: TextInput::new(),
             highlight_manager_cursor: 0,
-            cached_stats: None,
             bookmarks: std::collections::HashSet::new(),
             bookmark_manager_cursor: 0,
             theme: Theme::default(),

@@ -138,6 +138,9 @@ pub fn render(frame: &mut Frame, app: &mut App) {
             PanelId::Region => {
                 render_region_panel(frame, app, panel_area);
             }
+            PanelId::Stats => {
+                render_stats_panel(frame, panel_area, app);
+            }
         }
     } else {
         app.detail_open = false;
@@ -152,19 +155,6 @@ pub fn render(frame: &mut Frame, app: &mut App) {
         let mut window = HelpWindow::new(&app.theme);
         window.scroll = app.help_scroll;
         window.render(frame, area);
-    }
-
-    // Statistics overlay
-    if app.input_mode == InputMode::Statistics {
-        use crate::ui::windows::stats_window::StatsWindow;
-        use crate::ui::UiComponent;
-        if let Some(ref stats) = app.cached_stats {
-            let window = StatsWindow {
-                stats,
-                theme: &app.theme,
-            };
-            window.render(frame, area);
-        }
     }
 
     // Field filter overlay
@@ -305,6 +295,11 @@ fn render_region_panel(frame: &mut Frame, app: &App, area: Rect) {
     use crate::ui::widgets::region_panel_widget::RegionPanelWidget;
     let widget = RegionPanelWidget;
     widget.render_with_app(frame, area, app);
+}
+
+fn render_stats_panel(frame: &mut Frame, area: Rect, app: &App) {
+    use crate::ui::widgets::stats_panel_widget::StatsPanelWidget;
+    StatsPanelWidget::render_with_app(frame, area, app);
 }
 
 fn render_log_table(frame: &mut Frame, app: &App, area: Rect) {
@@ -471,7 +466,6 @@ mod ui_legacy_tests {
             highlight_rules: Vec::new(),
             highlight_input: TextInput::new(),
             highlight_manager_cursor: 0,
-            cached_stats: None,
             bookmarks: std::collections::HashSet::new(),
             bookmark_manager_cursor: 0,
             theme: Theme::default(),
