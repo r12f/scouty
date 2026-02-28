@@ -244,7 +244,8 @@ impl CategoryProcessor {
         for record in records {
             for cat in &mut self.store.categories {
                 if eval::eval(&cat.definition.filter, record) {
-                    let bucket = Self::compute_bucket(record.timestamp, time_min, range_ms, bucket_count);
+                    let bucket =
+                        Self::compute_bucket(record.timestamp, time_min, range_ms, bucket_count);
                     cat.record_match(Some(bucket));
                 }
             }
@@ -259,16 +260,12 @@ impl CategoryProcessor {
 
     /// Process a single record (for streaming/tailing).
     /// Requires pre-computed time range; caller should provide current min/max.
-    pub fn process_record(
-        &mut self,
-        record: &LogRecord,
-        time_min: DateTime<Utc>,
-        range_ms: f64,
-    ) {
+    pub fn process_record(&mut self, record: &LogRecord, time_min: DateTime<Utc>, range_ms: f64) {
         let bucket_count = self.bucket_count;
         for cat in &mut self.store.categories {
             if eval::eval(&cat.definition.filter, record) {
-                let bucket = Self::compute_bucket(record.timestamp, time_min, range_ms, bucket_count);
+                let bucket =
+                    Self::compute_bucket(record.timestamp, time_min, range_ms, bucket_count);
                 cat.record_match(Some(bucket));
             }
         }
@@ -301,7 +298,12 @@ impl CategoryProcessor {
         (min, max)
     }
 
-    fn compute_bucket(ts: DateTime<Utc>, time_min: DateTime<Utc>, range_ms: f64, bucket_count: usize) -> usize {
+    fn compute_bucket(
+        ts: DateTime<Utc>,
+        time_min: DateTime<Utc>,
+        range_ms: f64,
+        bucket_count: usize,
+    ) -> usize {
         let offset = (ts - time_min).num_milliseconds().max(0) as f64;
         let idx = (offset / range_ms * (bucket_count as f64 - 1.0)) as usize;
         idx.min(bucket_count.saturating_sub(1))

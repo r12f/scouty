@@ -181,7 +181,12 @@ mod tests {
     use std::collections::HashMap;
     use std::sync::Arc;
 
-    fn make_record(level: LogLevel, message: &str, component: Option<&str>, ts: chrono::DateTime<Utc>) -> LogRecord {
+    fn make_record(
+        level: LogLevel,
+        message: &str,
+        component: Option<&str>,
+        ts: chrono::DateTime<Utc>,
+    ) -> LogRecord {
         LogRecord {
             id: 0,
             timestamp: ts,
@@ -232,9 +237,19 @@ mod tests {
             // Matches both "errors" and "bgp"
             make_record(LogLevel::Error, "bgp fail", Some("bgp"), now),
             // Matches only "bgp"
-            make_record(LogLevel::Info, "bgp up", Some("bgp"), now + Duration::seconds(1)),
+            make_record(
+                LogLevel::Info,
+                "bgp up",
+                Some("bgp"),
+                now + Duration::seconds(1),
+            ),
             // Matches only "errors"
-            make_record(LogLevel::Error, "disk fail", None, now + Duration::seconds(2)),
+            make_record(
+                LogLevel::Error,
+                "disk fail",
+                None,
+                now + Duration::seconds(2),
+            ),
         ];
 
         proc.process_records(&records);
@@ -248,9 +263,7 @@ mod tests {
         let mut proc = CategoryProcessor::new(defs, 10);
         let now = Utc::now();
 
-        let records = vec![
-            make_record(LogLevel::Info, "ok", None, now),
-        ];
+        let records = vec![make_record(LogLevel::Info, "ok", None, now)];
 
         proc.process_records(&records);
         assert_eq!(proc.store.categories[0].count, 0);
