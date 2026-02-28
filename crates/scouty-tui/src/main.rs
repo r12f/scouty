@@ -509,9 +509,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         if !cat_defs.is_empty() {
             let bucket_count = 100; // default density buckets
             let mut processor = scouty::category::CategoryProcessor::new(cat_defs, bucket_count);
-            let records_vec: Vec<scouty::record::LogRecord> =
-                app.records.iter().map(|r| (**r).clone()).collect();
-            processor.process_records(&records_vec);
+            processor.process_records(&app.records);
             tracing::info!(
                 categories = processor.store.categories.len(),
                 "Category processing complete"

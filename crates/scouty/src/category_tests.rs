@@ -178,8 +178,6 @@ mod tests {
 
     use crate::record::{LogLevel, LogRecord};
     use chrono::{Duration, Utc};
-    use std::collections::HashMap;
-    use std::sync::Arc;
 
     fn make_record(
         level: LogLevel,
@@ -273,7 +271,7 @@ mod tests {
     fn test_processor_empty_records() {
         let defs = vec![make_definition("errors", "level == \"ERROR\"")];
         let mut proc = CategoryProcessor::new(defs, 10);
-        proc.process_records(&[]);
+        proc.process_records(&[] as &[LogRecord]);
         assert_eq!(proc.store.categories[0].count, 0);
     }
 
@@ -324,5 +322,21 @@ mod tests {
         proc.reset();
         assert_eq!(proc.store.categories[0].count, 0);
         assert!(proc.store.categories[0].density.iter().all(|&v| v == 0));
+    }
+
+    #[test]
+    fn test_processor_resize_density() {
+        let defs = vec![
+            make_definition("errors", "level == \"ERROR\""),
+            make_definition("warnings", "level == \"WARNING\""),
+        ];
+        let mut proc = CategoryProcessor::new(defs, 10);
+        assert_eq!(proc.bucket_count, 10);
+        assert_eq!(proc.store.categories[0].density.len(), 10);
+
+        proc.resize_density(20);
+        assert_eq!(proc.bucket_count, 20);
+        assert_eq!(proc.store.categories[0].density.len(), 20);
+        assert_eq!(proc.store.categories[1].density.len(), 20);
     }
 }

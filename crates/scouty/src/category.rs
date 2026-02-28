@@ -8,7 +8,10 @@
 #[path = "category_tests.rs"]
 mod category_tests;
 
+use crate::filter::eval;
 use crate::filter::expr::{self, Expr};
+use crate::record::LogRecord;
+use chrono::{DateTime, Utc};
 use serde::Deserialize;
 use std::path::Path;
 
@@ -207,10 +210,6 @@ fn category_config_dirs() -> Vec<std::path::PathBuf> {
 
 // ── Categorization Processor ────────────────────────────────────────
 
-use crate::filter::eval;
-use crate::record::LogRecord;
-use chrono::{DateTime, Utc};
-
 /// Categorization processor — evaluates log records against all category
 /// definitions and updates per-category stats (count + density histogram).
 pub struct CategoryProcessor {
@@ -229,9 +228,9 @@ impl CategoryProcessor {
 
     /// Process a batch of records, updating all category stats.
     ///
-    /// The time range is derived from the first and last record timestamps
+    /// The time range is derived from the min and max timestamps across all records
     /// to compute density histogram bucket indices.
-    pub fn process_records(&mut self, records: &[LogRecord]) {
+    pub fn process_records<R: AsRef<LogRecord>>(&mut self, records: &[R]) {
         if records.is_empty() || self.store.categories.is_empty() {
             return;
         }
@@ -242,6 +241,7 @@ impl CategoryProcessor {
         let bucket_count = self.bucket_count;
 
         for record in records {
+            let record = record.as_ref();
             for cat in &mut self.store.categories {
                 if eval::eval(&cat.definition.filter, record) {
                     let bucket =
@@ -259,7 +259,7 @@ impl CategoryProcessor {
     }
 
     /// Process a single record (for streaming/tailing).
-    /// Requires pre-computed time range; caller should provide current min/max.
+    /// Requires pre-computed time range; caller should provide `time_min` and `range_ms`.
     pub fn process_record(&mut self, record: &LogRecord, time_min: DateTime<Utc>, range_ms: f64) {
         let bucket_count = self.bucket_count;
         for cat in &mut self.store.categories {
@@ -284,15 +284,17 @@ impl CategoryProcessor {
         self.store.reset();
     }
 
-    fn time_range(records: &[LogRecord]) -> (DateTime<Utc>, DateTime<Utc>) {
-        let mut min = records[0].timestamp;
-        let mut max = records[0].timestamp;
+    fn time_range<R: AsRef<LogRecord>>(records: &[R]) -> (DateTime<Utc>, DateTime<Utc>) {
+        let first = records[0].as_ref().timestamp;
+        let mut min = first;
+        let mut max = first;
         for r in records.iter().skip(1) {
-            if r.timestamp < min {
-                min = r.timestamp;
+            let ts = r.as_ref().timestamp;
+            if ts < min {
+                min = ts;
             }
-            if r.timestamp > max {
-                max = r.timestamp;
+            if ts > max {
+                max = ts;
             }
         }
         (min, max)
