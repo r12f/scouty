@@ -11,7 +11,7 @@ mod main_window_tests;
 use crate::app::{App, InputMode};
 use crate::keybinding::{Action, Keymap};
 use crate::ui::framework::{KeyAction, Window, WindowAction};
-use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::layout::Rect;
 use ratatui::Frame;
 
@@ -28,111 +28,12 @@ impl MainWindow {
 
     /// Handle keys when detail tree has focus.
     fn handle_detail_tree_key(&mut self, key: KeyEvent) -> KeyAction {
-        let ctrl = key.modifiers.contains(KeyModifiers::CONTROL);
-        let handled = match key.code {
-            KeyCode::Char('j') | KeyCode::Down if !ctrl => {
-                self.app.detail_tree_move_down();
-                true
-            }
-            KeyCode::Char('k') | KeyCode::Up if !ctrl => {
-                self.app.detail_tree_move_up();
-                true
-            }
-            KeyCode::Right | KeyCode::Enter => {
-                self.app.detail_tree_toggle();
-                true
-            }
-            KeyCode::Left => {
-                self.app.detail_tree_collapse_or_parent();
-                true
-            }
-            KeyCode::Char('H') => {
-                self.app.detail_tree_collapse_all();
-                true
-            }
-            KeyCode::Char('L') => {
-                self.app.detail_tree_expand_all();
-                true
-            }
-            KeyCode::Char('f') => {
-                self.app.detail_tree_quick_filter();
-                true
-            }
-            KeyCode::Esc => {
-                self.app.detail_tree_focus = false;
-                true
-            }
-            _ => false,
-        };
-        if handled {
-            KeyAction::Handled
-        } else {
-            KeyAction::Unhandled
-        }
+        crate::ui::widgets::detail_panel_keys::handle_key(&mut self.app, key)
     }
 
     /// Handle keys when region panel has focus.
     fn handle_region_panel_key(&mut self, key: KeyEvent) -> KeyAction {
-        use crate::ui::widgets::region_panel_widget::RegionPanelWidget;
-
-        let entries = RegionPanelWidget::build_entries(&self.app);
-        let max_cursor = entries.len().saturating_sub(1);
-        let ctrl = key.modifiers.contains(KeyModifiers::CONTROL);
-
-        let handled = match key.code {
-            KeyCode::Char('j') | KeyCode::Down if !ctrl => {
-                if self.app.region_manager_cursor < max_cursor {
-                    self.app.region_manager_cursor += 1;
-                }
-                true
-            }
-            KeyCode::Char('k') | KeyCode::Up if !ctrl => {
-                if self.app.region_manager_cursor > 0 {
-                    self.app.region_manager_cursor -= 1;
-                }
-                true
-            }
-            KeyCode::Enter => {
-                if let Some(entry) = entries.get(self.app.region_manager_cursor) {
-                    self.app.jump_to_record_index(entry.start_index);
-                    self.app.panel_state.focus_log_table();
-                }
-                true
-            }
-            KeyCode::Char('f') => {
-                if let Some(entry) = entries.get(self.app.region_manager_cursor) {
-                    let expr = format!("_region_type == \"{}\"", entry.definition_name);
-                    self.app.add_filter_expr(&expr);
-                }
-                true
-            }
-            KeyCode::Char('t') => {
-                if let Some(entry) = entries.get(self.app.region_manager_cursor) {
-                    if self.app.region_panel_type_filter.as_deref() == Some(&entry.definition_name)
-                    {
-                        self.app.region_panel_type_filter = None;
-                    } else {
-                        self.app.region_panel_type_filter = Some(entry.definition_name.clone());
-                    }
-                    self.app.region_manager_cursor = 0;
-                }
-                true
-            }
-            KeyCode::Char('s') => {
-                self.app.region_panel_sort = self.app.region_panel_sort.toggle();
-                true
-            }
-            KeyCode::Esc => {
-                self.app.panel_state.focus_log_table();
-                true
-            }
-            _ => false,
-        };
-        if handled {
-            KeyAction::Handled
-        } else {
-            KeyAction::Unhandled
-        }
+        crate::ui::widgets::region_panel_keys::handle_key(&mut self.app, key)
     }
 
     /// Handle panel system keys (Tab/BackTab, z).
@@ -714,8 +615,23 @@ impl Window for MainWindow {
             && self.app.panel_state.focus == crate::panel::PanelFocus::PanelContent;
 
         if panel_focused {
-            // Panel-level hints (MainWindow acts as root)
-            vec![("z", "Max"), ("Esc", "Close")]
+            // Collect panel-specific hints first, then common panel hints
+            let mut hints: Vec<(&str, &str)> = match self.app.panel_state.active {
+                crate::panel::PanelId::Detail => {
+                    crate::ui::widgets::detail_panel_keys::shortcut_hints()
+                }
+                crate::panel::PanelId::Region => {
+                    crate::ui::widgets::region_panel_keys::shortcut_hints()
+                }
+                crate::panel::PanelId::Stats => {
+                    crate::ui::widgets::stats_panel_keys::shortcut_hints()
+                }
+            };
+            // Common panel hints from MainWindow
+            hints.push(("Tab/S-Tab", "Switch"));
+            hints.push(("z", "Max"));
+            hints.push(("Esc", "Close"));
+            hints
         } else if self.app.follow_mode {
             vec![("Esc", "Stop Follow"), ("?", "Help")]
         } else {
