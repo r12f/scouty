@@ -17,6 +17,7 @@ scouty-tui [OPTIONS] [file1] [file2] ...
 
 | Flag | Description |
 |------|-------------|
+| `--follow` / `-f` | Follow mode — watch file for new data and auto-scroll (TUI mode only). See [follow-mode.md](../crates/scouty/spec/follow-mode.md) |
 | `--theme <name>` | Override theme selection |
 | `--config <path>` | Load additional config file (overrides system and user configs) |
 | `--generate-config` | Generate default config file to stdout |
