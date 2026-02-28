@@ -727,4 +727,25 @@ impl Window for MainWindow {
             }
         }
     }
+
+    fn shortcut_hints(&self) -> Vec<(&str, &str)> {
+        let panel_focused = self.app.panel_state.expanded
+            && self.app.panel_state.focus == crate::panel::PanelFocus::PanelContent;
+
+        if panel_focused {
+            // Panel-level hints (MainWindow acts as root)
+            vec![("Ctrl+↑", "Back"), ("z", "Max"), ("Esc", "Close")]
+        } else if self.app.follow_mode {
+            vec![("Esc", "Stop Follow"), ("?", "Help")]
+        } else {
+            vec![
+                ("j/k", "↑↓"),
+                ("/", "Search"),
+                ("f", "Filter"),
+                ("-/=", "Exclude/Include"),
+                ("Enter", "Detail"),
+                ("?", "Help"),
+            ]
+        }
+    }
 }

@@ -82,6 +82,13 @@ pub trait Widget {
     fn name(&self) -> &str {
         "Widget"
     }
+
+    /// Return shortcut hints this widget handles.
+    /// Each entry is `("key", "description")`.
+    /// Status bar collects hints by walking focus path: focused → parent → root.
+    fn shortcut_hints(&self) -> Vec<(&str, &str)> {
+        Vec::new()
+    }
 }
 
 // ── Window Trait ─────────────────────────────────────────────────────
@@ -97,6 +104,12 @@ pub trait Window {
     /// Handle a key event. The window is responsible for dispatching
     /// to its widget tree (via FocusManager) and bubbling.
     fn handle_key(&mut self, event: KeyEvent) -> WindowAction;
+
+    /// Return shortcut hints for the current focus state.
+    /// Default: empty (windows that don't use widget trees override this).
+    fn shortcut_hints(&self) -> Vec<(&str, &str)> {
+        Vec::new()
+    }
 }
 
 // ── WindowStack ─────────────────────────────────────────────────────
@@ -323,6 +336,34 @@ impl FocusManager {
             current_path.pop();
         }
     }
+    /// Collect shortcut hints by walking from focused widget up to root.
+    /// Returns hints in order: focused widget first, then parents up to root.
+    pub fn collect_hints(&self, root: &dyn Widget) -> Vec<(String, String)> {
+        let mut hints = Vec::new();
+        let mut widgets_on_path: Vec<&dyn Widget> = Vec::new();
+
+        // Walk down the focus path to collect widgets
+        let mut current: &dyn Widget = root;
+        widgets_on_path.push(current);
+        for &idx in &self.focus_path {
+            let children = current.children();
+            if idx < children.len() {
+                current = children[idx].as_ref();
+                widgets_on_path.push(current);
+            } else {
+                break;
+            }
+        }
+
+        // Collect hints from focused (deepest) to root
+        for widget in widgets_on_path.iter().rev() {
+            for (k, v) in widget.shortcut_hints() {
+                hints.push((k.to_string(), v.to_string()));
+            }
+        }
+
+        hints
+    }
 }
 
 impl Default for FocusManager {
@@ -505,5 +546,9 @@ impl Widget for TabbedContainer {
 
     fn is_focusable(&self) -> bool {
         true
+    }
+
+    fn shortcut_hints(&self) -> Vec<(&str, &str)> {
+        vec![("Tab/S-Tab", "Switch")]
     }
 }

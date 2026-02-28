@@ -291,7 +291,15 @@ impl StatusBarWidget {
                     theme.status_bar.shortcut_key.to_style(),
                 ));
             } else {
-                let shortcuts = Self::shortcut_hints(panel_focused, app.panel_state.active);
+                let shortcuts: Vec<(&str, &str)> = if app.shortcut_hints_cache.is_empty() {
+                    // Fallback to static hints if cache not populated
+                    Self::shortcut_hints(panel_focused, app.panel_state.active).to_vec()
+                } else {
+                    app.shortcut_hints_cache
+                        .iter()
+                        .map(|(k, v)| (k.as_str(), v.as_str()))
+                        .collect()
+                };
 
                 let used = spans_display_width(&spans);
                 let mut remaining = (area.width as usize).saturating_sub(used);
