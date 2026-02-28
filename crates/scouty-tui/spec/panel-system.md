@@ -47,7 +47,7 @@ The detail panel and region UI (region manager + density chart) currently have i
 │                                                       │
 │                    Log Table                           │
 │                                                       │
-├─── [Detail] ── [Region] ── [Stats] ─────────────────────┤  ← Panel Tab Bar (only this line when collapsed)
+├─── [Detail] ── [Region] ── [Stats] ── [Category] ───────┤  ← Panel Tab Bar (only this line when collapsed)
 │                                                       │
 │              Active Panel Content                     │
 │                                                       │
@@ -58,7 +58,7 @@ The detail panel and region UI (region manager + density chart) currently have i
 ```
 
 - Panel area sits between the log table and the status bar
-- **Collapsed:** only the panel tab bar is visible (one line height), showing tab names like `[Detail] [Region] [Stats]` with the selected tab highlighted
+- **Collapsed:** only the panel tab bar is visible (one line height), showing tab names like `[Detail] [Region] [Stats] [Category]` with the selected tab highlighted
 - **Expanded:** tab bar + panel content area; each panel has its own default height (see individual panel definitions)
 - Only one panel is expanded at a time
 
@@ -86,10 +86,10 @@ Focus switching:
 
 | Shortcut | Behavior |
 |----------|----------|
-| `Tab` | Cycle focus forward: Log Table → Detail → Region → Stats → Log Table → … (expands panel if collapsed) |
+| `Tab` | Cycle focus forward: Log Table → Detail → Region → Stats → Category → Log Table → … (expands panel if collapsed) |
 | `Shift+Tab` | Cycle focus backward (reverse of Tab) |
 | `Esc` | Panel Content → Log Table (focus returns to log table) |
-| Original shortcut | Directly open/close corresponding panel without changing focus (e.g., `Enter` toggles Detail, `r` toggles Region, `S` toggles Stats). Focus stays on the current widget (typically log table). Use `Tab` to move focus into the panel. |
+| Original shortcut | Directly open/close corresponding panel without changing focus (e.g., `Enter` toggles Detail, `r` toggles Region, `S` toggles Stats, `C` toggles Category). Focus stays on the current widget (typically log table). Use `Tab` to move focus into the panel. |
 
 #### Shared Panel Operations (all panels)
 
