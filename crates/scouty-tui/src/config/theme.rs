@@ -445,7 +445,7 @@ impl Theme {
                 header: StyleEntry {
                     fg: Some(ThemeColor(Black)),
                     bg: Some(ThemeColor(Rgb(100, 160, 180))),
-                    bold: Some(true),
+                    bold: None,
                 },
                 header_unfocused: StyleEntry::fg_bg(Rgb(85, 85, 85), Rgb(30, 30, 40)),
                 selected: StyleEntry::bg(Rgb(40, 40, 55)),
@@ -523,7 +523,7 @@ impl Theme {
                 header: StyleEntry {
                     fg: Some(ThemeColor(White)),
                     bg: Some(ThemeColor(Rgb(0, 120, 150))),
-                    bold: Some(true),
+                    bold: None,
                 },
                 header_unfocused: StyleEntry::fg_bg(Rgb(153, 153, 153), Rgb(220, 220, 230)),
                 selected: StyleEntry::fg_bg(Black, Rgb(200, 210, 230)),
@@ -613,7 +613,7 @@ impl Theme {
                 header: StyleEntry {
                     fg: Some(ThemeColor(base03)),
                     bg: Some(ThemeColor(blue)),
-                    bold: Some(true),
+                    bold: None,
                 },
                 header_unfocused: StyleEntry::fg_bg(Rgb(101, 123, 131), base02), // #657B83
                 selected: StyleEntry::fg_bg(base1, base02),
