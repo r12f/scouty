@@ -205,4 +205,39 @@ mod tests {
         assert_eq!(state.active, PanelId::Detail);
         assert_eq!(state.focus, PanelFocus::PanelContent);
     }
+
+    /// Verify Shift+Tab direction: Log Table → Region → Detail → Log Table
+    #[test]
+    fn test_shift_tab_reverse_direction() {
+        let mut state = PanelState::default();
+        state.open(PanelId::Detail);
+        state.focus_log_table();
+
+        // Shift+Tab from log table → last panel (Region)
+        let all = PanelId::all();
+        state.active = *all.last().unwrap();
+        state.focus_panel();
+        assert_eq!(state.active, PanelId::Region);
+
+        // Shift+Tab from Region → prev panel (Detail)
+        state.prev_panel();
+        assert_eq!(state.active, PanelId::Detail);
+
+        // Shift+Tab from Detail (first) → log table
+        assert_eq!(state.active, all[0]);
+        state.focus_log_table();
+        assert_eq!(state.focus, PanelFocus::LogTable);
+
+        // Verify direction is opposite to Tab forward
+        // Tab forward: LogTable → Detail → Region → LogTable
+        // Shift+Tab:   LogTable → Region → Detail → LogTable
+        state.active = *all.last().unwrap(); // Region
+        state.focus_panel();
+        state.prev_panel();
+        assert_eq!(
+            state.active,
+            PanelId::Detail,
+            "Shift+Tab from Region should go to Detail"
+        );
+    }
 }

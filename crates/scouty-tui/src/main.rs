@@ -608,10 +608,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                     app.detail_tree_quick_filter();
                                     true
                                 }
-                                KeyCode::Tab => {
-                                    app.detail_tree_focus = false;
-                                    true
-                                }
                                 KeyCode::Esc => {
                                     app.detail_tree_focus = false;
                                     true
@@ -620,21 +616,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                             };
                             if handled {
                                 key_handled = true;
-                            }
-                        }
-
-                        // Tab toggles tree focus when detail panel is open with expanded data
-                        if !key_handled
-                            && key.code == crossterm::event::KeyCode::Tab
-                            && app.detail_open
-                            && app.panel_state.has_focus()
-                            && app.panel_state.active == crate::panel::PanelId::Detail
-                        {
-                            if let Some(record) = app.selected_record() {
-                                if record.expanded.as_ref().is_some_and(|e| !e.is_empty()) {
-                                    app.detail_tree_focus = !app.detail_tree_focus;
-                                    key_handled = true;
-                                }
                             }
                         }
 
@@ -742,15 +723,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                     if key.modifiers.is_empty() && app.panel_state.expanded =>
                                 {
                                     if app.panel_state.focus == crate::panel::PanelFocus::LogTable {
-                                        // Always start at first panel (Detail)
                                         app.panel_state.active = crate::panel::PanelId::all()[0];
                                         app.panel_state.focus_panel();
+                                        tracing::debug!(active = ?app.panel_state.active, "Tab: log table → panel");
                                     } else {
                                         let all = crate::panel::PanelId::all();
                                         if app.panel_state.active == *all.last().unwrap() {
+                                            app.detail_tree_focus = false;
                                             app.panel_state.focus_log_table();
+                                            tracing::debug!("Tab: last panel → log table");
                                         } else {
+                                            app.detail_tree_focus = false;
                                             app.panel_state.next_panel();
+                                            tracing::debug!(active = ?app.panel_state.active, "Tab: → next panel");
                                         }
                                     }
                                     true
@@ -758,16 +743,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 // Shift+Tab cycles backward: Log Table → Region → Detail → Log Table
                                 KeyCode::BackTab if app.panel_state.expanded => {
                                     if app.panel_state.focus == crate::panel::PanelFocus::LogTable {
-                                        // Always start at last panel (Region)
                                         let all = crate::panel::PanelId::all();
                                         app.panel_state.active = *all.last().unwrap();
                                         app.panel_state.focus_panel();
+                                        tracing::debug!(active = ?app.panel_state.active, "Shift+Tab: log table → panel");
                                     } else {
                                         let all = crate::panel::PanelId::all();
                                         if app.panel_state.active == all[0] {
+                                            app.detail_tree_focus = false;
                                             app.panel_state.focus_log_table();
+                                            tracing::debug!("Shift+Tab: first panel → log table");
                                         } else {
+                                            app.detail_tree_focus = false;
                                             app.panel_state.prev_panel();
+                                            tracing::debug!(active = ?app.panel_state.active, "Shift+Tab: → prev panel");
                                         }
                                     }
                                     true

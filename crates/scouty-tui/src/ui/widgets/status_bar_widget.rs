@@ -251,24 +251,13 @@ impl StatusBarWidget {
             } else {
                 let shortcuts: &[(&str, &str)] = if panel_focused {
                     match app.panel_state.active {
-                        crate::panel::PanelId::Detail => {
-                            if app.detail_tree_focus {
-                                &[
-                                    ("Tab", "Exit Tree"),
-                                    ("Esc", "Exit Tree"),
-                                    ("Ctrl+↑", "Back"),
-                                    ("z", "Maximize"),
-                                ]
-                            } else {
-                                &[
-                                    ("Tab", "Next Tab"),
-                                    ("Ctrl+↑", "Back"),
-                                    ("z", "Maximize"),
-                                    ("Esc", "Close"),
-                                    ("?", "Help"),
-                                ]
-                            }
-                        }
+                        crate::panel::PanelId::Detail => &[
+                            ("Tab", "Next Tab"),
+                            ("Ctrl+↑", "Back"),
+                            ("z", "Maximize"),
+                            ("Esc", "Close"),
+                            ("?", "Help"),
+                        ],
                         crate::panel::PanelId::Region => &[
                             ("j/k", "Navigate"),
                             ("Tab", "Next Tab"),
