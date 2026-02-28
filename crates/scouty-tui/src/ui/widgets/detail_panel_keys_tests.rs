@@ -33,8 +33,16 @@ mod tests {
     #[test]
     fn test_esc_exits_focus() {
         let mut app = test_app();
+        // Set up: panel has focus and tree is focused
+        app.panel_state.focus_panel();
+        app.detail_tree_focus = true;
+        assert_eq!(
+            app.panel_state.focus,
+            crate::panel::PanelFocus::PanelContent
+        );
         assert_eq!(handle_key(&mut app, key(KeyCode::Esc)), KeyAction::Handled);
         assert!(!app.detail_tree_focus);
+        assert_eq!(app.panel_state.focus, crate::panel::PanelFocus::LogTable);
     }
 
     #[test]

@@ -93,6 +93,12 @@ impl MainWindow {
                 self.app.panel_state.toggle_maximize();
                 true
             }
+            KeyCode::Esc if self.app.panel_state.has_focus() => {
+                self.app.detail_tree_focus = false;
+                self.app.panel_state.focus_log_table();
+                tracing::debug!("Esc: panel → log table");
+                true
+            }
             _ => false,
         };
         if handled {
