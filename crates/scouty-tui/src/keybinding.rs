@@ -314,7 +314,7 @@ fn default_bindings() -> Vec<(Action, Vec<&'static str>)> {
         (Action::GotoLine, vec!["ctrl+g"]),
         (Action::JumpForward, vec!["]"]),
         (Action::JumpBackward, vec!["["]),
-        (Action::ToggleFollow, vec!["ctrl+]"]),
+        (Action::ToggleFollow, vec!["F"]),
         // Search & Filter
         (Action::Search, vec!["/"]),
         (Action::NextMatch, vec!["n"]),
@@ -324,7 +324,7 @@ fn default_bindings() -> Vec<(Action, Vec<&'static str>)> {
         (Action::QuickInclude, vec!["="]),
         (Action::FieldExclude, vec!["_"]),
         (Action::FieldInclude, vec!["+"]),
-        (Action::FilterManager, vec!["F", "ctrl+f"]),
+        (Action::FilterManager, vec!["ctrl+f"]),
         (Action::LevelFilter, vec!["l"]),
         // Display
         (Action::ToggleDetail, vec!["enter"]),

@@ -290,6 +290,8 @@ pub struct App {
     pub column_config: ColumnConfig,
     /// Follow mode: auto-scroll to bottom.
     pub follow_mode: bool,
+    /// Count of new records added since user scrolled away from bottom.
+    pub follow_new_count: usize,
     pub should_quit: bool,
     /// Copy format dialog cursor (0=Raw, 1=JSON, 2=YAML).
     pub copy_format_cursor: usize,
@@ -587,6 +589,7 @@ impl App {
             col_widths,
             column_config: ColumnConfig::default(),
             follow_mode: false,
+            follow_new_count: 0,
             should_quit: false,
             copy_format_cursor: 0,
             save_path_input: TextInput::with_text("./scouty-export.log"),
@@ -1630,6 +1633,7 @@ impl App {
             self.selected = self.total() - 1;
         }
         self.scroll_offset = self.total().saturating_sub(self.visible_rows);
+        self.follow_new_count = 0;
     }
 
     pub fn toggle_detail(&mut self) {
@@ -1758,11 +1762,13 @@ impl App {
     }
 
     /// Toggle follow mode.
+    /// Disable follow mode (one-way). Cannot re-enable from TUI.
     pub fn toggle_follow(&mut self) {
-        self.follow_mode = !self.follow_mode;
         if self.follow_mode {
-            self.scroll_to_bottom();
+            self.follow_mode = false;
+            self.follow_new_count = 0;
         }
+        // No-op if already disabled — cannot re-enable from TUI
     }
 
     /// Append new records from follow mode. Incrementally updates
@@ -1818,6 +1824,13 @@ impl App {
         if was_at_bottom && !self.filtered_indices.is_empty() {
             self.selected = self.filtered_indices.len() - 1;
             self.ensure_selected_visible();
+            self.follow_new_count = 0;
+        } else if self.follow_mode && !self.filtered_indices.is_empty() {
+            // User has scrolled up — track how many records are below cursor
+            self.follow_new_count = self
+                .filtered_indices
+                .len()
+                .saturating_sub(self.selected + 1);
         }
 
         tracing::debug!(
@@ -1828,9 +1841,11 @@ impl App {
         );
     }
 
-    /// Exit follow mode (called on manual scroll up).
+    /// Called on manual scroll up — does NOT disable follow mode,
+    /// just stops auto-scrolling. New records continue to load.
     pub fn exit_follow(&mut self) {
-        self.follow_mode = false;
+        // Don't disable follow_mode — that's done by F key only.
+        // Auto-scroll is controlled by cursor position, not a separate flag.
     }
 
     pub fn ensure_selected_visible(&mut self) {
@@ -2081,6 +2096,7 @@ mod tests {
             col_widths: [19, 5, 11, 3, 3, 9],
             column_config: ColumnConfig::default(),
             follow_mode: false,
+            follow_new_count: 0,
             should_quit: false,
             copy_format_cursor: 0,
             save_path_input: TextInput::with_text("./scouty-export.log"),
@@ -2154,6 +2170,7 @@ mod tests {
             col_widths: [19, 5, 11, 3, 3, 9],
             column_config: ColumnConfig::default(),
             follow_mode: false,
+            follow_new_count: 0,
             should_quit: false,
             copy_format_cursor: 0,
             save_path_input: TextInput::with_text("./scouty-export.log"),
@@ -2224,6 +2241,7 @@ mod tests {
             col_widths: [19, 5, 11, 3, 3, 9],
             column_config: ColumnConfig::default(),
             follow_mode: false,
+            follow_new_count: 0,
             should_quit: false,
             copy_format_cursor: 0,
             save_path_input: TextInput::with_text("./scouty-export.log"),
@@ -2749,6 +2767,7 @@ mod field_filter_v2_tests {
             col_widths: [19, 5, 11, 3, 3, 9],
             column_config: ColumnConfig::default(),
             follow_mode: false,
+            follow_new_count: 0,
             should_quit: false,
             copy_format_cursor: 0,
             save_path_input: TextInput::with_text("./scouty-export.log"),
@@ -2945,6 +2964,7 @@ mod column_follow_tests {
             col_widths: [19, 5, 11, 3, 3, 9],
             column_config: ColumnConfig::default(),
             follow_mode: false,
+            follow_new_count: 0,
             should_quit: false,
             copy_format_cursor: 0,
             save_path_input: TextInput::with_text("./scouty-export.log"),
@@ -3057,9 +3077,15 @@ mod column_follow_tests {
     fn test_follow_mode_toggle() {
         let mut app = make_app_cf(100);
         assert!(!app.follow_mode);
-        app.toggle_follow();
+        // Enable follow (simulating CLI --follow)
+        app.follow_mode = true;
+        app.scroll_to_bottom();
         assert!(app.follow_mode);
-        assert_eq!(app.selected, 99); // scrolled to bottom
+        assert_eq!(app.selected, 99);
+        // F key disables
+        app.toggle_follow();
+        assert!(!app.follow_mode);
+        // F key again is no-op (cannot re-enable)
         app.toggle_follow();
         assert!(!app.follow_mode);
     }
@@ -3067,29 +3093,121 @@ mod column_follow_tests {
     #[test]
     fn test_follow_mode_exits_on_scroll_up() {
         let mut app = make_app_cf(100);
-        app.toggle_follow();
+        app.follow_mode = true;
+        app.scroll_to_bottom();
         assert!(app.follow_mode);
         app.select_up(5);
-        assert!(!app.follow_mode);
+        // Scrolling up does NOT disable follow — just pauses auto-scroll
+        assert!(app.follow_mode);
     }
 
     #[test]
     fn test_follow_mode_exits_on_page_up() {
         let mut app = make_app_cf(100);
-        app.toggle_follow();
+        app.follow_mode = true;
+        app.scroll_to_bottom();
         assert!(app.follow_mode);
         app.page_up();
-        assert!(!app.follow_mode);
+        // Page up does NOT disable follow
+        assert!(app.follow_mode);
     }
 
     #[test]
     fn test_follow_mode_persists_on_down() {
         let mut app = make_app_cf(100);
-        app.toggle_follow();
+        app.follow_mode = true;
+        app.scroll_to_bottom();
         assert!(app.follow_mode);
         // Already at bottom, select_down shouldn't exit follow
         app.select_down(1);
         assert!(app.follow_mode);
+    }
+}
+
+#[cfg(test)]
+mod follow_append_tests {
+    use super::*;
+    use chrono::Utc;
+    use scouty::record::{LogLevel, LogRecord};
+    use std::sync::Arc;
+
+    fn make_record(id: u64) -> Arc<LogRecord> {
+        Arc::new(LogRecord {
+            id,
+            timestamp: Utc::now(),
+            level: Some(LogLevel::Info),
+            message: format!("msg{}", id),
+            raw: format!("raw{}", id),
+            source: "test".into(),
+            loader_id: "test".into(),
+            pid: None,
+            tid: None,
+            component_name: None,
+            process_name: None,
+            hostname: None,
+            container: None,
+            context: None,
+            function: None,
+            metadata: None,
+            expanded: None,
+        })
+    }
+
+    fn make_follow_app(n: usize) -> App {
+        let records: Vec<Arc<LogRecord>> = (0..n).map(|i| make_record(i as u64)).collect();
+        let total = records.len();
+        let filtered: Vec<usize> = (0..total).collect();
+        let col_widths = App::compute_col_widths(&records, &filtered);
+        App {
+            records,
+            total_records: total,
+            filtered_indices: filtered,
+            selected: total.saturating_sub(1),
+            scroll_offset: 0,
+            visible_rows: 20,
+            follow_mode: true,
+            follow_new_count: 0,
+            col_widths,
+            ..App::load_stdin(Vec::new()).unwrap()
+        }
+    }
+
+    #[test]
+    fn test_append_auto_scrolls_at_bottom() {
+        let mut app = make_follow_app(5);
+        assert_eq!(app.selected, 4);
+        app.append_records(vec![make_record(5), make_record(6)]);
+        assert_eq!(app.selected, 6); // auto-scrolled to new last
+        assert_eq!(app.follow_new_count, 0);
+    }
+
+    #[test]
+    fn test_append_tracks_new_count_when_scrolled_up() {
+        let mut app = make_follow_app(10);
+        app.selected = 5; // scrolled up from bottom
+        app.append_records(vec![make_record(10), make_record(11)]);
+        // Should not auto-scroll
+        assert_eq!(app.selected, 5);
+        // Should track new records below
+        assert!(app.follow_new_count > 0);
+    }
+
+    #[test]
+    fn test_scroll_to_bottom_resets_new_count() {
+        let mut app = make_follow_app(10);
+        app.selected = 3;
+        app.follow_new_count = 5;
+        app.scroll_to_bottom();
+        assert_eq!(app.follow_new_count, 0);
+    }
+
+    #[test]
+    fn test_toggle_clears_new_count() {
+        let mut app = make_follow_app(5);
+        app.follow_new_count = 10;
+        app.toggle_follow(); // disables
+        assert!(!app.follow_mode);
+        assert_eq!(app.follow_new_count, 0);
     }
 }
 
@@ -3155,6 +3273,7 @@ mod copy_tests {
             col_widths: [19, 5, 11, 3, 3, 9],
             column_config: ColumnConfig::default(),
             follow_mode: false,
+            follow_new_count: 0,
             should_quit: false,
             copy_format_cursor: 0,
             save_path_input: TextInput::with_text("./scouty-export.log"),
@@ -3336,6 +3455,7 @@ mod time_jump_tests {
             col_widths: [0; 6],
             column_config: ColumnConfig::default(),
             follow_mode: false,
+            follow_new_count: 0,
             should_quit: false,
             copy_format_cursor: 0,
             save_path_input: TextInput::with_text("./scouty-export.log"),
@@ -3480,6 +3600,7 @@ mod command_tests {
             col_widths: [19, 5, 11, 3, 3, 9],
             column_config: ColumnConfig::default(),
             follow_mode: false,
+            follow_new_count: 0,
             should_quit: false,
             copy_format_cursor: 0,
             save_path_input: TextInput::with_text("./scouty-export.log"),

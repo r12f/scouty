@@ -75,6 +75,7 @@ mod tests {
             col_widths: [19, 5, 11, 3, 3, 9],
             column_config: ColumnConfig::default(),
             follow_mode: false,
+            follow_new_count: 0,
             should_quit: false,
             copy_format_cursor: 0,
             save_path_input: TextInput::with_text("./scouty-export.log"),
