@@ -94,17 +94,17 @@ Shortcut hints are **dynamically collected** from the widget tree — see [ui-ar
 
 **Detail Panel focus:**
 ```
-[DETAIL] h/l: Fold │ H/L: All │ Tab/S-Tab: Switch │ Ctrl+↑: Back │ z: Max │ Esc: Close
+[DETAIL] ←/→: Fold │ H/L: All │ Tab/S-Tab: Switch │ z: Max │ Esc: Close
 ```
 
 **Region Panel focus:**
 ```
-[REGION] j/k: ↑↓ │ Tab/S-Tab: Switch │ Ctrl+↑: Back │ z: Max │ Esc: Close
+[REGION] j/k: ↑↓ │ Tab/S-Tab: Switch │ z: Max │ Esc: Close
 ```
 
 **Stats Panel focus:**
 ```
-[STATS] Tab/S-Tab: Switch │ Ctrl+↑: Back │ z: Max │ Esc: Close
+[STATS] Tab/S-Tab: Switch │ z: Max │ Esc: Close
 ```
 
 When focus switches (e.g., `Ctrl+↓` to enter panel, `Tab` to switch panel, `Ctrl+↑` to return to log table), the status bar line 2 immediately updates to show the relevant shortcuts for the new context.
