@@ -65,7 +65,7 @@ Parses `|`-delimited SWSS logs: `YYYY-MM-DD.HH:MM:SS.ffffff|<content...>`
 
 Parses SAI Redis operation logs: `YYYY-MM-DD.HH:MM:SS.ffffff|<op>|<detail...>`
 
-**13 op codes:** `c` (Create), `r` (Remove), `s` (Set), `g` (Get), `G` (GetResponse), `p` (CounterPoll), `C`/`R`/`S`/`B` (Bulk ops), `q` (Query), `Q` (QueryResponse), `n` (Notification)
+**15 op codes:** `c` (Create), `r` (Remove), `s` (Set), `g` (Get), `G` (GetResponse), `a` (NotifySyncd), `A` (NotifySyncdResponse), `p` (CounterPoll), `C`/`R`/`S`/`B` (Bulk ops), `q` (Query), `Q` (QueryResponse), `n` (Notification)
 
 **Key decisions:**
 - **Stateful parsing** for `G`/`Q` responses: parser maintains `last_sync_op_context` from preceding `g`/`q`
