@@ -223,7 +223,11 @@ impl LogSession {
 
         // 3. Apply active view filter
         self.active_view.apply(&self.store);
-        info!(store_size = self.store.len(), filtered_size = self.active_view.len(), "session run complete");
+        info!(
+            store_size = self.store.len(),
+            filtered_size = self.active_view.len(),
+            "session run complete"
+        );
         Ok(self.active_view.indices().to_vec())
     }
 
@@ -288,7 +292,12 @@ impl LogSession {
 
         // 4. Apply active view filter
         self.active_view.apply(&self.store);
-        info!(store_size = self.store.len(), filtered_size = self.active_view.len(), failures = self.failing_parsing_logs.len(), "parallel session run complete");
+        info!(
+            store_size = self.store.len(),
+            filtered_size = self.active_view.len(),
+            failures = self.failing_parsing_logs.len(),
+            "parallel session run complete"
+        );
         Ok(self.active_view.indices().to_vec())
     }
 }

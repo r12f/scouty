@@ -19,7 +19,7 @@ use ratatui::prelude::*;
 use std::io::{stdout, IsTerminal};
 use std::time::Duration;
 use tracing_appender::rolling;
-use tracing_subscriber::{fmt, EnvFilter, prelude::*};
+use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 
 /// Check if stdin is a pipe (not a terminal).
 fn stdin_is_pipe() -> bool {
@@ -286,8 +286,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let file_appender = rolling::daily(&log_dir, "scouty");
         let (non_blocking, guard) = tracing_appender::non_blocking(file_appender);
 
-        let env_filter = EnvFilter::try_from_env("SCOUTY_LOG")
-            .unwrap_or_else(|_| EnvFilter::new("info"));
+        let env_filter =
+            EnvFilter::try_from_env("SCOUTY_LOG").unwrap_or_else(|_| EnvFilter::new("info"));
 
         tracing_subscriber::registry()
             .with(env_filter)

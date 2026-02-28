@@ -11,7 +11,7 @@ use crate::filter::engine::FilterEngine;
 use crate::record::{LogLevel, LogRecord};
 use crate::store::LogStore;
 use std::collections::HashMap;
-use tracing::{instrument};
+use tracing::instrument;
 
 /// Status of a LogStoreView's filter results.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
