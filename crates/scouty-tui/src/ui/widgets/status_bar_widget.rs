@@ -226,7 +226,16 @@ impl StatusBarWidget {
                 ));
             }
         } else {
-            let (mode_label, mode_style) = if app.follow_mode {
+            let panel_focused = app.panel_state.expanded
+                && app.panel_state.focus == crate::panel::PanelFocus::PanelContent;
+
+            let (mode_label, mode_style) = if panel_focused {
+                let label = match app.panel_state.active {
+                    crate::panel::PanelId::Detail => "[DETAIL]",
+                    crate::panel::PanelId::Region => "[REGION]",
+                };
+                (label, theme.status_bar.mode_view.to_style())
+            } else if app.follow_mode {
                 ("[FOLLOW]", theme.status_bar.mode_follow.to_style())
             } else {
                 ("[VIEW]", theme.status_bar.mode_view.to_style())
@@ -240,17 +249,47 @@ impl StatusBarWidget {
                     theme.status_bar.shortcut_key.to_style(),
                 ));
             } else {
-                let shortcuts = [
-                    ("/", "Search"),
-                    ("f", "Filter"),
-                    ("-", "Exclude"),
-                    ("=", "Include"),
-                    ("_", "ExclField"),
-                    ("+", "InclField"),
-                    ("Enter", "Detail"),
-                    ("c", "Columns"),
-                    ("?", "Help"),
-                ];
+                let shortcuts: &[(&str, &str)] = if panel_focused {
+                    match app.panel_state.active {
+                        crate::panel::PanelId::Detail => {
+                            if app.detail_tree_focus {
+                                &[
+                                    ("Tab", "Exit Tree"),
+                                    ("Esc", "Exit Tree"),
+                                    ("Ctrl+↑", "Back"),
+                                    ("z", "Maximize"),
+                                ]
+                            } else {
+                                &[
+                                    ("Tab", "Next Tab"),
+                                    ("Ctrl+↑", "Back"),
+                                    ("z", "Maximize"),
+                                    ("Esc", "Close"),
+                                    ("?", "Help"),
+                                ]
+                            }
+                        }
+                        crate::panel::PanelId::Region => &[
+                            ("j/k", "Navigate"),
+                            ("Tab", "Next Tab"),
+                            ("Ctrl+↑", "Back"),
+                            ("Esc", "Close"),
+                            ("z", "Maximize"),
+                        ],
+                    }
+                } else {
+                    &[
+                        ("/", "Search"),
+                        ("f", "Filter"),
+                        ("-", "Exclude"),
+                        ("=", "Include"),
+                        ("_", "ExclField"),
+                        ("+", "InclField"),
+                        ("Enter", "Detail"),
+                        ("c", "Columns"),
+                        ("?", "Help"),
+                    ]
+                };
 
                 let used = spans_display_width(&spans);
                 let mut remaining = (area.width as usize).saturating_sub(used);
