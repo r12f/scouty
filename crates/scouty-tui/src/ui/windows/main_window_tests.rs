@@ -1,0 +1,140 @@
+#[cfg(test)]
+mod tests {
+    use crate::app::InputMode;
+    use crate::keybinding::Keymap;
+    use crate::ui::framework::{Window, WindowAction};
+    use crate::ui::windows::main_window::MainWindow;
+    use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+
+    fn key(code: KeyCode) -> KeyEvent {
+        KeyEvent::new(code, KeyModifiers::NONE)
+    }
+
+    fn ctrl_key(code: KeyCode) -> KeyEvent {
+        KeyEvent::new(code, KeyModifiers::CONTROL)
+    }
+
+    fn make_main_window() -> MainWindow {
+        // Create minimal app from empty stdin
+        let app = crate::app::App::load_stdin(Vec::new()).unwrap();
+        let keymap = Keymap::default_keymap();
+        MainWindow::new(app, keymap)
+    }
+
+    #[test]
+    fn test_normal_mode_quit() {
+        let mut mw = make_main_window();
+        let result = mw.handle_key(key(KeyCode::Char('q')));
+        assert_eq!(result, WindowAction::Close);
+    }
+
+    #[test]
+    fn test_normal_mode_move_down() {
+        let mut mw = make_main_window();
+        let result = mw.handle_key(key(KeyCode::Char('j')));
+        assert_eq!(result, WindowAction::Handled);
+    }
+
+    #[test]
+    fn test_normal_mode_open_help() {
+        let mut mw = make_main_window();
+        let result = mw.handle_key(key(KeyCode::Char('?')));
+        assert_eq!(result, WindowAction::Handled);
+        assert_eq!(mw.app.input_mode, InputMode::Help);
+    }
+
+    #[test]
+    fn test_normal_mode_open_filter() {
+        let mut mw = make_main_window();
+        let result = mw.handle_key(key(KeyCode::Char('f')));
+        assert_eq!(result, WindowAction::Handled);
+        assert_eq!(mw.app.input_mode, InputMode::Filter);
+    }
+
+    #[test]
+    fn test_normal_mode_open_search() {
+        let mut mw = make_main_window();
+        // Default keymap: / for search
+        let result = mw.handle_key(key(KeyCode::Char('/')));
+        assert_eq!(result, WindowAction::Handled);
+        assert_eq!(mw.app.input_mode, InputMode::Search);
+    }
+
+    #[test]
+    fn test_overlay_filter_esc_returns_normal() {
+        let mut mw = make_main_window();
+        mw.app.input_mode = InputMode::Filter;
+        let result = mw.handle_key(key(KeyCode::Esc));
+        assert_eq!(result, WindowAction::Handled);
+        assert_eq!(mw.app.input_mode, InputMode::Normal);
+    }
+
+    #[test]
+    fn test_overlay_help_esc_returns_normal() {
+        let mut mw = make_main_window();
+        mw.app.input_mode = InputMode::Help;
+        let result = mw.handle_key(key(KeyCode::Esc));
+        assert_eq!(result, WindowAction::Handled);
+        assert_eq!(mw.app.input_mode, InputMode::Normal);
+    }
+
+    #[test]
+    fn test_tab_handled() {
+        let mut mw = make_main_window();
+        let result = mw.handle_key(key(KeyCode::Tab));
+        assert_eq!(result, WindowAction::Handled);
+    }
+
+    #[test]
+    fn test_window_name() {
+        let mw = make_main_window();
+        assert_eq!(mw.name(), "MainWindow");
+    }
+
+    #[test]
+    fn test_panel_ctrl_down_focuses_panel() {
+        let mut mw = make_main_window();
+        let result = mw.handle_key(ctrl_key(KeyCode::Down));
+        assert_eq!(result, WindowAction::Handled);
+        assert!(mw.app.panel_state.has_focus());
+    }
+
+    #[test]
+    fn test_panel_ctrl_up_focuses_log_table() {
+        let mut mw = make_main_window();
+        mw.handle_key(ctrl_key(KeyCode::Down));
+        assert!(mw.app.panel_state.has_focus());
+        let result = mw.handle_key(ctrl_key(KeyCode::Up));
+        assert_eq!(result, WindowAction::Handled);
+        assert!(!mw.app.panel_state.has_focus());
+    }
+
+    #[test]
+    fn test_detail_tree_nav_when_focused() {
+        let mut mw = make_main_window();
+        mw.app.detail_open = true;
+        mw.app.detail_tree_focus = true;
+
+        // j should move down in detail tree
+        let result = mw.handle_key(key(KeyCode::Char('j')));
+        assert_eq!(result, WindowAction::Handled);
+
+        // Esc should exit detail tree focus
+        let result = mw.handle_key(key(KeyCode::Esc));
+        assert_eq!(result, WindowAction::Handled);
+        assert!(!mw.app.detail_tree_focus);
+    }
+
+    #[test]
+    fn test_search_input_mode_typing() {
+        let mut mw = make_main_window();
+        mw.app.input_mode = InputMode::Search;
+        // Type a character
+        let result = mw.handle_key(key(KeyCode::Char('a')));
+        assert_eq!(result, WindowAction::Handled);
+        // Esc returns to normal
+        let result = mw.handle_key(key(KeyCode::Esc));
+        assert_eq!(result, WindowAction::Handled);
+        assert_eq!(mw.app.input_mode, InputMode::Normal);
+    }
+}
