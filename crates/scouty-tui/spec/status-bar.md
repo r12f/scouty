@@ -82,9 +82,25 @@ The density chart can be switched to show only a specific log level or highlight
 - Cursor marker still works in filtered density view
 
 **Mode A — Default (shortcut hints):**
+
+Shortcut hints are **context-sensitive** — they update based on current focus:
+
+**Log Table focus (default):**
 ```
 [VIEW] /: Search │ f: Filter │ -: Exclude │ =: Include │ Enter: Detail │ ?: Help
 ```
+
+**Detail Panel focus:**
+```
+[DETAIL] Tab: Next Tab │ Ctrl+↑: Back │ z: Maximize │ Esc: Close │ ?: Help
+```
+
+**Region Panel focus:**
+```
+[REGION] j/k: Navigate │ Tab: Next Tab │ Ctrl+↑: Back │ z: Maximize │ Esc: Close
+```
+
+When focus switches (e.g., `Ctrl+↓` to enter panel, `Tab` to switch panel, `Ctrl+↑` to return to log table), the status bar line 2 immediately updates to show the relevant shortcuts for the new context.
 
 **Mode B — Input mode:**
 ```
@@ -128,3 +144,4 @@ Navigation (j/k/PageUp/PageDown/g/G) does **not** trigger recomputation. Only th
 | 2026-02-23 | Label format changed from [Xs/█] to [█=Xs] |
 | 2026-02-23 | Time per column snaps up to standard intervals (5/15/30 for s and m) |
 | 2026-02-24 | Density chart level/highlight selector (d/D keys) |
+| 2026-02-28 | Status bar line 2 shows context-sensitive shortcuts based on current focus (log table / detail panel / region panel) |
