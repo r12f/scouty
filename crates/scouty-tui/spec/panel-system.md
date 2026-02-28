@@ -90,8 +90,8 @@ Focus switching:
 | `Ctrl+↓` | Log Table → Panel Content (expand current panel, focus enters panel) |
 | `Ctrl+↑` | Panel Content → Log Table (focus returns to log table, panel stays expanded) |
 | `Ctrl+←` / `Ctrl+→` | Switch to previous/next panel (if expanded, switch content; if collapsed, only switch tab highlight). **Note:** may not work in macOS Terminal.app or terminals that don't emit xterm-style modifier sequences. |
-| `Tab` | Cycle to next panel tab (Detail → Region → Detail → …). Stays within panel area; does not return focus to log table. |
-| `Shift+Tab` | Cycle to previous panel tab (reverse of Tab) |
+| `Tab` | Cycle focus forward: Log Table → Detail → Region → Log Table → … (expands panel if collapsed) |
+| `Shift+Tab` | Cycle focus backward (reverse of Tab) |
 | `Esc` | Panel Content → Log Table (focus returns to log table) |
 | Original shortcut | Directly open corresponding panel and gain focus (e.g., `Enter` opens Detail, `r` opens Region) |
 
