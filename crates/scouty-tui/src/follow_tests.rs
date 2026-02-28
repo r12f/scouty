@@ -201,7 +201,6 @@ mod tests {
     #[test]
     #[cfg(unix)]
     fn test_follow_rotation() {
-
         let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join("test.log");
 
