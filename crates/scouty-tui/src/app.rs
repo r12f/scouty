@@ -1765,6 +1765,69 @@ impl App {
         }
     }
 
+    /// Append new records from follow mode. Incrementally updates
+    /// filtered_indices and auto-scrolls if follow_mode is active.
+    pub fn append_records(&mut self, new_records: Vec<Arc<LogRecord>>) {
+        if new_records.is_empty() {
+            return;
+        }
+
+        let was_at_bottom = self.follow_mode
+            && (self.filtered_indices.is_empty()
+                || self.selected + 1 >= self.filtered_indices.len());
+
+        let base_idx = self.records.len();
+        let count = new_records.len();
+        self.records.extend(new_records);
+        self.total_records = self.records.len();
+
+        // Incrementally filter new records (don't re-filter all)
+        for i in base_idx..base_idx + count {
+            let record = &self.records[i];
+
+            // Level filter
+            if let Some(ref lf) = self.level_filter {
+                if !lf.matches_level(record.level.as_ref()) {
+                    continue;
+                }
+            }
+
+            // Include/exclude filters
+            let mut pass = true;
+            for f in &self.filters {
+                let matches = eval::eval(&f.expr, record);
+                if f.exclude && matches {
+                    pass = false;
+                    break;
+                }
+                if !f.exclude && !matches {
+                    pass = false;
+                    break;
+                }
+            }
+
+            if pass {
+                self.filtered_indices.push(i);
+            }
+        }
+
+        // Recompute column widths
+        self.col_widths = Self::compute_col_widths(&self.records, &self.filtered_indices);
+
+        // Auto-scroll if in follow mode and was at bottom
+        if was_at_bottom && !self.filtered_indices.is_empty() {
+            self.selected = self.filtered_indices.len() - 1;
+            self.ensure_selected_visible();
+        }
+
+        tracing::debug!(
+            new = count,
+            total = self.total_records,
+            filtered = self.filtered_indices.len(),
+            "records appended"
+        );
+    }
+
     /// Exit follow mode (called on manual scroll up).
     pub fn exit_follow(&mut self) {
         self.follow_mode = false;

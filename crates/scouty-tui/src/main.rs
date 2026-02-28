@@ -3,6 +3,7 @@
 mod app;
 pub mod config;
 mod density;
+pub mod follow;
 pub mod keybinding;
 pub mod panel;
 mod pipe;
@@ -76,6 +77,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut pipe_format: Option<String> = None;
     let mut pipe_fields: Option<String> = None;
     let mut log_level: Option<String> = None;
+    let mut follow_flag = false;
     let mut i = 1;
     while i < args.len() {
         match args[i].as_str() {
@@ -117,6 +119,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 );
                 eprintln!("  --config <path>   Load additional config file (overrides file-based configs)");
                 eprintln!("  --regions <path>  Load region definitions (file or directory)");
+                eprintln!("  --follow, -f      Follow file for new data (like tail -f)");
                 eprintln!("  --log [level]     Enable logging to ~/.scouty/log/ (default: info)");
                 eprintln!("  --generate-config          Generate default config to stdout");
                 eprintln!(
@@ -269,6 +272,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
             arg if arg.starts_with("--fields=") => {
                 pipe_fields = Some(arg.trim_start_matches("--fields=").to_string());
+                i += 1;
+            }
+            "--follow" | "-f" => {
+                follow_flag = true;
                 i += 1;
             }
             _ => {
@@ -523,7 +530,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         app.theme = config::resolve_theme(&cfg, theme_override.as_deref());
 
         // Apply general settings
-        if piped && cfg.general.follow_on_pipe {
+        if follow_flag || (piped && cfg.general.follow_on_pipe) {
             app.follow_mode = true;
             app.scroll_to_bottom();
         }
@@ -532,6 +539,33 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Wrap app + keymap in MainWindow for the new architecture
     let mut main_window = ui::windows::main_window::MainWindow::new(app, keymap);
+
+    // Set up file follower if follow mode requested for file input
+    let mut file_follower: Option<follow::FileFollower> =
+        if follow_flag && !piped && files.len() == 1 {
+            let path = std::path::Path::new(files[0]);
+            match follow::file_size(path) {
+                Ok(size) => {
+                    use scouty::loader::file::FileLoader;
+                    use scouty::traits::LogLoader;
+                    let mut loader = FileLoader::new(files[0], false);
+                    let _ = loader.load();
+                    let info = loader.info().clone();
+                    Some(follow::FileFollower::new(
+                        path,
+                        size,
+                        info,
+                        main_window.app.total_records as u64,
+                    ))
+                }
+                Err(e) => {
+                    tracing::warn!(%e, "cannot start file follower");
+                    None
+                }
+            }
+        } else {
+            None
+        };
 
     loop {
         // Pre-compute density cache using exact position text width
@@ -568,7 +602,29 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             ui::render(frame, &mut main_window.app);
         })?;
 
-        if !event::poll(Duration::from_millis(250))? {
+        // Poll file follower for new records
+        if main_window.app.follow_mode {
+            if let Some(ref mut follower) = file_follower {
+                match follower.poll() {
+                    Ok(new_records) => {
+                        if !new_records.is_empty() {
+                            let count = new_records.len();
+                            // Process through category pipeline
+                            if let Some(ref mut proc) = main_window.app.category_processor {
+                                proc.process_records(&new_records);
+                            }
+                            main_window.app.append_records(new_records);
+                            tracing::debug!(count, "follow: appended new records");
+                        }
+                    }
+                    Err(e) => {
+                        tracing::warn!(%e, "follow: error polling file");
+                    }
+                }
+            }
+        }
+
+        if !event::poll(Duration::from_millis(100))? {
             main_window.app.tick_status_clear();
             continue;
         }
