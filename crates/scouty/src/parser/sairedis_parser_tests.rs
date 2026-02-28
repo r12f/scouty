@@ -456,4 +456,71 @@ mod tests {
             "Notification: fdb_event".to_string()
         )));
     }
+
+    #[test]
+    fn test_notify_syncd_request() {
+        let p = SairedisParser::new();
+        let r = p
+            .parse(
+                "2025-01-15.10:30:45.123456|a|INIT_VIEW",
+                "test",
+                "loader",
+                1,
+            )
+            .unwrap();
+        assert_eq!(r.function.as_deref(), Some("NotifySyncd"));
+        assert_eq!(r.context.as_deref(), Some("INIT_VIEW"));
+        assert_eq!(r.message, "INIT_VIEW");
+    }
+
+    #[test]
+    fn test_notify_syncd_request_apply_view() {
+        let p = SairedisParser::new();
+        let r = p
+            .parse(
+                "2025-01-15.10:30:45.123456|a|APPLY_VIEW",
+                "test",
+                "loader",
+                1,
+            )
+            .unwrap();
+        assert_eq!(r.function.as_deref(), Some("NotifySyncd"));
+        assert_eq!(r.context.as_deref(), Some("APPLY_VIEW"));
+    }
+
+    #[test]
+    fn test_notify_syncd_response() {
+        let p = SairedisParser::new();
+        let r = p
+            .parse(
+                "2025-01-15.10:30:45.123456|A|SAI_STATUS_SUCCESS",
+                "test",
+                "loader",
+                1,
+            )
+            .unwrap();
+        assert_eq!(r.function.as_deref(), Some("NotifySyncdResponse"));
+        assert_eq!(r.message, "SAI_STATUS_SUCCESS");
+        assert!(r.context.is_none());
+    }
+
+    #[test]
+    fn test_notify_syncd_response_empty() {
+        let p = SairedisParser::new();
+        let r = p
+            .parse("2025-01-15.10:30:45.123456|A|", "test", "loader", 1)
+            .unwrap();
+        assert_eq!(r.function.as_deref(), Some("NotifySyncdResponse"));
+        assert_eq!(r.message, "");
+    }
+
+    #[test]
+    fn test_looks_like_sairedis_notify_syncd() {
+        assert!(looks_like_sairedis(
+            "2025-01-15.10:30:45.123456|a|INIT_VIEW"
+        ));
+        assert!(looks_like_sairedis(
+            "2025-01-15.10:30:45.123456|A|SAI_STATUS_SUCCESS"
+        ));
+    }
 }
