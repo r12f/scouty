@@ -264,23 +264,23 @@ impl OverlayStack {
     }
 
     /// Dispatch a key to the topmost overlay.
-    /// Handles Close automatically. Returns true if an overlay handled the key.
+    /// Handles Close automatically. Returns true if an overlay consumed the key.
     pub fn handle_key(&mut self, app: &mut App, key: KeyEvent) -> bool {
         if let Some(overlay) = self.overlays.last_mut() {
             let action = overlay.handle_key(app, key);
             match action {
                 WindowAction::Close => {
                     self.pop();
+                    true
                 }
-                WindowAction::Open(new_window) => {
-                    // OverlayWindow::Open could push a regular Window,
-                    // but for now we don't support nested overlays this way.
-                    let _ = new_window;
+                WindowAction::Open(_new_window) => {
+                    // Nested overlay opening not yet supported; log and consume.
                     tracing::warn!("OverlayStack: Open action not supported from overlay");
+                    true
                 }
-                _ => {}
+                WindowAction::Handled => true,
+                WindowAction::Unhandled => false,
             }
-            true
         } else {
             false
         }

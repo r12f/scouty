@@ -71,7 +71,7 @@ impl OverlayWindow for FilterManagerOverlay {
     fn render(&self, frame: &mut Frame, area: Rect, app: &App) {
         use crate::ui::windows::filter_manager_window::FilterManagerWindow;
         let window = FilterManagerWindow::from_app(app);
-        <FilterManagerWindow as UiComponent>::render(&window, frame, area);
+        window.render_with_app(frame, app, area);
     }
 
     fn handle_key(&mut self, app: &mut App, key: KeyEvent) -> WindowAction {
@@ -123,7 +123,7 @@ impl OverlayWindow for BookmarkManagerOverlay {
     fn render(&self, frame: &mut Frame, area: Rect, app: &App) {
         use crate::ui::windows::bookmark_manager_window::BookmarkManagerWindow;
         let window = BookmarkManagerWindow::from_app(app);
-        <BookmarkManagerWindow as UiComponent>::render(&window, frame, area);
+        window.render_with_app(frame, app, area);
     }
 
     fn handle_key(&mut self, app: &mut App, key: KeyEvent) -> WindowAction {
@@ -162,7 +162,7 @@ impl OverlayWindow for HighlightManagerOverlay {
     fn render(&self, frame: &mut Frame, area: Rect, app: &App) {
         use crate::ui::windows::highlight_manager_window::HighlightManagerWindow;
         let window = HighlightManagerWindow::from_app(app);
-        <HighlightManagerWindow as UiComponent>::render(&window, frame, area);
+        window.render_with_app(frame, app, area);
     }
 
     fn handle_key(&mut self, app: &mut App, key: KeyEvent) -> WindowAction {
@@ -255,7 +255,7 @@ impl OverlayWindow for RegionManagerOverlay {
     fn render(&self, frame: &mut Frame, area: Rect, app: &App) {
         use crate::ui::windows::region_manager_window::RegionManagerWindow;
         let window = RegionManagerWindow::from_app(app);
-        <RegionManagerWindow as UiComponent>::render(&window, frame, area);
+        window.render_with_app(frame, area, app);
     }
 
     fn handle_key(&mut self, app: &mut App, key: KeyEvent) -> WindowAction {
@@ -269,7 +269,10 @@ impl OverlayWindow for RegionManagerOverlay {
                     crate::ui::windows::region_manager_window::RegionAction::Jump(idx) => {
                         app.jump_to_record_index(idx);
                     }
-                    crate::ui::windows::region_manager_window::RegionAction::Filter(_start, _end) => {
+                    crate::ui::windows::region_manager_window::RegionAction::Filter(
+                        _start,
+                        _end,
+                    ) => {
                         let def_name = &app.regions.regions()[window.cursor].definition_name;
                         let expr = format!("_region_type == \"{}\"", def_name);
                         app.add_filter_expr(&expr);

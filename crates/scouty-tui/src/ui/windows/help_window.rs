@@ -201,13 +201,15 @@ impl OverlayWindow for HelpOverlay {
     fn render(&self, frame: &mut Frame, area: Rect, app: &App) {
         let mut window = HelpWindow::new(&app.theme);
         window.scroll = self.scroll;
-        window.visible_height = self.visible_height;
+        // Compute visible height from area, matching HelpWindow popup sizing
+        window.visible_height = area.height.saturating_sub(6).max(1);
         <HelpWindow as UiComponent>::render(&window, frame, area);
     }
 
     fn handle_key(&mut self, app: &mut App, key: KeyEvent) -> WindowAction {
         let mut window = HelpWindow::new(&app.theme);
         window.scroll = self.scroll;
+        // Use a reasonable default; actual render area not available in handle_key
         window.visible_height = self.visible_height;
         let result = crate::ui::dispatch_key(&mut window, key);
         self.scroll = window.scroll;

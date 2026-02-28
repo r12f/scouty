@@ -624,4 +624,53 @@ mod tests {
         let hints = tc.shortcut_hints();
         assert_eq!(hints, vec![("Tab/S-Tab", "Switch")]);
     }
+
+    // ── OverlayStack tests ───────────────────────────────────────
+
+    use crate::ui::framework::{OverlayStack, OverlayWindow, WindowAction};
+
+    struct TestOverlay {
+        label: &'static str,
+        close_on_esc: bool,
+    }
+
+    impl OverlayWindow for TestOverlay {
+        fn name(&self) -> &str {
+            self.label
+        }
+
+        fn render(
+            &self,
+            _frame: &mut ratatui::Frame,
+            _area: ratatui::layout::Rect,
+            _app: &crate::app::App,
+        ) {
+        }
+
+        fn handle_key(&mut self, _app: &mut crate::app::App, key: KeyEvent) -> WindowAction {
+            if self.close_on_esc && key.code == KeyCode::Esc {
+                WindowAction::Close
+            } else if key.code == KeyCode::Char('x') {
+                WindowAction::Handled
+            } else {
+                WindowAction::Unhandled
+            }
+        }
+    }
+
+    #[test]
+    fn overlay_stack_push_pop() {
+        let mut stack = OverlayStack::new();
+        assert!(stack.is_empty());
+
+        stack.push(Box::new(TestOverlay {
+            label: "Help",
+            close_on_esc: true,
+        }));
+        assert!(!stack.is_empty());
+        assert_eq!(stack.top().unwrap().name(), "Help");
+
+        stack.pop();
+        assert!(stack.is_empty());
+    }
 }
