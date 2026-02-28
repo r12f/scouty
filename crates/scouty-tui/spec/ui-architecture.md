@@ -143,9 +143,9 @@ The status bar collects shortcut hints by walking the widget tree from the **foc
 ```
 RegionPanelWidget.shortcut_hints() → [("j/k", "↑↓"), ("Enter", "Jump")]
 TabbedContainer.shortcut_hints()   → [("Tab/S-Tab", "Switch")]
-MainWindow.shortcut_hints()        → [("Ctrl+↑", "Back"), ("z", "Max"), ("Esc", "Close")]
+MainWindow.shortcut_hints()        → [("z", "Max"), ("Esc", "Close")]
 
-Status bar: [REGION] j/k: ↑↓ │ Enter: Jump │ Tab/S-Tab: Switch │ Ctrl+↑: Back │ z: Max │ Esc: Close
+Status bar: [REGION] j/k: ↑↓ │ Enter: Jump │ Tab/S-Tab: Switch │ z: Max │ Esc: Close
 ```
 
 **Example — focus on LogTableWidget:**

@@ -133,9 +133,7 @@ Components notify App via return values or callbacks. App updates shared state (
 | `M` | Bookmark manager |
 | `S` | Stats summary |
 | `r` / `R` | Region panel / jump to next region start |
-| `Ctrl+↓` | Focus panel (expand if collapsed) |
-| `Ctrl+↑` | Focus log table (from panel) |
-| `Ctrl+←`/`Ctrl+→` | Switch between panels |
+| `Tab`/`Shift+Tab` | Cycle focus: Log Table → Detail → Region → Stats → Log Table (expand if collapsed) |
 | `z` | Toggle panel maximize/restore |
 | `]`/`[` | Relative time jump (forward/backward) |
 | `Ctrl+]` | Toggle follow mode |

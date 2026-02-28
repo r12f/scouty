@@ -25,8 +25,7 @@ The detail panel and region UI (region manager + density chart) currently have i
 - [ ] **Panel Framework** — unified panel trait/interface defining render, keybinding, collapse/expand behavior (dependency: none)
 - [ ] **Detail Panel Migration** — migrate existing detail panel to a panel system instance (dependency: Panel Framework)
 - [ ] **Region Panel** — combine region manager + region density chart into a single region panel (dependency: Panel Framework)
-- [ ] **Panel Switching** — `Ctrl+←`/`Ctrl+→` to switch between panels (dependency: Panel Framework)
-- [ ] **Focus Switching** — `Ctrl+↑`/`Ctrl+↓` to switch focus between log table and current panel (dependency: Panel Framework)
+- [ ] **Panel Switching** — `Tab`/`Shift+Tab` to cycle focus between log table and panels (dependency: Panel Framework)
 - [ ] **Panel Maximize** — `z` to toggle maximize/restore; maximized panel fills log table + panel area (dependency: Panel Framework)
 
 ### P1 — Should Have
@@ -87,13 +86,10 @@ Focus switching:
 
 | Shortcut | Behavior |
 |----------|----------|
-| `Ctrl+↓` | Log Table → Panel Content (expand current panel, focus enters panel) |
-| `Ctrl+↑` | Panel Content → Log Table (focus returns to log table, panel stays expanded) |
-| `Ctrl+←` / `Ctrl+→` | Switch to previous/next panel (if expanded, switch content; if collapsed, only switch tab highlight). **Note:** may not work in macOS Terminal.app or terminals that don't emit xterm-style modifier sequences. |
-| `Tab` | Cycle focus forward: Log Table → Detail → Region → Log Table → … (expands panel if collapsed) |
+| `Tab` | Cycle focus forward: Log Table → Detail → Region → Stats → Log Table → … (expands panel if collapsed) |
 | `Shift+Tab` | Cycle focus backward (reverse of Tab) |
 | `Esc` | Panel Content → Log Table (focus returns to log table) |
-| Original shortcut | Directly open/close corresponding panel without changing focus (e.g., `Enter` toggles Detail, `r` toggles Region, `S` toggles Stats). Focus stays on the current widget (typically log table). Use `Ctrl+↓` or `Tab` to move focus into the panel. |
+| Original shortcut | Directly open/close corresponding panel without changing focus (e.g., `Enter` toggles Detail, `r` toggles Region, `S` toggles Stats). Focus stays on the current widget (typically log table). Use `Tab` to move focus into the panel. |
 
 #### Shared Panel Operations (all panels)
 
@@ -101,11 +97,8 @@ Focus switching:
 |----------|----------|
 | `j`/`k` | Navigate up/down within panel |
 | `Esc` | Return focus to log table |
-| `Ctrl+↑` | Return focus to log table |
-| `Ctrl+↓` | (no-op when already in panel) |
-| `Ctrl+←`/`Ctrl+→` | Switch panel |
-| `Tab` | Cycle to next panel or back to log table |
-| `Shift+Tab` | Cycle to previous panel or back to log table |
+| `Esc` | Return focus to log table |
+| `Tab`/`Shift+Tab` | Cycle to next/previous panel or back to log table |
 
 **Maximize:**
 
@@ -144,7 +137,7 @@ Panel-specific operations:
 | Shortcut | Behavior |
 |----------|----------|
 | `Tab` | Switch focus between left and right areas |
-| `h`/`l` | Collapse/expand tree node (left side expansion tree) |
+| `←`/`→` | Collapse/expand tree node (left side expansion tree) |
 | `H`/`L` | Collapse all / expand all |
 | `f` | Create filter from current field |
 
@@ -216,9 +209,9 @@ Gutter markers in the log table (▶/│/◀) are preserved unchanged. They are 
 
 ## Acceptance Criteria
 
-- [ ] `Enter` opens Detail panel, then `Ctrl+→` switches to Region panel
+- [ ] `Enter` opens Detail panel, then `Tab` switches to Region panel
 - [ ] `r` directly opens Region panel
-- [ ] `Ctrl+↑`/`Ctrl+↓` switch focus between log table and panel
+- [ ] `Tab`/`Shift+Tab` cycle focus between log table and panels
 - [ ] Tab bar takes only one line when collapsed
 - [ ] Log table height auto-shrinks when panel expands
 - [ ] Region panel left-right split: left region list, right timeline (~30% width, min 40 chars)
