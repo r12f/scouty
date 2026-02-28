@@ -271,6 +271,8 @@ pub struct App {
     pub search_input: TextInput,
     /// Current search matches (indices into filtered list).
     pub search_matches: Vec<usize>,
+    /// Cached compiled search regex (for incremental follow-mode search).
+    pub search_regex: Option<regex::Regex>,
     /// Current search match index.
     pub search_match_idx: Option<usize>,
     /// Time jump input buffer.
@@ -337,6 +339,8 @@ pub struct App {
     pub density_selector_cursor: usize,
     /// Detected regions from region processor.
     pub regions: scouty::region::store::RegionStore,
+    /// Region processor for incremental follow-mode processing.
+    pub region_processor: Option<scouty::region::processor::RegionProcessor>,
     /// Categorization processor (evaluates categories and tracks stats).
     pub category_processor: Option<scouty::category::CategoryProcessor>,
     /// Category panel cursor position.
@@ -580,6 +584,7 @@ impl App {
             filter_manager_cursor: 0,
             search_input: TextInput::new(),
             search_matches: vec![],
+            search_regex: None,
             search_match_idx: None,
             time_input: TextInput::new(),
             goto_input: TextInput::new(),
@@ -613,6 +618,7 @@ impl App {
             density_source: DensitySource::All,
             density_selector_cursor: 0,
             regions: scouty::region::store::RegionStore::default(),
+            region_processor: None,
             category_processor: None,
             category_cursor: 0,
             region_manager_cursor: 0,
@@ -1291,6 +1297,7 @@ impl App {
             }
         };
 
+        self.search_regex = Some(pattern.clone());
         self.search_matches = self
             .filtered_indices
             .iter()
@@ -1353,6 +1360,7 @@ impl App {
     fn clear_search(&mut self) {
         self.search_matches.clear();
         self.search_match_idx = None;
+        self.search_regex = None;
     }
 
     // ── Navigation ──────────────────────────────────────────────
@@ -1806,6 +1814,7 @@ impl App {
         self.total_records = self.records.len();
 
         // Incrementally filter new records (don't re-filter all)
+        let filtered_before = self.filtered_indices.len();
         for i in base_idx..base_idx + count {
             let record = &self.records[i];
 
@@ -1837,6 +1846,17 @@ impl App {
 
         // Recompute column widths
         self.col_widths = Self::compute_col_widths(&self.records, &self.filtered_indices);
+
+        // Incrementally update search matches for new filtered records
+        if let Some(ref regex) = self.search_regex {
+            for fi in filtered_before..self.filtered_indices.len() {
+                let ri = self.filtered_indices[fi];
+                let record = &self.records[ri];
+                if regex.is_match(&record.message) || regex.is_match(&record.raw) {
+                    self.search_matches.push(fi);
+                }
+            }
+        }
 
         // Auto-scroll if in follow mode and was at bottom
         if was_at_bottom && !self.filtered_indices.is_empty() {
@@ -2105,6 +2125,7 @@ mod tests {
             filter_manager_cursor: 0,
             search_input: TextInput::new(),
             search_matches: vec![],
+            search_regex: None,
             search_match_idx: None,
             time_input: TextInput::new(),
             goto_input: TextInput::new(),
@@ -2138,6 +2159,7 @@ mod tests {
             density_source: DensitySource::All,
             density_selector_cursor: 0,
             regions: scouty::region::store::RegionStore::default(),
+            region_processor: None,
             category_processor: None,
             category_cursor: 0,
             region_manager_cursor: 0,
@@ -2179,6 +2201,7 @@ mod tests {
             filter_manager_cursor: 0,
             search_input: TextInput::new(),
             search_matches: vec![],
+            search_regex: None,
             search_match_idx: None,
             time_input: TextInput::new(),
             goto_input: TextInput::new(),
@@ -2212,6 +2235,7 @@ mod tests {
             density_source: DensitySource::All,
             density_selector_cursor: 0,
             regions: scouty::region::store::RegionStore::default(),
+            region_processor: None,
             category_processor: None,
             category_cursor: 0,
             region_manager_cursor: 0,
@@ -2250,6 +2274,7 @@ mod tests {
             filter_manager_cursor: 0,
             search_input: TextInput::new(),
             search_matches: vec![],
+            search_regex: None,
             search_match_idx: None,
             time_input: TextInput::new(),
             goto_input: TextInput::new(),
@@ -2283,6 +2308,7 @@ mod tests {
             density_source: DensitySource::All,
             density_selector_cursor: 0,
             regions: scouty::region::store::RegionStore::default(),
+            region_processor: None,
             category_processor: None,
             category_cursor: 0,
             region_manager_cursor: 0,
@@ -2776,6 +2802,7 @@ mod field_filter_v2_tests {
             filter_manager_cursor: 0,
             search_input: TextInput::new(),
             search_matches: vec![],
+            search_regex: None,
             search_match_idx: None,
             time_input: TextInput::new(),
             goto_input: TextInput::new(),
@@ -2809,6 +2836,7 @@ mod field_filter_v2_tests {
             density_source: DensitySource::All,
             density_selector_cursor: 0,
             regions: scouty::region::store::RegionStore::default(),
+            region_processor: None,
             category_processor: None,
             category_cursor: 0,
             region_manager_cursor: 0,
@@ -2973,6 +3001,7 @@ mod column_follow_tests {
             filter_manager_cursor: 0,
             search_input: TextInput::new(),
             search_matches: vec![],
+            search_regex: None,
             search_match_idx: None,
             time_input: TextInput::new(),
             goto_input: TextInput::new(),
@@ -3006,6 +3035,7 @@ mod column_follow_tests {
             density_source: DensitySource::All,
             density_selector_cursor: 0,
             regions: scouty::region::store::RegionStore::default(),
+            region_processor: None,
             category_processor: None,
             category_cursor: 0,
             region_manager_cursor: 0,
@@ -3227,6 +3257,51 @@ mod follow_append_tests {
         assert!(!app.follow_mode);
         assert_eq!(app.follow_new_count, 0);
     }
+
+    #[test]
+    fn test_append_updates_search_matches() {
+        let mut app = make_follow_app(5);
+        app.follow_mode = true;
+        app.scroll_to_bottom();
+
+        // Set up a search regex matching "msg"
+        app.search_regex = Some(regex::Regex::new("msg").unwrap());
+
+        // Append new records
+        app.append_records(vec![make_record(5), make_record(6)]);
+
+        // Search matches should include the new records
+        assert!(!app.search_matches.is_empty());
+    }
+
+    #[test]
+    fn test_append_filters_new_records() {
+        let mut app = make_follow_app(5);
+        app.follow_mode = true;
+        app.scroll_to_bottom();
+
+        // Add an exclude filter for records containing "msg3"
+        let expr = scouty::filter::expr::parse("message contains \"msg3\"").unwrap();
+        app.filters.push(crate::app::FilterEntry {
+            label: "msg3".to_string(),
+            expr_str: "message contains \"msg3\"".to_string(),
+            expr,
+            exclude: true,
+        });
+
+        let before = app.filtered_indices.len();
+        // Append a record that would be excluded
+        let mut r = (*make_record(10)).clone();
+        r.message = "msg3 should be excluded".to_string();
+        app.append_records(vec![Arc::new(r)]);
+
+        // Filtered count should not increase (record excluded)
+        assert_eq!(app.filtered_indices.len(), before);
+
+        // Append a record that passes
+        app.append_records(vec![make_record(11)]);
+        assert_eq!(app.filtered_indices.len(), before + 1);
+    }
 }
 
 #[cfg(test)]
@@ -3282,6 +3357,7 @@ mod copy_tests {
             filter_manager_cursor: 0,
             search_input: TextInput::new(),
             search_matches: vec![],
+            search_regex: None,
             search_match_idx: None,
             time_input: TextInput::new(),
             goto_input: TextInput::new(),
@@ -3315,6 +3391,7 @@ mod copy_tests {
             density_source: DensitySource::All,
             density_selector_cursor: 0,
             regions: scouty::region::store::RegionStore::default(),
+            region_processor: None,
             category_processor: None,
             category_cursor: 0,
             region_manager_cursor: 0,
@@ -3464,6 +3541,7 @@ mod time_jump_tests {
             filter_manager_cursor: 0,
             search_input: TextInput::new(),
             search_matches: vec![],
+            search_regex: None,
             search_match_idx: None,
             time_input: TextInput::with_text(time_input),
             goto_input: TextInput::new(),
@@ -3497,6 +3575,7 @@ mod time_jump_tests {
             density_source: DensitySource::All,
             density_selector_cursor: 0,
             regions: scouty::region::store::RegionStore::default(),
+            region_processor: None,
             category_processor: None,
             category_cursor: 0,
             region_manager_cursor: 0,
@@ -3609,6 +3688,7 @@ mod command_tests {
             filter_manager_cursor: 0,
             search_input: TextInput::new(),
             search_matches: vec![],
+            search_regex: None,
             search_match_idx: None,
             time_input: TextInput::new(),
             goto_input: TextInput::new(),
@@ -3642,6 +3722,7 @@ mod command_tests {
             density_source: DensitySource::All,
             density_selector_cursor: 0,
             regions: scouty::region::store::RegionStore::default(),
+            region_processor: None,
             category_processor: None,
             category_cursor: 0,
             region_manager_cursor: 0,
