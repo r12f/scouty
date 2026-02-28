@@ -61,6 +61,7 @@ The detail panel and region UI (region manager + density chart) currently have i
 - **Collapsed:** only the panel tab bar is visible (one line height), showing tab names like `[Detail] [Region] [Stats] [Category]` with the selected tab highlighted
 - **Expanded:** tab bar + panel content area; each panel has its own default height (see individual panel definitions)
 - Only one panel is expanded at a time
+- **No panel-internal title:** Panels must NOT render their own title/header line inside the content area. The tab bar already shows the panel name — a panel-internal title is redundant. Panel content starts immediately below the tab bar.
 
 #### Panel Tab Bar
 
