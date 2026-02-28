@@ -546,4 +546,84 @@ mod tests {
         let tc = make_test_tabbed();
         assert_eq!(tc.tab_count(), 3);
     }
+
+    // ── Shortcut hints collection tests ─────────────────────────────
+
+    /// A widget that returns specific shortcut hints.
+    struct HintWidget {
+        name: &'static str,
+        hints: Vec<(&'static str, &'static str)>,
+        children: Vec<Box<dyn Widget>>,
+    }
+
+    impl Widget for HintWidget {
+        fn children(&self) -> &[Box<dyn Widget>] {
+            &self.children
+        }
+        fn children_mut(&mut self) -> &mut [Box<dyn Widget>] {
+            &mut self.children
+        }
+        fn render(&self, _frame: &mut Frame, _area: Rect) {}
+        fn handle_key(&mut self, _event: KeyEvent) -> KeyAction {
+            KeyAction::Unhandled
+        }
+        fn is_focusable(&self) -> bool {
+            true
+        }
+        fn name(&self) -> &str {
+            self.name
+        }
+        fn shortcut_hints(&self) -> Vec<(&str, &str)> {
+            self.hints.clone()
+        }
+    }
+
+    #[test]
+    fn collect_hints_from_focus_path() {
+        let root = HintWidget {
+            name: "Root",
+            hints: vec![("Esc", "Close"), ("?", "Help")],
+            children: vec![Box::new(HintWidget {
+                name: "Panel",
+                hints: vec![("Tab", "Switch")],
+                children: vec![Box::new(HintWidget {
+                    name: "Leaf",
+                    hints: vec![("j/k", "↑↓"), ("Enter", "Select")],
+                    children: vec![],
+                })],
+            })],
+        };
+
+        // Focus path: root → child[0] → child[0] (Leaf)
+        let fm = FocusManager::with_path(vec![0, 0]);
+        let hints = fm.collect_hints(&root);
+
+        // Order: Leaf first, then Panel, then Root
+        assert_eq!(hints.len(), 5);
+        assert_eq!(hints[0], ("j/k".to_string(), "↑↓".to_string()));
+        assert_eq!(hints[1], ("Enter".to_string(), "Select".to_string()));
+        assert_eq!(hints[2], ("Tab".to_string(), "Switch".to_string()));
+        assert_eq!(hints[3], ("Esc".to_string(), "Close".to_string()));
+        assert_eq!(hints[4], ("?".to_string(), "Help".to_string()));
+    }
+
+    #[test]
+    fn collect_hints_empty_focus_returns_root_only() {
+        let root = HintWidget {
+            name: "Root",
+            hints: vec![("?", "Help")],
+            children: vec![],
+        };
+        let fm = FocusManager::new();
+        let hints = fm.collect_hints(&root);
+        assert_eq!(hints.len(), 1);
+        assert_eq!(hints[0], ("?".to_string(), "Help".to_string()));
+    }
+
+    #[test]
+    fn tabbed_container_shortcut_hints() {
+        let tc = make_test_tabbed();
+        let hints = tc.shortcut_hints();
+        assert_eq!(hints, vec![("Tab/S-Tab", "Switch")]);
+    }
 }

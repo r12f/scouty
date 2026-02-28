@@ -450,6 +450,7 @@ mod ui_legacy_tests {
             time_input: TextInput::new(),
             goto_input: TextInput::new(),
             status_message: None,
+            shortcut_hints_cache: Vec::new(),
             status_message_at: None,
             col_widths: [19, 5, 11, 3, 3, 9],
             column_config: ColumnConfig::default(),

@@ -9,6 +9,7 @@ mod pipe;
 pub mod text_input;
 mod ui;
 
+use crate::ui::framework::Window;
 use app::{App, InputMode};
 use crossterm::{
     event::{self, Event, KeyEventKind},
@@ -539,6 +540,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 main_window.app.get_density_cache(chart_width);
             }
         }
+
+        // Update shortcut hints cache from MainWindow
+        let hints = main_window.shortcut_hints();
+        main_window.app.shortcut_hints_cache = hints
+            .into_iter()
+            .map(|(k, v)| (k.to_string(), v.to_string()))
+            .collect();
 
         terminal.draw(|frame| {
             ui::render(frame, &mut main_window.app);
