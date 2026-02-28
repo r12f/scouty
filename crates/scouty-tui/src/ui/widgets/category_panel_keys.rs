@@ -10,7 +10,12 @@ use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
 /// Handle a key event when the category panel has focus.
 pub fn handle_key(app: &mut App, key: KeyEvent) -> KeyAction {
-    let max_cursor = category_count(app).saturating_sub(1);
+    let count = category_count(app);
+    let max_cursor = count.saturating_sub(1);
+    // Clamp cursor in case categories were reloaded/changed.
+    if app.category_cursor > max_cursor {
+        app.category_cursor = max_cursor;
+    }
     let ctrl = key.modifiers.contains(KeyModifiers::CONTROL);
 
     let handled = match key.code {

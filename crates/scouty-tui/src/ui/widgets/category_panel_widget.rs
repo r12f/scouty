@@ -10,6 +10,7 @@ use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, Paragraph};
 use ratatui::Frame;
+use unicode_width::UnicodeWidthStr;
 
 /// Block characters for density sparkline (8 levels).
 const SPARK_CHARS: &[char] = &['▁', '▂', '▃', '▄', '▅', '▆', '▇', '█'];
@@ -48,13 +49,12 @@ impl CategoryPanelWidget {
             && app.panel_state.focus == crate::panel::PanelFocus::PanelContent
             && app.panel_state.active == crate::panel::PanelId::Category;
 
+        // Use theme-driven border style matching other panels (Detail, Region).
+        let theme = &app.theme;
         let block = Block::default()
-            .borders(Borders::ALL)
-            .border_style(if focused {
-                Style::default().fg(Color::Cyan)
-            } else {
-                Style::default().fg(Color::DarkGray)
-            });
+            .title(" Category ")
+            .borders(Borders::TOP)
+            .border_style(theme.detail_panel.border.to_style());
 
         let inner = block.inner(area);
         frame.render_widget(block, area);
@@ -66,15 +66,20 @@ impl CategoryPanelWidget {
             return;
         }
 
-        // Calculate column widths
-        let max_name_len = entries.iter().map(|e| e.name.len()).max().unwrap_or(8);
+        // Calculate column widths using display width for Unicode correctness.
+        let max_name_width = entries
+            .iter()
+            .map(|e| UnicodeWidthStr::width(e.name.as_str()))
+            .max()
+            .unwrap_or(8);
         let count_width: usize = 10;
         let sparkline_width = inner
             .width
-            .saturating_sub(max_name_len as u16 + count_width as u16 + 4)
+            .saturating_sub(max_name_width as u16 + count_width as u16 + 4)
             as usize;
 
-        let cursor = app.category_cursor;
+        // Clamp cursor in case categories changed since last interaction.
+        let cursor = app.category_cursor.min(entries.len().saturating_sub(1));
         let visible_height = inner.height as usize;
 
         // Scroll offset to keep cursor visible
@@ -100,7 +105,9 @@ impl CategoryPanelWidget {
                     Style::default()
                 };
 
-                let name = format!("{:<width$}", entry.name, width = max_name_len);
+                let name_display_width = UnicodeWidthStr::width(entry.name.as_str());
+                let padding = max_name_width.saturating_sub(name_display_width);
+                let name = format!("{}{}", entry.name, " ".repeat(padding));
                 let count_str = format_count(entry.count);
                 let count = format!("{:>width$}", count_str, width = count_width);
                 let sparkline = render_sparkline(&entry.density, sparkline_width);

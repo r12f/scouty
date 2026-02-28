@@ -19,9 +19,9 @@ mod tests {
     }
 
     #[test]
-    fn test_cursor_down() {
+    fn test_cursor_down_no_categories() {
         let mut app = test_app();
-        // No categories → cursor stays at 0
+        // No categories → handled but cursor stays at 0
         let result = handle_key(&mut app, key(KeyCode::Char('j')));
         assert_eq!(result, KeyAction::Handled);
         assert_eq!(app.category_cursor, 0);
@@ -65,5 +65,16 @@ mod tests {
         let hints = shortcut_hints();
         assert!(!hints.is_empty());
         assert!(hints.iter().any(|(k, _)| *k == "Enter"));
+    }
+
+    #[test]
+    fn test_out_of_range_cursor_clamped() {
+        let mut app = test_app();
+        // Set cursor beyond available categories (0 categories)
+        app.category_cursor = 5;
+        // handle_key clamps it to 0
+        let result = handle_key(&mut app, key(KeyCode::Char('j')));
+        assert_eq!(result, KeyAction::Handled);
+        assert_eq!(app.category_cursor, 0);
     }
 }
