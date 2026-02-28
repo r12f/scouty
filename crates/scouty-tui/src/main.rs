@@ -18,6 +18,8 @@ use crossterm::{
 use ratatui::prelude::*;
 use std::io::{stdout, IsTerminal};
 use std::time::Duration;
+use tracing_appender::rolling;
+use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 
 /// Check if stdin is a pipe (not a terminal).
 fn stdin_is_pipe() -> bool {
@@ -272,6 +274,37 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Load config early so default_paths is available for file resolution
     let cfg = config::load_config_layered(config_override.as_deref());
+
+    // ── Initialize tracing (file-based logging to ~/.scouty/log/) ──
+    let _tracing_guard = {
+        let log_dir = dirs::home_dir()
+            .unwrap_or_else(|| std::path::PathBuf::from("."))
+            .join(".scouty")
+            .join("log");
+        let _ = std::fs::create_dir_all(&log_dir);
+
+        let file_appender = rolling::daily(&log_dir, "scouty");
+        let (non_blocking, guard) = tracing_appender::non_blocking(file_appender);
+
+        let env_filter =
+            EnvFilter::try_from_env("SCOUTY_LOG").unwrap_or_else(|_| EnvFilter::new("info"));
+
+        tracing_subscriber::registry()
+            .with(env_filter)
+            .with(
+                fmt::layer()
+                    .with_writer(non_blocking)
+                    .with_ansi(false)
+                    .with_target(true)
+                    .with_thread_ids(true)
+                    .with_file(true)
+                    .with_line_number(true),
+            )
+            .init();
+
+        tracing::info!("scouty starting up, version {}", env!("CARGO_PKG_VERSION"));
+        guard
+    };
 
     let files: Vec<String> = if !piped && file_args.is_empty() {
         if pipe_mode {

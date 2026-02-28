@@ -11,6 +11,7 @@
 use crate::record::LogRecord;
 use chrono::{DateTime, Utc};
 use std::sync::Arc;
+use tracing::instrument;
 
 /// Default segment capacity (number of records per segment).
 const DEFAULT_SEGMENT_CAPACITY: usize = 64 * 1024; // 64K
@@ -260,6 +261,7 @@ impl LogStore {
     ///
     /// For empty stores: sorts batch and creates frozen segments directly.
     /// For non-empty stores: uses merge-based approach — only affected segments are rebuilt.
+    #[instrument(skip(self, batch), fields(batch_size = batch.len()))]
     pub fn insert_batch(&mut self, mut batch: Vec<LogRecord>) {
         if batch.is_empty() {
             return;

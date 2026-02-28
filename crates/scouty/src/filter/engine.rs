@@ -4,6 +4,7 @@ use crate::filter::expr;
 use crate::filter::expr_filter::ExprFilter;
 use crate::record::LogRecord;
 use crate::traits::LogFilter;
+use tracing::{instrument, warn};
 
 /// The action to take when a filter matches.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -42,6 +43,7 @@ impl FilterEngine {
     /// Add a filter from an expression string.
     ///
     /// Parses and validates the expression, then wraps it as a `LogFilter`.
+    #[instrument(skip(self), fields(expression))]
     pub fn add_expr_filter(
         &mut self,
         action: FilterAction,
@@ -89,6 +91,7 @@ impl FilterEngine {
     /// 1. Any record matching an Exclude filter is excluded.
     /// 2. If there are Include filters, only records matching at least one are included.
     /// 3. If there are no Include filters, all non-excluded records are included.
+    #[instrument(skip(self, records), fields(record_count = records.len()))]
     pub fn apply(&self, records: &[LogRecord]) -> Vec<usize> {
         self.apply_iter(records.iter())
     }

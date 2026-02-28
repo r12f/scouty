@@ -10,6 +10,7 @@ use scouty::parser::factory::ParserFactory;
 use scouty::record::{LogLevel, LogRecord};
 use scouty::traits::{LoaderInfo, LogLoader};
 use std::io::{self, BufWriter, Write};
+use tracing::instrument;
 
 /// Output format for pipe mode.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -41,6 +42,7 @@ pub struct PipeConfig {
 }
 
 /// Run pipe mode: parse input, apply filters, output to stdout.
+#[instrument(skip(files, stdin_lines, config))]
 pub fn run_pipe_mode(
     files: Vec<String>,
     stdin_lines: Option<Vec<String>>,

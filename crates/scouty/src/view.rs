@@ -11,6 +11,7 @@ use crate::filter::engine::FilterEngine;
 use crate::record::{LogLevel, LogRecord};
 use crate::store::LogStore;
 use std::collections::HashMap;
+use tracing::instrument;
 
 /// Status of a LogStoreView's filter results.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -72,6 +73,7 @@ impl LogStoreView {
     }
 
     /// Apply the filter engine against the full store, updating cached indices and stats.
+    #[instrument(skip(self, store), fields(store_len = store.len()))]
     pub fn apply(&mut self, store: &LogStore) {
         self.status = ViewStatus::Filtering;
         self.filtered_indices = self.filter_engine.apply_iter(store.iter());

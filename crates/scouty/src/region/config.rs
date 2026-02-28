@@ -6,6 +6,7 @@ use serde::Deserialize;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
+use tracing::{instrument, warn};
 
 /// A compiled region definition ready for matching.
 #[derive(Debug, Clone)]
@@ -167,6 +168,7 @@ pub fn load_from_str(yaml: &str) -> Result<Vec<RegionDefinition>, String> {
 }
 
 /// Load region definitions from a single YAML file.
+#[instrument(skip(path), fields(path = %path.display()))]
 pub fn load_from_file(path: &Path) -> Result<Vec<RegionDefinition>, String> {
     let content =
         std::fs::read_to_string(path).map_err(|e| format!("{}: {}", path.display(), e))?;
@@ -206,6 +208,7 @@ pub fn load_from_dir(dir: &Path) -> Result<Vec<RegionDefinition>, String> {
 
 /// Load all region definitions from standard config locations.
 /// System (/etc/scouty/regions/) → User (~/.scouty/regions/) → Project (./scouty-regions/).
+#[instrument]
 pub fn load_all() -> Vec<RegionDefinition> {
     let mut defs = Vec::new();
 

@@ -9,6 +9,7 @@ use super::Region;
 use crate::filter::eval;
 use crate::record::LogRecord;
 use std::collections::HashMap;
+use tracing::instrument;
 
 /// A pending start point awaiting a matching end.
 #[derive(Debug, Clone)]
@@ -49,6 +50,7 @@ impl RegionProcessor {
     /// Process a batch of records from the store.
     /// Records are processed in order; call repeatedly for incremental processing.
     /// Returns the records that were tagged with region metadata (indices).
+    #[instrument(skip(self, records), fields(record_count = records.len()))]
     pub fn process_records(&mut self, records: &[LogRecord]) {
         for (i, record) in records.iter().enumerate() {
             let absolute_index = self.next_index + i;

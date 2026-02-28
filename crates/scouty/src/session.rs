@@ -9,6 +9,7 @@ use crate::view::LogStoreView;
 use rayon::prelude::*;
 use std::sync::mpsc;
 use std::sync::Arc;
+use tracing::{info, instrument, warn};
 
 /// Represents a registered loader paired with its parser group.
 struct LoaderSlot {
@@ -59,6 +60,7 @@ impl LogSession {
     }
 
     /// Register a loader with its associated parser group.
+    #[instrument(skip(self, loader, parser_group))]
     pub fn add_loader(&mut self, loader: Box<dyn LogLoader>, parser_group: ParserGroup) {
         self.loader_slots.push(LoaderSlot {
             loader,
@@ -104,6 +106,7 @@ impl LogSession {
     /// Creates a new pending view with the given filter engine.
     /// If a pending view already exists, it is discarded and replaced.
     /// Also cancels any in-flight async filtering.
+    #[instrument(skip(self, filter_engine))]
     pub fn update_filter(&mut self, filter_engine: FilterEngine) {
         self.async_pending = None; // cancel any async work
         self.pending_view = Some(LogStoreView::new(filter_engine));
@@ -115,6 +118,7 @@ impl LogSession {
     /// Call `poll_pending()` to check for completion and swap views.
     /// If called again before completion, the previous async work is cancelled
     /// (receiver dropped, thread result discarded).
+    #[instrument(skip(self, filter_engine))]
     pub fn update_filter_async(&mut self, filter_engine: FilterEngine) {
         self.pending_view = None; // discard sync pending
                                   // Share store records with background thread via Arc (zero-copy, no deep clone)
@@ -135,6 +139,7 @@ impl LogSession {
     /// Poll for async filtering completion. If the background thread finished,
     /// swap the completed view into active_view and return `true`.
     /// Returns `false` if no async work is pending or it hasn't completed yet.
+    #[instrument(skip(self))]
     pub fn poll_pending(&mut self) -> bool {
         if let Some(ref rx) = self.async_pending {
             match rx.try_recv() {
@@ -159,6 +164,7 @@ impl LogSession {
     /// For synchronous pending views only.
     ///
     /// If no sync pending view exists, this is a no-op.
+    #[instrument(skip(self))]
     pub fn apply_pending(&mut self) {
         if let Some(mut pending) = self.pending_view.take() {
             pending.apply(&self.store);
@@ -169,17 +175,20 @@ impl LogSession {
     /// Re-apply the active view's filter against the store.
     ///
     /// Use after modifying filters via `filter_engine_mut()`.
+    #[instrument(skip(self))]
     pub fn refresh_active_view(&mut self) {
         self.active_view.apply(&self.store);
     }
 
     /// Execute the full pipeline: Load → Parse → Store → Process → Filter.
     /// Returns the filtered view (indices into the store).
+    #[instrument(skip(self))]
     pub fn run(&mut self) -> Result<Vec<usize>> {
         // 1. Load + Parse
         for slot in &mut self.loader_slots {
             let info = slot.loader.info().clone();
             let lines = slot.loader.load()?;
+            info!(loader_id = %info.id, line_count = lines.len(), "loaded lines from source");
             let source = &info.id;
 
             for line in &lines {
@@ -214,6 +223,11 @@ impl LogSession {
 
         // 3. Apply active view filter
         self.active_view.apply(&self.store);
+        info!(
+            store_size = self.store.len(),
+            filtered_size = self.active_view.len(),
+            "session run complete"
+        );
         Ok(self.active_view.indices().to_vec())
     }
 
@@ -223,6 +237,7 @@ impl LogSession {
     }
 
     /// Execute the pipeline with parallel loading and parsing across loader slots.
+    #[instrument(skip(self))]
     pub fn run_parallel(&mut self) -> Result<Vec<usize>> {
         // 1. Load + Parse in parallel
         let results: Vec<Result<(Vec<LogRecord>, Vec<FailedLog>)>> = self
@@ -277,6 +292,12 @@ impl LogSession {
 
         // 4. Apply active view filter
         self.active_view.apply(&self.store);
+        info!(
+            store_size = self.store.len(),
+            filtered_size = self.active_view.len(),
+            failures = self.failing_parsing_logs.len(),
+            "parallel session run complete"
+        );
         Ok(self.active_view.indices().to_vec())
     }
 }

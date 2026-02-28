@@ -19,3 +19,6 @@ serde_json = "1"
 serde_yaml = "0.9"
 unicode-width = "0.2"
 glob = "0.3"
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+tracing-appender = { workspace = true }
