@@ -197,6 +197,109 @@ impl WindowStack {
     }
 }
 
+// ── OverlayWindow (windows that need App state) ─────────────────────
+
+use crate::app::App;
+
+/// Overlay windows that need mutable access to App state.
+///
+/// Unlike `Window`, overlay windows receive `&mut App` in their methods
+/// because they modify application state (filters, cursors, etc.).
+/// This avoids ownership conflicts when overlays are managed separately
+/// from the MainWindow that owns App.
+pub trait OverlayWindow {
+    /// Display name for debugging.
+    fn name(&self) -> &str;
+
+    /// Render this overlay (typically on top of the main view).
+    fn render(&self, frame: &mut Frame, area: Rect, app: &App);
+
+    /// Handle a key event. Returns the resulting action.
+    fn handle_key(&mut self, app: &mut App, key: KeyEvent) -> WindowAction;
+
+    /// Shortcut hints for the status bar.
+    fn shortcut_hints(&self) -> Vec<(&str, &str)> {
+        Vec::new()
+    }
+}
+
+/// Stack of overlay windows managed separately from MainWindow.
+///
+/// The main loop checks this stack first; if non-empty, keys go to the
+/// topmost overlay. When empty, keys go to MainWindow.
+pub struct OverlayStack {
+    overlays: Vec<Box<dyn OverlayWindow>>,
+}
+
+impl OverlayStack {
+    pub fn new() -> Self {
+        Self {
+            overlays: Vec::new(),
+        }
+    }
+
+    pub fn push(&mut self, overlay: Box<dyn OverlayWindow>) {
+        tracing::info!(window = overlay.name(), "OverlayStack: pushed overlay");
+        self.overlays.push(overlay);
+    }
+
+    pub fn pop(&mut self) -> Option<Box<dyn OverlayWindow>> {
+        let o = self.overlays.pop();
+        if let Some(ref o) = o {
+            tracing::info!(window = o.name(), "OverlayStack: popped overlay");
+        }
+        o
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.overlays.is_empty()
+    }
+
+    pub fn top(&self) -> Option<&dyn OverlayWindow> {
+        self.overlays.last().map(|o| o.as_ref())
+    }
+
+    pub fn top_mut(&mut self) -> Option<&mut Box<dyn OverlayWindow>> {
+        self.overlays.last_mut()
+    }
+
+    /// Dispatch a key to the topmost overlay.
+    /// Handles Close automatically. Returns true if an overlay consumed the key.
+    pub fn handle_key(&mut self, app: &mut App, key: KeyEvent) -> bool {
+        if let Some(overlay) = self.overlays.last_mut() {
+            let action = overlay.handle_key(app, key);
+            match action {
+                WindowAction::Close => {
+                    self.pop();
+                    true
+                }
+                WindowAction::Open(_new_window) => {
+                    // Nested overlay opening not yet supported; log and consume.
+                    tracing::warn!("OverlayStack: Open action not supported from overlay");
+                    true
+                }
+                WindowAction::Handled => true,
+                WindowAction::Unhandled => false,
+            }
+        } else {
+            false
+        }
+    }
+
+    /// Render all overlays bottom-to-top.
+    pub fn render(&self, frame: &mut Frame, area: Rect, app: &App) {
+        for overlay in &self.overlays {
+            overlay.render(frame, area, app);
+        }
+    }
+}
+
+impl Default for OverlayStack {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 // ── FocusManager ────────────────────────────────────────────────────
 
 /// Tracks which widget in a tree has focus.
