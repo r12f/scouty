@@ -51,4 +51,22 @@ mod tests {
         let theme = Theme::from_yaml(yaml).unwrap();
         assert_eq!(theme.table.separator.separator_char(), "|");
     }
+
+    #[test]
+    fn all_presets_have_header_unfocused() {
+        let themes = vec![
+            ("default", Theme::default()),
+            ("dark", Theme::dark()),
+            ("light", Theme::light()),
+            ("solarized", Theme::solarized()),
+            ("landmine", Theme::landmine()),
+        ];
+        for (name, theme) in &themes {
+            assert!(
+                theme.table.header_unfocused.fg.is_some(),
+                "preset '{}' missing header_unfocused fg",
+                name
+            );
+        }
+    }
 }

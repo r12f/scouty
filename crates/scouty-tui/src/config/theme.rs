@@ -149,6 +149,7 @@ impl Default for SeparatorStyle {
 #[serde(default)]
 pub struct TableTheme {
     pub header: StyleEntry,
+    pub header_unfocused: StyleEntry,
     pub selected: StyleEntry,
     pub selected_search: StyleEntry,
     pub selected_highlight: StyleEntry,
@@ -166,6 +167,10 @@ impl Default for TableTheme {
                 bg: Some(ThemeColor(Color::Rgb(30, 42, 56))),    // dark slate #1E2A38
                 bold: Some(true),
             },
+            header_unfocused: StyleEntry::fg_bg(
+                Color::Rgb(107, 123, 141), // #6B7B8D
+                Color::Rgb(30, 42, 56),
+            ),
             selected: StyleEntry::bg(Color::Rgb(42, 63, 85)), // steel blue #2A3F55
             selected_search: StyleEntry::bg(Color::Rgb(120, 120, 0)),
             selected_highlight: StyleEntry::bg(Color::Rgb(40, 60, 80)),
@@ -438,6 +443,7 @@ impl Theme {
             },
             table: TableTheme {
                 header: StyleEntry::fg_bg(Rgb(180, 180, 180), Rgb(30, 30, 40)),
+                header_unfocused: StyleEntry::fg_bg(Rgb(85, 85, 85), Rgb(30, 30, 40)),
                 selected: StyleEntry::bg(Rgb(40, 40, 55)),
                 ..TableTheme::default()
             },
@@ -511,6 +517,7 @@ impl Theme {
             },
             table: TableTheme {
                 header: StyleEntry::fg_bg(Rgb(30, 30, 40), Rgb(220, 220, 230)),
+                header_unfocused: StyleEntry::fg_bg(Rgb(153, 153, 153), Rgb(220, 220, 230)),
                 selected: StyleEntry::fg_bg(Black, Rgb(200, 210, 230)),
                 ..TableTheme::default()
             },
@@ -596,6 +603,7 @@ impl Theme {
             },
             table: TableTheme {
                 header: StyleEntry::fg_bg(base1, base02),
+                header_unfocused: StyleEntry::fg_bg(Rgb(101, 123, 131), base02), // #657B83
                 selected: StyleEntry::fg_bg(base1, base02),
                 ..TableTheme::default()
             },
@@ -689,6 +697,7 @@ impl Theme {
                     bg: Some(ThemeColor(dark_wine)),
                     bold: Some(true),
                 },
+                header_unfocused: StyleEntry::fg_bg(Rgb(107, 74, 94), dark_wine), // #6B4A5E
                 selected: StyleEntry::bg(selected_bg),
                 separator: SeparatorStyle {
                     fg: Some(ThemeColor(separator_fg)),
