@@ -178,4 +178,37 @@ mod tests {
             21_600_000.0
         ); // → 6h
     }
+
+    /// Helper: return the shortcut hints via the production method.
+    #[test]
+    fn test_view_mode_hints_simplified() {
+        let hints = StatusBarWidget::shortcut_hints(false, crate::panel::PanelId::Detail);
+        // j/k merged, -/= merged, no separate Exclude/Include/ExclField/InclField
+        assert_eq!(hints[0], ("j/k", "↑↓"));
+        assert_eq!(hints[3], ("-/=", "Exclude/Include"));
+        assert_eq!(hints.len(), 6);
+    }
+
+    #[test]
+    fn test_detail_panel_hints_simplified() {
+        let hints = StatusBarWidget::shortcut_hints(true, crate::panel::PanelId::Detail);
+        assert_eq!(hints[0], ("h/l", "Fold"));
+        assert_eq!(hints[1], ("H/L", "All"));
+        assert_eq!(hints[2], ("Tab/S-Tab", "Switch"));
+        assert_eq!(hints[4], ("z", "Max")); // abbreviated
+    }
+
+    #[test]
+    fn test_region_panel_hints_simplified() {
+        let hints = StatusBarWidget::shortcut_hints(true, crate::panel::PanelId::Region);
+        assert_eq!(hints[0], ("j/k", "↑↓"));
+        assert_eq!(hints[1], ("Tab/S-Tab", "Switch"));
+    }
+
+    #[test]
+    fn test_stats_panel_hints_simplified() {
+        let hints = StatusBarWidget::shortcut_hints(true, crate::panel::PanelId::Stats);
+        assert_eq!(hints.len(), 4);
+        assert_eq!(hints[0], ("Tab/S-Tab", "Switch"));
+    }
 }

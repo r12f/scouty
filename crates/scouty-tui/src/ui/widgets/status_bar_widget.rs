@@ -28,6 +28,47 @@ fn spans_display_width(spans: &[Span]) -> usize {
 }
 
 impl StatusBarWidget {
+    /// Return the shortcut hints for the current mode/panel state.
+    pub fn shortcut_hints(
+        panel_focused: bool,
+        active: crate::panel::PanelId,
+    ) -> &'static [(&'static str, &'static str)] {
+        if panel_focused {
+            match active {
+                crate::panel::PanelId::Detail => &[
+                    ("h/l", "Fold"),
+                    ("H/L", "All"),
+                    ("Tab/S-Tab", "Switch"),
+                    ("Ctrl+↑", "Back"),
+                    ("z", "Max"),
+                    ("Esc", "Close"),
+                ],
+                crate::panel::PanelId::Region => &[
+                    ("j/k", "↑↓"),
+                    ("Tab/S-Tab", "Switch"),
+                    ("Ctrl+↑", "Back"),
+                    ("z", "Max"),
+                    ("Esc", "Close"),
+                ],
+                crate::panel::PanelId::Stats => &[
+                    ("Tab/S-Tab", "Switch"),
+                    ("Ctrl+↑", "Back"),
+                    ("z", "Max"),
+                    ("Esc", "Close"),
+                ],
+            }
+        } else {
+            &[
+                ("j/k", "↑↓"),
+                ("/", "Search"),
+                ("f", "Filter"),
+                ("-/=", "Exclude/Include"),
+                ("Enter", "Detail"),
+                ("?", "Help"),
+            ]
+        }
+    }
+
     /// Snap a raw ms-per-bucket value up to the nearest standard interval.
     /// Standard intervals: 5s, 15s, 30s, 5m, 15m, 30m, 1h, 2h, 6h, 12h, 24h.
     /// Values below 5s are returned as-is (milliseconds).
@@ -250,42 +291,7 @@ impl StatusBarWidget {
                     theme.status_bar.shortcut_key.to_style(),
                 ));
             } else {
-                let shortcuts: &[(&str, &str)] = if panel_focused {
-                    match app.panel_state.active {
-                        crate::panel::PanelId::Detail => &[
-                            ("Tab", "Next Tab"),
-                            ("Ctrl+↑", "Back"),
-                            ("z", "Maximize"),
-                            ("Esc", "Close"),
-                            ("?", "Help"),
-                        ],
-                        crate::panel::PanelId::Region => &[
-                            ("j/k", "Navigate"),
-                            ("Tab", "Next Tab"),
-                            ("Ctrl+↑", "Back"),
-                            ("Esc", "Close"),
-                            ("z", "Maximize"),
-                        ],
-                        crate::panel::PanelId::Stats => &[
-                            ("Tab", "Next Tab"),
-                            ("Ctrl+↑", "Back"),
-                            ("z", "Maximize"),
-                            ("Esc", "Close"),
-                        ],
-                    }
-                } else {
-                    &[
-                        ("/", "Search"),
-                        ("f", "Filter"),
-                        ("-", "Exclude"),
-                        ("=", "Include"),
-                        ("_", "ExclField"),
-                        ("+", "InclField"),
-                        ("Enter", "Detail"),
-                        ("c", "Columns"),
-                        ("?", "Help"),
-                    ]
-                };
+                let shortcuts = Self::shortcut_hints(panel_focused, app.panel_state.active);
 
                 let used = spans_display_width(&spans);
                 let mut remaining = (area.width as usize).saturating_sub(used);
