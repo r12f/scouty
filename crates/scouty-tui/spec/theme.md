@@ -38,7 +38,8 @@ log_levels:
   trace: { fg: "#5C5C5C" }          # Dark gray
 
 table:
-  header: { fg: "#B8C4CE", bg: "#1E2A38", bold: true }   # Light steel text on dark slate — clearly distinct from rows
+  header: { fg: "#B8C4CE", bg: "#1E2A38", bold: true }   # Light steel text on dark slate — when log table has focus
+  header_unfocused: { fg: "#6B7B8D", bg: "#1B2838" }     # Muted/gray — when focus is on a panel (matches panel_tab.unfocused style)
   selected: { bg: "#2A3F55" }       # Steel blue highlight — visible but not harsh
   alternating: { bg: "#0D1117" }    # Very subtle dark shade (GitHub dark style)
   separator: { fg: "#3B4252", char: "│" }  # Muted separator — color and character are both themeable
@@ -122,6 +123,7 @@ general:
 |------|---------|------|-------|-----------|----------|
 | Header fg | ![](https://placehold.co/16x16/B8C4CE/B8C4CE.png) `#B8C4CE` bold | ![](https://placehold.co/16x16/999999/999999.png) `#999999` bold | ![](https://placehold.co/16x16/333333/333333.png) `#333333` bold | ![](https://placehold.co/16x16/586E75/586E75.png) `#586E75` bold | ![](https://placehold.co/16x16/F5A0C0/F5A0C0.png) `#F5A0C0` bold |
 | Header bg | ![](https://placehold.co/16x16/1E2A38/1E2A38.png) `#1E2A38` | ![](https://placehold.co/16x16/1A1A1A/1A1A1A.png) `#1A1A1A` | ![](https://placehold.co/16x16/E8E8E8/E8E8E8.png) `#E8E8E8` | ![](https://placehold.co/16x16/073642/073642.png) `#073642` | ![](https://placehold.co/16x16/1A0A14/1A0A14.png) `#1A0A14` |
+| Header unfocused fg/bg | ![](https://placehold.co/16x16/6B7B8D/6B7B8D.png) `#6B7B8D` / ![](https://placehold.co/16x16/1B2838/1B2838.png) `#1B2838` | ![](https://placehold.co/16x16/555555/555555.png) `#555555` / ![](https://placehold.co/16x16/1A1A1A/1A1A1A.png) `#1A1A1A` | ![](https://placehold.co/16x16/999999/999999.png) `#999999` / ![](https://placehold.co/16x16/E8E8E8/E8E8E8.png) `#E8E8E8` | ![](https://placehold.co/16x16/657B83/657B83.png) `#657B83` / ![](https://placehold.co/16x16/073642/073642.png) `#073642` | ![](https://placehold.co/16x16/6B4A5E/6B4A5E.png) `#6B4A5E` / ![](https://placehold.co/16x16/1A0A14/1A0A14.png) `#1A0A14` |
 | Selected bg | ![](https://placehold.co/16x16/2A3F55/2A3F55.png) `#2A3F55` | ![](https://placehold.co/16x16/2A2A2A/2A2A2A.png) `#2A2A2A` | ![](https://placehold.co/16x16/D0E4F7/D0E4F7.png) `#D0E4F7` | ![](https://placehold.co/16x16/073642/073642.png) `#073642` | ![](https://placehold.co/16x16/2D1028/2D1028.png) `#2D1028` |
 | Alternating bg | ![](https://placehold.co/16x16/0D1117/0D1117.png) `#0D1117` | ![](https://placehold.co/16x16/111111/111111.png) `#111111` | ![](https://placehold.co/16x16/F8F8F8/F8F8F8.png) `#F8F8F8` | ![](https://placehold.co/16x16/002B36/002B36.png) `#002B36` | ![](https://placehold.co/16x16/0D060B/0D060B.png) `#0D060B` |
 | Separator fg | ![](https://placehold.co/16x16/3B4252/3B4252.png) `#3B4252` | ![](https://placehold.co/16x16/333333/333333.png) `#333333` | ![](https://placehold.co/16x16/CCCCCC/CCCCCC.png) `#CCCCCC` | ![](https://placehold.co/16x16/586E75/586E75.png) `#586E75` | ![](https://placehold.co/16x16/4A2040/4A2040.png) `#4A2040` |
@@ -194,3 +196,4 @@ general:
 | 2026-02-23 | Replace text descriptions with color swatch tables for all 4 built-in presets |
 | 2026-02-24 | Added `landmine` theme (地雷系 Jirai Kei: black + pink); separator char now themeable |
 | 2026-02-28 | Added `panel_tab` theme section: focused (accent), unfocused (gray) styles for all 5 presets |
+| 2026-02-28 | Added `table.header_unfocused`: table header goes gray when focus moves to panel |
