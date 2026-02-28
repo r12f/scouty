@@ -54,14 +54,8 @@ mod tests {
 
     #[test]
     fn all_presets_have_header_unfocused() {
-        let themes = vec![
-            ("default", Theme::default()),
-            ("dark", Theme::dark()),
-            ("light", Theme::light()),
-            ("solarized", Theme::solarized()),
-            ("landmine", Theme::landmine()),
-        ];
-        for (name, theme) in &themes {
+        for name in Theme::builtin_names() {
+            let theme = Theme::builtin(name).unwrap();
             assert!(
                 theme.table.header_unfocused.fg.is_some(),
                 "preset '{}' missing header_unfocused fg",
@@ -72,14 +66,8 @@ mod tests {
 
     #[test]
     fn all_presets_header_matches_panel_tab_focused() {
-        let themes = vec![
-            ("default", Theme::default()),
-            ("dark", Theme::dark()),
-            ("light", Theme::light()),
-            ("solarized", Theme::solarized()),
-            ("landmine", Theme::landmine()),
-        ];
-        for (name, theme) in &themes {
+        for name in Theme::builtin_names() {
+            let theme = Theme::builtin(name).unwrap();
             assert_eq!(
                 theme.table.header.fg, theme.panel_tab.focused.fg,
                 "preset '{}': table.header.fg should match panel_tab.focused.fg",
