@@ -26,7 +26,17 @@
 
 > **Note:** Default columns are **Time** and **Log** only. Additional columns (Level, ProcessName, Pid, Tid, Component, etc.) can be toggled via the `c` column selector. Panel area is collapsible — see [panel-system.md](panel-system.md) for details.
 
-### UiComponent Trait
+### UI Architecture
+
+See [ui-architecture.md](ui-architecture.md) for the full design.
+
+**Window Stack:** A stack of windows; the topmost window always owns focus and receives all keyboard input. The Main Window sits at the bottom; overlay windows (Help, Filter Manager, etc.) are pushed on top.
+
+**Widget Tree:** Each window contains a tree of widgets. Keyboard input goes to the focused widget first; if unhandled, it bubbles up to the parent, then grandparent, until the root window handles it or discards it.
+
+### UiComponent Trait (Legacy)
+
+> **Note:** Being replaced by the `Window` + `Widget` traits defined in [ui-architecture.md](ui-architecture.md).
 
 ```rust
 trait UiComponent {
@@ -74,12 +84,13 @@ crates/scouty-tui/src/ui/
 
 ### Event Dispatch Flow
 
+> **Note:** Being replaced by window stack + widget tree bubbling. See [ui-architecture.md](ui-architecture.md).
+
 ```
 KeyEvent arrives
-    ├─ Global shortcut? (q exit) → handle directly
-    ├─ Active window? → dispatch to window's UiComponent callbacks
-    ├─ Panel has focus? → dispatch to active panel's UiComponent callbacks
-    └─ No active window/panel → dispatch to focused widget (log table)
+    ├─ WindowStack.top() receives input
+    ├─ Focused widget in that window handles it? → done
+    └─ Bubble to parent → … → root window
 ```
 
 ### Component Communication
@@ -146,3 +157,4 @@ Components notify App via return values or callbacks. App updates shared state (
 | 2026-02-20 | TUI log viewer full interaction design |
 | 2026-02-21 | Architecture refactor to UiComponent trait + windows/widgets structure |
 | 2026-02-26 | Panel system: collapsible panels with tab bar, Ctrl+arrow focus/switch, maximize |
+| 2026-02-28 | UI architecture redesign: window stack + widget tree with event bubbling (see ui-architecture.md) |
