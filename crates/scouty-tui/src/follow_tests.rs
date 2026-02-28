@@ -199,11 +199,8 @@ mod tests {
     }
 
     #[test]
+    #[cfg(unix)]
     fn test_follow_rotation() {
-        // Rotation detection only works on Unix
-        if cfg!(not(unix)) {
-            return;
-        }
 
         let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join("test.log");
