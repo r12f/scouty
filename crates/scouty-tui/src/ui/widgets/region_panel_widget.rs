@@ -151,10 +151,7 @@ impl RegionPanelWidget {
     pub fn render_with_app(&self, frame: &mut Frame, area: Rect, app: &App) {
         let entries = Self::build_entries(app);
 
-        let block = Block::default()
-            .title(" Region ")
-            .borders(Borders::TOP)
-            .border_style(Style::default().fg(Color::DarkGray));
+        let block = Block::default().borders(Borders::NONE);
 
         let inner = block.inner(area);
         frame.render_widget(block, area);

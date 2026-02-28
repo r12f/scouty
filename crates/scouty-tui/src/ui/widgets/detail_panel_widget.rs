@@ -236,10 +236,7 @@ const MAX_VALUE_LEN: usize = 60;
 impl DetailPanelWidget {
     pub fn render_with_app(&self, frame: &mut Frame, area: Rect, app: &App) {
         let theme = &app.theme;
-        let block = Block::default()
-            .title(" Detail ")
-            .borders(Borders::TOP)
-            .border_style(theme.detail_panel.border.to_style());
+        let block = Block::default().borders(Borders::NONE);
 
         let Some(record) = app.selected_record() else {
             let empty = Paragraph::new("No record selected").block(block);
