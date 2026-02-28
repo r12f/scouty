@@ -3,7 +3,7 @@
 mod tests {
     use crate::app::{App, InputMode};
     use crate::text_input::TextInput;
-    use crate::ui::windows::stats_window::{StatsData, StatsWindow};
+    use crate::ui::windows::stats_window::StatsData;
     use crate::ui::{dispatch_key, ComponentResult};
     use chrono::Utc;
     use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
@@ -84,7 +84,6 @@ mod tests {
             highlight_input: TextInput::new(),
             highlight_manager_cursor: 0,
             highlight_rules: Vec::new(),
-            cached_stats: None,
             bookmarks: std::collections::HashSet::new(),
             bookmark_manager_cursor: 0,
             theme: crate::config::Theme::default(),
@@ -190,7 +189,6 @@ mod tests {
             highlight_input: TextInput::new(),
             highlight_manager_cursor: 0,
             highlight_rules: Vec::new(),
-            cached_stats: None,
             bookmarks: std::collections::HashSet::new(),
             bookmark_manager_cursor: 0,
             theme: crate::config::Theme::default(),
@@ -212,33 +210,5 @@ mod tests {
         assert!(stats.time_first.is_none());
         assert!(stats.level_counts.is_empty());
         assert!(stats.top_components.is_empty());
-    }
-
-    #[test]
-    fn test_stats_window_closes_on_esc() {
-        let mut app = make_test_app();
-        app.cached_stats = Some(StatsData::compute(&app));
-        let theme = crate::config::Theme::default();
-        let mut window = StatsWindow {
-            stats: app.cached_stats.as_ref().unwrap(),
-            theme: &theme,
-        };
-        let key = KeyEvent::new(KeyCode::Esc, KeyModifiers::NONE);
-        let result = dispatch_key(&mut window, key);
-        assert_eq!(result, ComponentResult::Close);
-    }
-
-    #[test]
-    fn test_stats_window_closes_on_any_char() {
-        let mut app = make_test_app();
-        app.cached_stats = Some(StatsData::compute(&app));
-        let theme = crate::config::Theme::default();
-        let mut window = StatsWindow {
-            stats: app.cached_stats.as_ref().unwrap(),
-            theme: &theme,
-        };
-        let key = KeyEvent::new(KeyCode::Char('q'), KeyModifiers::NONE);
-        let result = dispatch_key(&mut window, key);
-        assert_eq!(result, ComponentResult::Close);
     }
 }

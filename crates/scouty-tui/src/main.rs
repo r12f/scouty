@@ -926,9 +926,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                         }
                                     }
                                     Action::Stats => {
-                                        use ui::windows::stats_window::StatsData;
-                                        app.cached_stats = Some(StatsData::compute(&app));
-                                        app.input_mode = InputMode::Statistics;
+                                        use crate::panel::PanelId;
+                                        if app.panel_state.expanded
+                                            && app.panel_state.active == PanelId::Stats
+                                        {
+                                            app.panel_state.close();
+                                            tracing::debug!("S key: closed Stats panel");
+                                        } else {
+                                            app.panel_state.open(PanelId::Stats);
+                                            tracing::debug!("S key: opened Stats panel");
+                                        }
                                     }
                                 }
                             }
@@ -1076,23 +1083,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         let result = ui::dispatch_key(&mut window, key);
                         app.help_scroll = window.scroll;
                         if result == ui::ComponentResult::Close {
-                            app.input_mode = InputMode::Normal;
-                        }
-                    }
-                    InputMode::Statistics => {
-                        use ui::windows::stats_window::StatsWindow;
-                        // Stats are pre-computed on mode entry; reuse cached data.
-                        if let Some(ref stats) = app.cached_stats {
-                            let mut window = StatsWindow {
-                                stats,
-                                theme: &app.theme,
-                            };
-                            let result = ui::dispatch_key(&mut window, key);
-                            if result == ui::ComponentResult::Close {
-                                app.cached_stats = None;
-                                app.input_mode = InputMode::Normal;
-                            }
-                        } else {
                             app.input_mode = InputMode::Normal;
                         }
                     }

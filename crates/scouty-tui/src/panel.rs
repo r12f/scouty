@@ -44,6 +44,7 @@ pub enum PanelHeight {
 pub enum PanelId {
     Detail,
     Region,
+    Stats,
 }
 
 impl PanelId {
@@ -52,12 +53,13 @@ impl PanelId {
         match self {
             PanelId::Detail => "Detail",
             PanelId::Region => "Region",
+            PanelId::Stats => "Stats",
         }
     }
 
     /// All panels in tab order.
     pub fn all() -> &'static [PanelId] {
-        &[PanelId::Detail, PanelId::Region]
+        &[PanelId::Detail, PanelId::Region, PanelId::Stats]
     }
 
     /// Next panel in tab order.
@@ -79,6 +81,7 @@ impl PanelId {
         match self {
             PanelId::Detail => PanelHeight::FitContent,
             PanelId::Region => PanelHeight::Percentage(40),
+            PanelId::Stats => PanelHeight::Percentage(40),
         }
     }
 }
