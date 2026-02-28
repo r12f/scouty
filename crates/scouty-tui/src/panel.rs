@@ -62,18 +62,16 @@ impl PanelId {
 
     /// Next panel in tab order.
     pub fn next(self) -> PanelId {
-        match self {
-            PanelId::Detail => PanelId::Region,
-            PanelId::Region => PanelId::Detail,
-        }
+        let all = Self::all();
+        let idx = all.iter().position(|&p| p == self).unwrap_or(0);
+        all[(idx + 1) % all.len()]
     }
 
     /// Previous panel in tab order.
     pub fn prev(self) -> PanelId {
-        match self {
-            PanelId::Detail => PanelId::Region,
-            PanelId::Region => PanelId::Detail,
-        }
+        let all = Self::all();
+        let idx = all.iter().position(|&p| p == self).unwrap_or(0);
+        all[(idx + all.len() - 1) % all.len()]
     }
 
     /// Default height strategy.
