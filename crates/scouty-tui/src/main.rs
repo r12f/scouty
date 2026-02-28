@@ -606,20 +606,33 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         if main_window.app.follow_mode {
             if let Some(ref mut follower) = file_follower {
                 match follower.poll() {
-                    Ok(new_records) => {
-                        if !new_records.is_empty() {
-                            let count = new_records.len();
-                            // Process through category pipeline
-                            if let Some(ref mut proc) = main_window.app.category_processor {
-                                proc.process_records(&new_records);
-                            }
-                            main_window.app.append_records(new_records);
-                            tracing::debug!(count, "follow: appended new records");
+                    follow::PollResult::NewRecords(new_records) => {
+                        let count = new_records.len();
+                        if let Some(ref mut proc) = main_window.app.category_processor {
+                            proc.process_records(&new_records);
                         }
+                        main_window.app.append_records(new_records);
+                        tracing::debug!(count, "follow: appended new records");
                     }
-                    Err(e) => {
-                        tracing::warn!(%e, "follow: error polling file");
+                    follow::PollResult::Truncated => {
+                        tracing::info!("follow: file truncated, reloading");
+                        main_window.app.set_status("File truncated — reloading...".to_string());
+                        follower.reset();
+                        // Read new content on next poll cycle
                     }
+                    follow::PollResult::Rotated => {
+                        tracing::info!("follow: file rotated, reloading");
+                        main_window.app.set_status("File rotated — reloading...".to_string());
+                        follower.reset();
+                        // Read new content on next poll cycle
+                    }
+                    follow::PollResult::Deleted => {
+                        tracing::warn!("follow: file deleted");
+                        main_window.app.set_status("⚠ File deleted — follow stopped".to_string());
+                        main_window.app.follow_mode = false;
+                        main_window.app.follow_new_count = 0;
+                    }
+                    follow::PollResult::NoChange => {}
                 }
             }
         }
