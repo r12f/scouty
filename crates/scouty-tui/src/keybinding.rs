@@ -213,27 +213,42 @@ impl Keymap {
 
         let defaults = default_bindings();
 
-        for (action, default_keys) in &defaults {
-            let config_keys = config.get_keys(*action);
-            let keys_to_use: Vec<&str> = if let Some(k) = config_keys {
-                k.keys()
-            } else {
-                default_keys.to_vec()
-            };
+        // Two passes: first insert user-configured bindings (they take priority),
+        // then fill in defaults for actions without user config.
+        for pass in 0..2 {
+            for (action, default_keys) in &defaults {
+                let config_keys = config.get_keys(*action);
+                let is_user_configured = config_keys.is_some();
 
-            for key_str in keys_to_use {
-                if let Some(key_event) = parse_key(key_str) {
-                    let normalized = normalize_key(&key_event);
-                    if let Some(existing) = map.get(&normalized) {
-                        eprintln!(
-                            "scouty: warning: key '{}' mapped to both {:?} and {:?}, keeping first",
-                            key_str, existing, action
-                        );
-                    } else {
-                        map.insert(normalized, *action);
-                    }
+                // Pass 0: user-configured only. Pass 1: defaults only.
+                if (pass == 0) != is_user_configured {
+                    continue;
+                }
+
+                let keys_to_use: Vec<&str> = if let Some(k) = config_keys {
+                    k.keys()
                 } else {
-                    eprintln!("scouty: warning: unknown key format '{}'", key_str);
+                    default_keys.to_vec()
+                };
+
+                for key_str in keys_to_use {
+                    if let Some(key_event) = parse_key(key_str) {
+                        let normalized = normalize_key(&key_event);
+                        if let Some(existing) = map.get(&normalized) {
+                            if pass == 0 {
+                                // User config has two actions bound to same key
+                                eprintln!(
+                                    "scouty: warning: key '{}' mapped to both {:?} and {:?}, keeping first",
+                                    key_str, existing, action
+                                );
+                            }
+                            // Pass 1: silently skip — key already claimed by user config or earlier default
+                        } else {
+                            map.insert(normalized, *action);
+                        }
+                    } else {
+                        eprintln!("scouty: warning: unknown key format '{}'", key_str);
+                    }
                 }
             }
         }
@@ -314,7 +329,7 @@ fn default_bindings() -> Vec<(Action, Vec<&'static str>)> {
         (Action::GotoLine, vec!["ctrl+g"]),
         (Action::JumpForward, vec!["]"]),
         (Action::JumpBackward, vec!["["]),
-        (Action::ToggleFollow, vec!["F"]),
+        (Action::ToggleFollow, vec!["ctrl+]"]),
         // Search & Filter
         (Action::Search, vec!["/"]),
         (Action::NextMatch, vec!["n"]),
@@ -324,7 +339,7 @@ fn default_bindings() -> Vec<(Action, Vec<&'static str>)> {
         (Action::QuickInclude, vec!["="]),
         (Action::FieldExclude, vec!["_"]),
         (Action::FieldInclude, vec!["+"]),
-        (Action::FilterManager, vec!["ctrl+f"]),
+        (Action::FilterManager, vec!["F", "ctrl+f"]),
         (Action::LevelFilter, vec!["l"]),
         // Display
         (Action::ToggleDetail, vec!["enter"]),
