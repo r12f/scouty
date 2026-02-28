@@ -73,7 +73,7 @@ Each window contains a **tree of widgets** with a single root (the window itself
 ```
 Main Window (root)
 ├── LogTableWidget (focusable)
-├── PanelManager
+├── TabbedContainer (focusable — manages tab switching)
 │   ├── DetailPanelWidget (focusable)
 │   ├── RegionPanelWidget (focusable)
 │   └── StatsPanelWidget (focusable)
@@ -81,6 +81,17 @@ Main Window (root)
 ├── FilterInputWidget (focusable, shown when active)
 └── StatusBarWidget (not focusable)
 ```
+
+**TabbedContainer** is a generic container widget that:
+- Holds an ordered list of child widgets as tabs, each with a name and optional shortcut key
+- Renders a tab bar showing all tab names, highlighting the active tab
+- Only the active tab's child widget is rendered in the content area
+- Handles `Tab`/`Shift+Tab` to cycle between tabs (and back to parent via bubbling)
+- Handles `Ctrl+←`/`Ctrl+→` to switch tabs without leaving the container
+- Delegates all other keyboard input to the active tab's child widget
+- Is itself a widget in the tree — panels are its children, not special cases
+
+This replaces the current `PanelManager` with a generic, reusable pattern. Any future tabbed UI (e.g., multi-file tabs) can reuse `TabbedContainer`.
 
 - Each widget has a list of child widgets
 - The tree tracks which widget currently has focus
@@ -163,7 +174,10 @@ The existing windows and widgets map cleanly to this architecture:
 | `main.rs` giant match | `MainWindow.handle_key()` + widget bubbling |
 | `windows/*.rs` (Help, etc.) | Overlay `Window` implementations, pushed onto stack |
 | `widgets/log_table_widget.rs` | `Widget` child of Main Window |
-| `widgets/panel_manager.rs` | `Widget` with Detail/Region/Stats as children |
+| `widgets/panel_manager.rs` | `TabbedContainer` widget with Detail/Region/Stats as children |
+| `widgets/detail_panel_widget.rs` | `Widget` child of TabbedContainer |
+| `widgets/region_panel_widget.rs` | `Widget` child of TabbedContainer |
+| `widgets/stats_panel_widget.rs` | `Widget` child of TabbedContainer (was `stats_window.rs`) |
 | `widgets/search_input_widget.rs` | `Widget` child of Main Window (focusable when active) |
 
 ## Acceptance Criteria
@@ -192,3 +206,4 @@ The existing windows and widgets map cleanly to this architecture:
 | Date | Change |
 |------|--------|
 | 2026-02-28 | Initial spec — window stack + widget tree architecture |
+| 2026-02-28 | PanelManager replaced by generic TabbedContainer — panels are child widgets of a tabbed container |
