@@ -1623,20 +1623,16 @@ impl App {
     }
 
     pub fn toggle_detail(&mut self) {
-        self.detail_open = !self.detail_open;
-        tracing::debug!(detail_open = self.detail_open, "toggled detail panel");
-        if self.detail_open {
-            self.panel_state.open(crate::panel::PanelId::Detail);
-            // Auto-focus tree if expanded data is available
-            if let Some(record) = self.selected_record() {
-                if record.expanded.as_ref().is_some_and(|e| !e.is_empty()) {
-                    self.detail_tree_focus = true;
-                    self.detail_tree_cursor = 0;
-                }
-            }
-        } else {
+        self.panel_state
+            .toggle_expand(crate::panel::PanelId::Detail);
+        self.detail_open =
+            self.panel_state.expanded && self.panel_state.active == crate::panel::PanelId::Detail;
+        tracing::debug!(
+            detail_open = self.detail_open,
+            "toggled detail panel (focus unchanged)"
+        );
+        if !self.detail_open {
             self.detail_tree_focus = false;
-            self.panel_state.close();
         }
     }
 

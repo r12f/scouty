@@ -134,6 +134,22 @@ impl PanelState {
         self.maximized = false;
     }
 
+    /// Toggle panel expand/collapse without changing focus.
+    /// If expanding a different panel, switch active but keep focus on log table.
+    pub fn toggle_expand(&mut self, panel: PanelId) {
+        if self.expanded && self.active == panel {
+            // Collapse
+            self.expanded = false;
+            self.maximized = false;
+            tracing::debug!(?panel, "panel: collapsed (focus unchanged)");
+        } else {
+            // Expand (or switch to different panel)
+            self.active = panel;
+            self.expanded = true;
+            tracing::debug!(?panel, "panel: expanded (focus unchanged)");
+        }
+    }
+
     /// Focus down into panel content (expand if collapsed).
     pub fn focus_panel(&mut self) {
         self.expanded = true;

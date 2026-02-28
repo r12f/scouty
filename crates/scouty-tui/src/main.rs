@@ -908,7 +908,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                         app.bookmark_manager_cursor = 0;
                                     }
                                     Action::RegionManager => {
-                                        app.panel_state.open(crate::panel::PanelId::Region);
+                                        app.panel_state
+                                            .toggle_expand(crate::panel::PanelId::Region);
                                     }
                                     Action::NextRegion => {
                                         // Jump to the next region start after current position
@@ -926,16 +927,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                         }
                                     }
                                     Action::Stats => {
-                                        use crate::panel::PanelId;
-                                        if app.panel_state.expanded
-                                            && app.panel_state.active == PanelId::Stats
-                                        {
-                                            app.panel_state.close();
-                                            tracing::debug!("S key: closed Stats panel");
-                                        } else {
-                                            app.panel_state.open(PanelId::Stats);
-                                            tracing::debug!("S key: opened Stats panel");
-                                        }
+                                        app.panel_state.toggle_expand(crate::panel::PanelId::Stats);
                                     }
                                 }
                             }
