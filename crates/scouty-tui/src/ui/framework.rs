@@ -510,22 +510,13 @@ impl Widget for TabbedContainer {
     }
 
     fn handle_key(&mut self, event: KeyEvent) -> KeyAction {
-        use crossterm::event::{KeyCode, KeyModifiers};
-
-        // Ctrl+Right → next tab
-        if event.modifiers.contains(KeyModifiers::CONTROL) && event.code == KeyCode::Right {
-            self.next_tab();
-            return KeyAction::Handled;
-        }
-        // Ctrl+Left → prev tab
-        if event.modifiers.contains(KeyModifiers::CONTROL) && event.code == KeyCode::Left {
-            self.prev_tab();
-            return KeyAction::Handled;
-        }
+        use crossterm::event::KeyCode;
 
         // Shortcut keys for direct tab activation
         if let KeyCode::Char(c) = event.code {
-            if event.modifiers.is_empty() || event.modifiers == KeyModifiers::SHIFT {
+            if event.modifiers.is_empty()
+                || event.modifiers == crossterm::event::KeyModifiers::SHIFT
+            {
                 for (i, tab) in self.tabs.iter().enumerate() {
                     if tab.shortcut == Some(c) {
                         self.active = i;

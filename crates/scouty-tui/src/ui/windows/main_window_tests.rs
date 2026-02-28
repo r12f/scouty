@@ -92,20 +92,10 @@ mod tests {
     }
 
     #[test]
-    fn test_panel_ctrl_down_focuses_panel() {
+    fn test_ctrl_arrows_no_longer_focus_panel() {
         let mut mw = make_main_window();
-        let result = mw.handle_key(ctrl_key(KeyCode::Down));
-        assert_eq!(result, WindowAction::Handled);
-        assert!(mw.app.panel_state.has_focus());
-    }
-
-    #[test]
-    fn test_panel_ctrl_up_focuses_log_table() {
-        let mut mw = make_main_window();
-        mw.handle_key(ctrl_key(KeyCode::Down));
-        assert!(mw.app.panel_state.has_focus());
-        let result = mw.handle_key(ctrl_key(KeyCode::Up));
-        assert_eq!(result, WindowAction::Handled);
+        // Ctrl+Down should NOT focus panel anymore
+        let _result = mw.handle_key(ctrl_key(KeyCode::Down));
         assert!(!mw.app.panel_state.has_focus());
     }
 
@@ -117,6 +107,14 @@ mod tests {
 
         // j should move down in detail tree
         let result = mw.handle_key(key(KeyCode::Char('j')));
+        assert_eq!(result, WindowAction::Handled);
+
+        // Right arrow should toggle/expand node
+        let result = mw.handle_key(key(KeyCode::Right));
+        assert_eq!(result, WindowAction::Handled);
+
+        // Left arrow should collapse/go to parent
+        let result = mw.handle_key(key(KeyCode::Left));
         assert_eq!(result, WindowAction::Handled);
 
         // Esc should exit detail tree focus

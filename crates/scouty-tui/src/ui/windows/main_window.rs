@@ -38,11 +38,11 @@ impl MainWindow {
                 self.app.detail_tree_move_up();
                 true
             }
-            KeyCode::Char('l') | KeyCode::Enter => {
+            KeyCode::Right | KeyCode::Enter => {
                 self.app.detail_tree_toggle();
                 true
             }
-            KeyCode::Char('h') => {
+            KeyCode::Left => {
                 self.app.detail_tree_collapse_or_parent();
                 true
             }
@@ -135,28 +135,9 @@ impl MainWindow {
         }
     }
 
-    /// Handle panel system keys (Ctrl+arrows, Tab/BackTab, z).
+    /// Handle panel system keys (Tab/BackTab, z).
     fn handle_panel_keys(&mut self, key: KeyEvent) -> KeyAction {
-        let ctrl = key.modifiers.contains(KeyModifiers::CONTROL);
         let handled = match key.code {
-            KeyCode::Down if ctrl => {
-                self.app.panel_state.focus_panel();
-                self.app.detail_open = self.app.panel_state.expanded
-                    && self.app.panel_state.active == crate::panel::PanelId::Detail;
-                true
-            }
-            KeyCode::Up if ctrl => {
-                self.app.panel_state.focus_log_table();
-                true
-            }
-            KeyCode::Right if ctrl => {
-                self.app.panel_state.next_panel();
-                true
-            }
-            KeyCode::Left if ctrl => {
-                self.app.panel_state.prev_panel();
-                true
-            }
             KeyCode::Tab if key.modifiers.is_empty() => {
                 if self.app.panel_state.focus == crate::panel::PanelFocus::LogTable {
                     self.app.panel_state.active = crate::panel::PanelId::all()[0];
@@ -734,7 +715,7 @@ impl Window for MainWindow {
 
         if panel_focused {
             // Panel-level hints (MainWindow acts as root)
-            vec![("Ctrl+↑", "Back"), ("z", "Max"), ("Esc", "Close")]
+            vec![("z", "Max"), ("Esc", "Close")]
         } else if self.app.follow_mode {
             vec![("Esc", "Stop Follow"), ("?", "Help")]
         } else {

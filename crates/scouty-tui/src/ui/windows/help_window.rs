@@ -91,8 +91,6 @@ impl<'a> HelpWindow<'a> {
             Line::from("  s                Save / export dialog"),
             Line::from(""),
             section("Panel Navigation"),
-            Line::from("  Ctrl+↓ / Ctrl+↑  Focus panel / log table"),
-            Line::from("  Ctrl+← / Ctrl+→  Switch panel (may not work in all terminals)"),
             Line::from("  Tab              Cycle focus forward (panel expanded)"),
             Line::from("  Shift+Tab        Cycle focus backward (panel expanded)"),
             Line::from("  z                Toggle maximize panel"),
