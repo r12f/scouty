@@ -93,7 +93,7 @@ Focus switching:
 | `Tab` | Cycle focus forward: Log Table → Detail → Region → Log Table → … (expands panel if collapsed) |
 | `Shift+Tab` | Cycle focus backward (reverse of Tab) |
 | `Esc` | Panel Content → Log Table (focus returns to log table) |
-| Original shortcut | Directly open corresponding panel and gain focus (e.g., `Enter` opens Detail, `r` opens Region) |
+| Original shortcut | Directly open/close corresponding panel without changing focus (e.g., `Enter` toggles Detail, `r` toggles Region, `S` toggles Stats). Focus stays on the current widget (typically log table). Use `Ctrl+↓` or `Tab` to move focus into the panel. |
 
 #### Shared Panel Operations (all panels)
 
