@@ -163,7 +163,7 @@ impl Default for TableTheme {
     fn default() -> Self {
         Self {
             header: StyleEntry {
-                fg: Some(ThemeColor(Color::Rgb(27, 40, 56))),   // #1B2838 (matches panel_tab.focused)
+                fg: Some(ThemeColor(Color::Rgb(27, 40, 56))), // #1B2838 (matches panel_tab.focused)
                 bg: Some(ThemeColor(Color::Rgb(79, 195, 247))), // #4FC3F7 accent
                 bold: Some(true),
             },
