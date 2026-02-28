@@ -748,7 +748,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 KeyCode::BackTab => {
                                     if app.panel_state.focus == crate::panel::PanelFocus::LogTable {
                                         let all = crate::panel::PanelId::all();
-                                        app.panel_state.active = *all.last().unwrap();
+                                        let target = *all.last().unwrap();
+                                        tracing::info!(target_panel = ?target, "BackTab: entering panels from log table (reverse)");
+                                        app.panel_state.active = target;
                                         app.panel_state.focus_panel();
                                         app.detail_open = app.panel_state.expanded
                                             && app.panel_state.active

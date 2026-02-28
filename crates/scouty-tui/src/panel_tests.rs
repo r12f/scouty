@@ -206,38 +206,68 @@ mod tests {
         assert_eq!(state.focus, PanelFocus::PanelContent);
     }
 
-    /// Verify Shift+Tab direction: Log Table → Region → Detail → Log Table
+    /// Verify Tab and Shift+Tab produce opposite panel sequences
     #[test]
-    fn test_shift_tab_reverse_direction() {
+    fn test_tab_and_backtab_opposite_directions() {
+        let all = PanelId::all();
+
+        // Collect Tab (forward) cycle: entry point from LogTable, then cycle through panels
+        let mut forward_sequence = Vec::new();
         let mut state = PanelState::default();
-        state.open(PanelId::Detail);
+        state.expanded = true;
         state.focus_log_table();
 
-        // Shift+Tab from log table → last panel (Region)
-        let all = PanelId::all();
+        // Tab from LogTable → first panel
+        state.active = all[0];
+        state.focus_panel();
+        forward_sequence.push(state.active);
+
+        // Tab through panels until we'd return to LogTable
+        loop {
+            if state.active == *all.last().unwrap() {
+                break; // would go to log table
+            }
+            state.next_panel();
+            forward_sequence.push(state.active);
+        }
+
+        // Collect BackTab (backward) cycle: entry point from LogTable, then cycle through panels
+        let mut backward_sequence = Vec::new();
+        state.focus_log_table();
+
+        // BackTab from LogTable → last panel
         state.active = *all.last().unwrap();
         state.focus_panel();
-        assert_eq!(state.active, PanelId::Region);
+        backward_sequence.push(state.active);
 
-        // Shift+Tab from Region → prev panel (Detail)
-        state.prev_panel();
-        assert_eq!(state.active, PanelId::Detail);
+        // BackTab through panels until we'd return to LogTable
+        loop {
+            if state.active == all[0] {
+                break; // would go to log table
+            }
+            state.prev_panel();
+            backward_sequence.push(state.active);
+        }
 
-        // Shift+Tab from Detail (first) → log table
-        assert_eq!(state.active, all[0]);
-        state.focus_log_table();
-        assert_eq!(state.focus, PanelFocus::LogTable);
-
-        // Verify direction is opposite to Tab forward
-        // Tab forward: LogTable → Detail → Region → LogTable
-        // Shift+Tab:   LogTable → Region → Detail → LogTable
-        state.active = *all.last().unwrap(); // Region
-        state.focus_panel();
-        state.prev_panel();
+        // Forward: [Detail, Region]
+        // Backward: [Region, Detail]
         assert_eq!(
-            state.active,
-            PanelId::Detail,
-            "Shift+Tab from Region should go to Detail"
+            forward_sequence,
+            vec![PanelId::Detail, PanelId::Region],
+            "Tab forward sequence should be Detail → Region"
+        );
+        assert_eq!(
+            backward_sequence,
+            vec![PanelId::Region, PanelId::Detail],
+            "BackTab backward sequence should be Region → Detail"
+        );
+
+        // They should be reversed
+        let mut reversed_forward = forward_sequence.clone();
+        reversed_forward.reverse();
+        assert_eq!(
+            backward_sequence, reversed_forward,
+            "BackTab sequence should be the reverse of Tab sequence"
         );
     }
 }
