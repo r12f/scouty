@@ -615,19 +615,21 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         tracing::debug!(count, "follow: appended new records");
                     }
                     follow::PollResult::Truncated => {
-                        tracing::info!("follow: file truncated, reloading");
+                        tracing::info!("follow: file truncated, clearing and reloading");
                         main_window
                             .app
                             .set_status("File truncated — reloading...".to_string());
-                        follower.reset();
+                        main_window.app.clear_records();
+                        follower.reset_with_id(0);
                         // Read new content on next poll cycle
                     }
                     follow::PollResult::Rotated => {
-                        tracing::info!("follow: file rotated, reloading");
+                        tracing::info!("follow: file rotated, clearing and reloading");
                         main_window
                             .app
                             .set_status("File rotated — reloading...".to_string());
-                        follower.reset();
+                        main_window.app.clear_records();
+                        follower.reset_with_id(0);
                         // Read new content on next poll cycle
                     }
                     follow::PollResult::Deleted => {

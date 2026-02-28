@@ -80,13 +80,8 @@ impl FileFollower {
 
     /// Poll for new data, handling truncation, rotation, and deletion.
     pub fn poll(&mut self) -> PollResult {
-        // Check if file still exists
-        if !self.path.exists() {
-            tracing::warn!(path = %self.path.display(), "File deleted");
-            return PollResult::Deleted;
-        }
-
-        // Check for inode change (rotation)
+        // Check for inode change (rotation) — must happen before metadata check
+        // because a rotated file may be smaller, which would look like truncation.
         let current_inode = file_inode(&self.path).unwrap_or(0);
         if current_inode != 0 && self.inode != 0 && current_inode != self.inode {
             tracing::info!(
@@ -103,9 +98,14 @@ impl FileFollower {
 
         let metadata = match std::fs::metadata(&self.path) {
             Ok(m) => m,
-            Err(e) => {
-                tracing::warn!(%e, path = %self.path.display(), "Cannot stat file");
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+                tracing::warn!(path = %self.path.display(), "File deleted");
                 return PollResult::Deleted;
+            }
+            Err(e) => {
+                // Transient error (permission, I/O) — don't stop following
+                tracing::warn!(%e, path = %self.path.display(), "Transient error reading file metadata");
+                return PollResult::NoChange;
             }
         };
         let current_size = metadata.len();
@@ -208,10 +208,18 @@ impl FileFollower {
     }
 
     /// Reset offset to 0 (for reload after truncation/rotation).
+    /// Preserves `next_record_id` so new records don't collide with old IDs.
     pub fn reset(&mut self) {
         self.offset = 0;
         self.partial.clear();
-        self.next_record_id = 0;
+        self.inode = file_inode(&self.path).unwrap_or(0);
+    }
+
+    /// Reset offset and set a new starting record ID (for full reload after clear).
+    pub fn reset_with_id(&mut self, start_record_id: u64) {
+        self.offset = 0;
+        self.partial.clear();
+        self.next_record_id = start_record_id;
         self.inode = file_inode(&self.path).unwrap_or(0);
     }
 }

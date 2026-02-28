@@ -101,7 +101,7 @@ mod tests {
         assert!(matches!(follower.poll(), PollResult::Truncated));
 
         // After reset, should read the new content
-        follower.reset();
+        follower.reset_with_id(0);
         match follower.poll() {
             PollResult::NewRecords(records) => assert_eq!(records.len(), 1),
             other => panic!(
@@ -113,8 +113,8 @@ mod tests {
 
     #[test]
     fn test_follow_deletion() {
-        let tmp = NamedTempFile::new().unwrap();
-        let path = tmp.path().to_path_buf();
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("test_delete.log");
 
         {
             let mut f = std::fs::File::create(&path).unwrap();
@@ -234,7 +234,7 @@ mod tests {
         assert!(matches!(follower.poll(), PollResult::Rotated));
 
         // After reset, should read new content
-        follower.reset();
+        follower.reset_with_id(0);
         match follower.poll() {
             PollResult::NewRecords(records) => {
                 assert_eq!(records.len(), 1);
@@ -262,7 +262,7 @@ mod tests {
         assert!(follower.offset() > 0);
 
         // Reset
-        follower.reset();
+        follower.reset_with_id(0);
         assert_eq!(follower.offset(), 0);
     }
 
