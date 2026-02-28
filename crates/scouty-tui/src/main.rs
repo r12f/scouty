@@ -18,7 +18,9 @@ use crossterm::{
     ExecutableCommand,
 };
 use ratatui::prelude::*;
+use scouty::parser::factory::ParserFactory;
 use std::io::{stdout, IsTerminal};
+use std::sync::Arc;
 use std::time::Duration;
 use tracing_appender::rolling;
 use tracing_subscriber::{fmt, prelude::*, EnvFilter};
@@ -398,23 +400,69 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         );
     }
 
-    // If piped, read all stdin lines before entering TUI (stdin will be consumed).
-    //
-    // NOTE: This reads the entire stdin into memory before launching the UI.
-    // Streaming sources (e.g. `journalctl -f | scouty-tui`) will block here
-    // until the upstream command exits or the pipe is closed (e.g. Ctrl+C on
-    // the producer).  Streaming / incremental ingestion is planned as a future
-    // enhancement — see: https://github.com/r12f/scouty/issues/180
-    let stdin_lines: Option<Vec<String>> = if piped {
+    // For piped input, read sample lines for parser detection, then stream the rest
+    let (stdin_lines, stdin_rx): (
+        Option<Vec<String>>,
+        Option<std::sync::mpsc::Receiver<Option<String>>>,
+    ) = if piped {
         use std::io::BufRead;
         let stdin = std::io::stdin();
-        let lines: Vec<String> = stdin
-            .lock()
-            .lines()
-            .collect::<std::result::Result<_, _>>()?;
-        Some(lines)
+        let mut sample = Vec::new();
+
+        // Read up to 50 lines as initial batch for parser detection
+        {
+            let lock = stdin.lock();
+            let mut reader = std::io::BufReader::new(lock);
+            for _ in 0..50 {
+                let mut line = String::new();
+                match reader.read_line(&mut line) {
+                    Ok(0) => break, // EOF
+                    Ok(_) => {
+                        let trimmed = line
+                            .trim_end_matches('\n')
+                            .trim_end_matches('\r')
+                            .to_string();
+                        sample.push(trimmed);
+                    }
+                    Err(_) => break,
+                }
+            }
+        } // drop lock
+
+        // Spawn background thread to read remaining lines from stdin
+        let (tx, rx) = std::sync::mpsc::channel::<Option<String>>();
+        std::thread::spawn(move || {
+            let stdin = std::io::stdin();
+            let lock = stdin.lock();
+            let mut reader = std::io::BufReader::new(lock);
+            let mut line = String::new();
+            loop {
+                line.clear();
+                match reader.read_line(&mut line) {
+                    Ok(0) => {
+                        let _ = tx.send(None);
+                        break;
+                    }
+                    Ok(_) => {
+                        let trimmed = line
+                            .trim_end_matches('\n')
+                            .trim_end_matches('\r')
+                            .to_string();
+                        if tx.send(Some(trimmed)).is_err() {
+                            break;
+                        }
+                    }
+                    Err(_) => {
+                        let _ = tx.send(None);
+                        break;
+                    }
+                }
+            }
+        });
+
+        (Some(sample), Some(rx))
     } else {
-        None
+        (None, None)
     };
 
     let files: Vec<&str> = files.iter().map(|s| s.as_str()).collect();
@@ -458,7 +506,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut app = if let Some(lines) = stdin_lines {
         match App::load_stdin(lines) {
             Ok(mut app) => {
-                app.set_status("stdin closed \u{2014} all input loaded".to_string());
+                if stdin_rx.is_some() {
+                    // Streaming mode — more data coming
+                    app.follow_mode = true;
+                    app.set_status("Streaming from stdin...".to_string());
+                } else {
+                    app.set_status("stdin closed \u{2014} all input loaded".to_string());
+                }
                 app
             }
             Err(e) => {
@@ -567,6 +621,22 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             None
         };
 
+    // Set up stdin streaming parser (for incremental stdin follow)
+    let stdin_parser = if stdin_rx.is_some() {
+        use scouty::traits::LogLoader;
+        let loader = scouty::loader::stdin::StdinLoader::new();
+        let info = loader.info().clone();
+        Some((
+            ParserFactory::create_parser_group(&info),
+            info,
+            main_window.app.total_records as u64, // next record ID
+        ))
+    } else {
+        None
+    };
+    let mut stdin_parser = stdin_parser;
+    let mut stdin_eof = false;
+
     loop {
         // Pre-compute density cache using exact position text width
         if let Ok(size) = crossterm::terminal::size() {
@@ -641,6 +711,58 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         main_window.app.follow_new_count = 0;
                     }
                     follow::PollResult::NoChange => {}
+                }
+            }
+        }
+
+        // Poll stdin receiver for new lines (streaming stdin follow)
+        if main_window.app.follow_mode && !stdin_eof {
+            if let Some(ref rx) = stdin_rx {
+                let mut new_records = Vec::new();
+                // Drain all available lines (non-blocking)
+                loop {
+                    match rx.try_recv() {
+                        Ok(Some(line)) => {
+                            if let Some((ref group, ref info, ref mut next_id)) = stdin_parser {
+                                if let Some(mut record) =
+                                    group.parse(&line, &info.id, &info.id, *next_id)
+                                {
+                                    record.raw = line;
+                                    new_records.push(Arc::new(record));
+                                    *next_id += 1;
+                                }
+                            }
+                        }
+                        Ok(None) => {
+                            // EOF
+                            stdin_eof = true;
+                            main_window.app.follow_mode = false;
+                            main_window.app.follow_new_count = 0;
+                            main_window
+                                .app
+                                .set_status("stdin closed \u{2014} all input loaded".to_string());
+                            tracing::info!("stdin: EOF reached");
+                            break;
+                        }
+                        Err(std::sync::mpsc::TryRecvError::Empty) => break,
+                        Err(std::sync::mpsc::TryRecvError::Disconnected) => {
+                            stdin_eof = true;
+                            main_window.app.follow_mode = false;
+                            main_window.app.follow_new_count = 0;
+                            main_window
+                                .app
+                                .set_status("stdin closed \u{2014} all input loaded".to_string());
+                            break;
+                        }
+                    }
+                }
+                if !new_records.is_empty() {
+                    let count = new_records.len();
+                    if let Some(ref mut proc) = main_window.app.category_processor {
+                        proc.process_records(&new_records);
+                    }
+                    main_window.app.append_records(new_records);
+                    tracing::debug!(count, "stdin: appended new records");
                 }
             }
         }
