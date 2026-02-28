@@ -381,3 +381,499 @@ impl OverlayWindow for DensitySelectorOverlay {
         vec![("j/k", "Select"), ("Enter", "Apply"), ("Esc", "Close")]
     }
 }
+
+// ── SearchOverlay ───────────────────────────────────────────────────
+
+pub struct SearchOverlay;
+
+impl SearchOverlay {
+    pub fn new() -> Self {
+        Self
+    }
+}
+
+impl OverlayWindow for SearchOverlay {
+    fn name(&self) -> &str {
+        "Search"
+    }
+
+    fn render(&self, _frame: &mut Frame, _area: Rect, _app: &App) {
+        // Search input rendered inline by ui_legacy
+    }
+
+    fn handle_key(&mut self, app: &mut App, key: KeyEvent) -> WindowAction {
+        use crossterm::event::KeyCode;
+        match key.code {
+            KeyCode::Enter => {
+                app.execute_search();
+                app.input_mode = InputMode::Normal;
+                WindowAction::Close
+            }
+            KeyCode::Esc => {
+                app.input_mode = InputMode::Normal;
+                WindowAction::Close
+            }
+            _ => {
+                app.search_input.handle_key(key);
+                WindowAction::Handled
+            }
+        }
+    }
+
+    fn shortcut_hints(&self) -> Vec<(&str, &str)> {
+        vec![("Enter", "Search"), ("Esc", "Cancel")]
+    }
+}
+
+// ── FilterOverlay ───────────────────────────────────────────────────
+
+pub struct FilterOverlay;
+
+impl FilterOverlay {
+    pub fn new() -> Self {
+        Self
+    }
+}
+
+impl OverlayWindow for FilterOverlay {
+    fn name(&self) -> &str {
+        "Filter"
+    }
+
+    fn render(&self, _frame: &mut Frame, _area: Rect, _app: &App) {
+        // Filter input rendered inline by ui_legacy
+    }
+
+    fn handle_key(&mut self, app: &mut App, key: KeyEvent) -> WindowAction {
+        use crossterm::event::KeyCode;
+        match key.code {
+            KeyCode::Enter => {
+                app.apply_filter();
+                if app.filter_error.is_none() {
+                    app.input_mode = InputMode::Normal;
+                    WindowAction::Close
+                } else {
+                    WindowAction::Handled
+                }
+            }
+            KeyCode::Esc => {
+                app.input_mode = InputMode::Normal;
+                WindowAction::Close
+            }
+            _ => {
+                if app.filter_input.handle_key(key) {
+                    app.filter_error = None;
+                }
+                WindowAction::Handled
+            }
+        }
+    }
+
+    fn shortcut_hints(&self) -> Vec<(&str, &str)> {
+        vec![("Enter", "Apply"), ("Esc", "Cancel")]
+    }
+}
+
+// ── JumpOverlay ─────────────────────────────────────────────────────
+
+pub struct JumpOverlay {
+    pub forward: bool,
+}
+
+impl JumpOverlay {
+    pub fn new(forward: bool) -> Self {
+        Self { forward }
+    }
+}
+
+impl OverlayWindow for JumpOverlay {
+    fn name(&self) -> &str {
+        if self.forward {
+            "JumpForward"
+        } else {
+            "JumpBackward"
+        }
+    }
+
+    fn render(&self, _frame: &mut Frame, _area: Rect, _app: &App) {}
+
+    fn handle_key(&mut self, app: &mut App, key: KeyEvent) -> WindowAction {
+        use crossterm::event::KeyCode;
+        match key.code {
+            KeyCode::Enter => {
+                if app.jump_relative(self.forward) {
+                    app.input_mode = InputMode::Normal;
+                    WindowAction::Close
+                } else {
+                    WindowAction::Handled
+                }
+            }
+            KeyCode::Esc => {
+                app.input_mode = InputMode::Normal;
+                WindowAction::Close
+            }
+            _ => {
+                app.time_input.handle_key(key);
+                WindowAction::Handled
+            }
+        }
+    }
+
+    fn shortcut_hints(&self) -> Vec<(&str, &str)> {
+        vec![("Enter", "Jump"), ("Esc", "Cancel")]
+    }
+}
+
+// ── GotoLineOverlay ─────────────────────────────────────────────────
+
+pub struct GotoLineOverlay;
+
+impl GotoLineOverlay {
+    pub fn new() -> Self {
+        Self
+    }
+}
+
+impl OverlayWindow for GotoLineOverlay {
+    fn name(&self) -> &str {
+        "GotoLine"
+    }
+
+    fn render(&self, _frame: &mut Frame, _area: Rect, _app: &App) {}
+
+    fn handle_key(&mut self, app: &mut App, key: KeyEvent) -> WindowAction {
+        use crate::ui::windows::goto_line_window::GotoLineWindow;
+        let mut window = GotoLineWindow::new();
+        window.input = app.goto_input.value().to_string();
+        let result = dispatch_key(&mut window, key);
+        app.goto_input.set(&window.input);
+        if result == ComponentResult::Close {
+            if window.confirmed {
+                app.goto_line();
+            }
+            app.input_mode = InputMode::Normal;
+            WindowAction::Close
+        } else {
+            WindowAction::Handled
+        }
+    }
+
+    fn shortcut_hints(&self) -> Vec<(&str, &str)> {
+        vec![("Enter", "Go"), ("Esc", "Cancel")]
+    }
+}
+
+// ── QuickFilterOverlay ──────────────────────────────────────────────
+
+pub struct QuickFilterOverlay {
+    pub exclude: bool,
+}
+
+impl QuickFilterOverlay {
+    pub fn new(exclude: bool) -> Self {
+        Self { exclude }
+    }
+}
+
+impl OverlayWindow for QuickFilterOverlay {
+    fn name(&self) -> &str {
+        if self.exclude {
+            "QuickExclude"
+        } else {
+            "QuickInclude"
+        }
+    }
+
+    fn render(&self, _frame: &mut Frame, _area: Rect, _app: &App) {}
+
+    fn handle_key(&mut self, app: &mut App, key: KeyEvent) -> WindowAction {
+        use crossterm::event::KeyCode;
+        match key.code {
+            KeyCode::Enter => {
+                if self.exclude {
+                    app.apply_quick_exclude();
+                } else {
+                    app.apply_quick_include();
+                }
+                app.input_mode = InputMode::Normal;
+                WindowAction::Close
+            }
+            KeyCode::Esc => {
+                app.input_mode = InputMode::Normal;
+                WindowAction::Close
+            }
+            _ => {
+                app.quick_filter_input.handle_key(key);
+                WindowAction::Handled
+            }
+        }
+    }
+
+    fn shortcut_hints(&self) -> Vec<(&str, &str)> {
+        vec![("Enter", "Apply"), ("Esc", "Cancel")]
+    }
+}
+
+// ── FieldFilterOverlay ──────────────────────────────────────────────
+
+pub struct FieldFilterOverlay;
+
+impl FieldFilterOverlay {
+    pub fn new() -> Self {
+        Self
+    }
+}
+
+impl OverlayWindow for FieldFilterOverlay {
+    fn name(&self) -> &str {
+        "FieldFilter"
+    }
+
+    fn render(&self, _frame: &mut Frame, _area: Rect, _app: &App) {}
+
+    fn handle_key(&mut self, app: &mut App, key: KeyEvent) -> WindowAction {
+        use crate::ui::windows::field_filter_window::FieldFilterWindow;
+        if let Some(mut window) = FieldFilterWindow::from_app(app) {
+            let result = dispatch_key(&mut window, key);
+            match result {
+                ComponentResult::Close => {
+                    if window.confirmed {
+                        window.sync_to_app(app);
+                        app.apply_field_filter();
+                    } else {
+                        app.field_filter = None;
+                    }
+                    app.input_mode = InputMode::Normal;
+                    WindowAction::Close
+                }
+                _ => {
+                    window.sync_to_app(app);
+                    WindowAction::Handled
+                }
+            }
+        } else {
+            app.input_mode = InputMode::Normal;
+            WindowAction::Close
+        }
+    }
+
+    fn shortcut_hints(&self) -> Vec<(&str, &str)> {
+        vec![("Enter", "Apply"), ("Esc", "Cancel")]
+    }
+}
+
+// ── CopyFormatOverlay ───────────────────────────────────────────────
+
+pub struct CopyFormatOverlay;
+
+impl CopyFormatOverlay {
+    pub fn new() -> Self {
+        Self
+    }
+}
+
+impl OverlayWindow for CopyFormatOverlay {
+    fn name(&self) -> &str {
+        "CopyFormat"
+    }
+
+    fn render(&self, frame: &mut Frame, area: Rect, app: &App) {
+        use crate::ui::windows::copy_format_window::CopyFormatWindow;
+        let window = CopyFormatWindow::from_app(app);
+        <CopyFormatWindow as UiComponent>::render(&window, frame, area);
+    }
+
+    fn handle_key(&mut self, app: &mut App, key: KeyEvent) -> WindowAction {
+        use crate::ui::windows::copy_format_window::CopyFormatWindow;
+        let mut window = CopyFormatWindow::from_app(app);
+        let result = dispatch_key(&mut window, key);
+        app.copy_format_cursor = window.cursor;
+        if result == ComponentResult::Close {
+            if window.confirmed {
+                CopyFormatWindow::select_format(app, window.selected_format());
+            }
+            app.input_mode = InputMode::Normal;
+            app.copy_format_cursor = 0;
+            WindowAction::Close
+        } else {
+            WindowAction::Handled
+        }
+    }
+
+    fn shortcut_hints(&self) -> Vec<(&str, &str)> {
+        vec![("j/k", "Select"), ("Enter", "Copy"), ("Esc", "Cancel")]
+    }
+}
+
+// ── CommandOverlay ──────────────────────────────────────────────────
+
+pub struct CommandOverlay;
+
+impl CommandOverlay {
+    pub fn new() -> Self {
+        Self
+    }
+}
+
+impl OverlayWindow for CommandOverlay {
+    fn name(&self) -> &str {
+        "Command"
+    }
+
+    fn render(&self, _frame: &mut Frame, _area: Rect, _app: &App) {}
+
+    fn handle_key(&mut self, app: &mut App, key: KeyEvent) -> WindowAction {
+        use crossterm::event::KeyCode;
+        match key.code {
+            KeyCode::Enter => {
+                app.execute_command();
+                app.input_mode = InputMode::Normal;
+                if app.should_quit {
+                    // Signal quit through WindowAction — MainWindow will check should_quit
+                }
+                WindowAction::Close
+            }
+            KeyCode::Esc => {
+                app.input_mode = InputMode::Normal;
+                WindowAction::Close
+            }
+            _ => {
+                app.command_input.handle_key(key);
+                WindowAction::Handled
+            }
+        }
+    }
+
+    fn shortcut_hints(&self) -> Vec<(&str, &str)> {
+        vec![("Enter", "Execute"), ("Esc", "Cancel")]
+    }
+}
+
+// ── HighlightOverlay ────────────────────────────────────────────────
+
+pub struct HighlightOverlay;
+
+impl HighlightOverlay {
+    pub fn new() -> Self {
+        Self
+    }
+}
+
+impl OverlayWindow for HighlightOverlay {
+    fn name(&self) -> &str {
+        "Highlight"
+    }
+
+    fn render(&self, _frame: &mut Frame, _area: Rect, _app: &App) {}
+
+    fn handle_key(&mut self, app: &mut App, key: KeyEvent) -> WindowAction {
+        use crossterm::event::KeyCode;
+        match key.code {
+            KeyCode::Enter => {
+                let pattern = app.highlight_input.value().to_string();
+                if let Err(e) = app.add_highlight_rule(&pattern) {
+                    app.set_status(e);
+                }
+                app.input_mode = InputMode::Normal;
+                WindowAction::Close
+            }
+            KeyCode::Esc => {
+                app.input_mode = InputMode::Normal;
+                WindowAction::Close
+            }
+            _ => {
+                app.highlight_input.handle_key(key);
+                WindowAction::Handled
+            }
+        }
+    }
+
+    fn shortcut_hints(&self) -> Vec<(&str, &str)> {
+        vec![("Enter", "Add"), ("Esc", "Cancel")]
+    }
+}
+
+// ── SavePresetOverlay ───────────────────────────────────────────────
+
+pub struct SavePresetOverlay;
+
+impl SavePresetOverlay {
+    pub fn new() -> Self {
+        Self
+    }
+}
+
+impl OverlayWindow for SavePresetOverlay {
+    fn name(&self) -> &str {
+        "SavePreset"
+    }
+
+    fn render(&self, _frame: &mut Frame, _area: Rect, _app: &App) {}
+
+    fn handle_key(&mut self, app: &mut App, key: KeyEvent) -> WindowAction {
+        use crate::ui::windows::save_preset_window::SavePresetWindow;
+        let mut window = SavePresetWindow::new();
+        window.input = app.preset_name_input.clone();
+        let result = dispatch_key(&mut window, key);
+        app.preset_name_input = window.input;
+        if result == ComponentResult::Close {
+            if window.confirmed {
+                let name = app.preset_name_input.value().to_string();
+                app.save_filter_preset(&name);
+            }
+            app.input_mode = InputMode::Normal;
+            WindowAction::Close
+        } else {
+            WindowAction::Handled
+        }
+    }
+
+    fn shortcut_hints(&self) -> Vec<(&str, &str)> {
+        vec![("Enter", "Save"), ("Esc", "Cancel")]
+    }
+}
+
+// ── LoadPresetOverlay ───────────────────────────────────────────────
+
+pub struct LoadPresetOverlay;
+
+impl LoadPresetOverlay {
+    pub fn new() -> Self {
+        Self
+    }
+}
+
+impl OverlayWindow for LoadPresetOverlay {
+    fn name(&self) -> &str {
+        "LoadPreset"
+    }
+
+    fn render(&self, _frame: &mut Frame, _area: Rect, _app: &App) {}
+
+    fn handle_key(&mut self, app: &mut App, key: KeyEvent) -> WindowAction {
+        use crate::ui::windows::load_preset_window::LoadPresetWindow;
+        let mut window = LoadPresetWindow::new(app.preset_list.clone());
+        window.cursor = app.preset_list_cursor;
+        let result = dispatch_key(&mut window, key);
+        if let Some(ref name) = window.delete_name {
+            let _ = crate::config::filter_preset::delete_preset(name);
+        }
+        app.preset_list = window.presets;
+        app.preset_list_cursor = window.cursor;
+        if result == ComponentResult::Close {
+            if window.confirmed {
+                if let Some(ref name) = window.selected {
+                    app.load_filter_preset(name);
+                }
+            }
+            app.input_mode = InputMode::Normal;
+            WindowAction::Close
+        } else {
+            WindowAction::Handled
+        }
+    }
+
+    fn shortcut_hints(&self) -> Vec<(&str, &str)> {
+        vec![("d", "Delete"), ("Enter", "Load"), ("Esc", "Cancel")]
+    }
+}

@@ -121,26 +121,58 @@ impl MainWindow {
             Action::ScrollToTop => self.app.scroll_to_top(),
             Action::ScrollToBottom => self.app.scroll_to_bottom(),
             Action::ToggleDetail => self.app.toggle_detail(),
-            Action::Filter => self.app.input_mode = InputMode::Filter,
-            Action::Search => self.app.input_mode = InputMode::Search,
+            Action::Filter => {
+                self.app.input_mode = InputMode::Filter;
+                self.overlay_stack.push(Box::new(
+                    crate::ui::windows::overlay_adapters::FilterOverlay::new(),
+                ));
+            }
+            Action::Search => {
+                self.app.input_mode = InputMode::Search;
+                self.overlay_stack.push(Box::new(
+                    crate::ui::windows::overlay_adapters::SearchOverlay::new(),
+                ));
+            }
             Action::JumpForward => {
                 self.app.input_mode = InputMode::JumpForward;
                 self.app.time_input.clear();
+                self.overlay_stack.push(Box::new(
+                    crate::ui::windows::overlay_adapters::JumpOverlay::new(true),
+                ));
             }
             Action::JumpBackward => {
                 self.app.input_mode = InputMode::JumpBackward;
                 self.app.time_input.clear();
+                self.overlay_stack.push(Box::new(
+                    crate::ui::windows::overlay_adapters::JumpOverlay::new(false),
+                ));
             }
             Action::QuickExclude => {
                 self.app.input_mode = InputMode::QuickExclude;
                 self.app.quick_filter_input.clear();
+                self.overlay_stack.push(Box::new(
+                    crate::ui::windows::overlay_adapters::QuickFilterOverlay::new(true),
+                ));
             }
             Action::QuickInclude => {
                 self.app.input_mode = InputMode::QuickInclude;
                 self.app.quick_filter_input.clear();
+                self.overlay_stack.push(Box::new(
+                    crate::ui::windows::overlay_adapters::QuickFilterOverlay::new(false),
+                ));
             }
-            Action::FieldExclude => self.app.open_field_filter(true),
-            Action::FieldInclude => self.app.open_field_filter(false),
+            Action::FieldExclude => {
+                self.app.open_field_filter(true);
+                self.overlay_stack.push(Box::new(
+                    crate::ui::windows::overlay_adapters::FieldFilterOverlay::new(),
+                ));
+            }
+            Action::FieldInclude => {
+                self.app.open_field_filter(false);
+                self.overlay_stack.push(Box::new(
+                    crate::ui::windows::overlay_adapters::FieldFilterOverlay::new(),
+                ));
+            }
             Action::FilterManager => {
                 self.app.input_mode = InputMode::FilterManager;
                 self.app.filter_manager_cursor = 0;
@@ -175,6 +207,9 @@ impl MainWindow {
             Action::GotoLine => {
                 self.app.input_mode = InputMode::GotoLine;
                 self.app.goto_input.clear();
+                self.overlay_stack.push(Box::new(
+                    crate::ui::windows::overlay_adapters::GotoLineOverlay::new(),
+                ));
             }
             Action::ToggleFollow => self.app.toggle_follow(),
             Action::NextMatch => self.app.next_search_match(),
@@ -187,6 +222,9 @@ impl MainWindow {
             Action::CopyFormat => {
                 self.app.input_mode = InputMode::CopyFormat;
                 self.app.copy_format_cursor = 0;
+                self.overlay_stack.push(Box::new(
+                    crate::ui::windows::overlay_adapters::CopyFormatOverlay::new(),
+                ));
             }
             Action::Save => {
                 self.app.input_mode = InputMode::SaveDialog;
@@ -211,10 +249,16 @@ impl MainWindow {
             Action::Command => {
                 self.app.command_input.clear();
                 self.app.input_mode = InputMode::Command;
+                self.overlay_stack.push(Box::new(
+                    crate::ui::windows::overlay_adapters::CommandOverlay::new(),
+                ));
             }
             Action::AddHighlight => {
                 self.app.input_mode = InputMode::Highlight;
                 self.app.highlight_input.clear();
+                self.overlay_stack.push(Box::new(
+                    crate::ui::windows::overlay_adapters::HighlightOverlay::new(),
+                ));
             }
             Action::HighlightManager => {
                 self.app.input_mode = InputMode::HighlightManager;
@@ -294,214 +338,17 @@ impl MainWindow {
 
     /// Handle a key event for overlay input modes (Filter, Search, etc.).
     /// Returns `true` if should quit.
-    pub fn handle_overlay_key(&mut self, key: KeyEvent) -> bool {
-        match self.app.input_mode {
-            InputMode::Normal => unreachable!(),
-            InputMode::Filter => match key.code {
-                KeyCode::Enter => {
-                    self.app.apply_filter();
-                    if self.app.filter_error.is_none() {
-                        self.app.input_mode = InputMode::Normal;
-                    }
-                }
-                KeyCode::Esc => self.app.input_mode = InputMode::Normal,
-                _ => {
-                    if self.app.filter_input.handle_key(key) {
-                        self.app.filter_error = None;
-                    }
-                }
-            },
-            InputMode::Search => match key.code {
-                KeyCode::Enter => {
-                    self.app.execute_search();
-                    self.app.input_mode = InputMode::Normal;
-                }
-                KeyCode::Esc => self.app.input_mode = InputMode::Normal,
-                _ => {
-                    self.app.search_input.handle_key(key);
-                }
-            },
-            InputMode::JumpForward | InputMode::JumpBackward => match key.code {
-                KeyCode::Enter => {
-                    let forward = self.app.input_mode == InputMode::JumpForward;
-                    if self.app.jump_relative(forward) {
-                        self.app.input_mode = InputMode::Normal;
-                    }
-                }
-                KeyCode::Esc => self.app.input_mode = InputMode::Normal,
-                _ => {
-                    self.app.time_input.handle_key(key);
-                }
-            },
-            InputMode::GotoLine => {
-                use crate::ui::windows::goto_line_window::GotoLineWindow;
-                let mut window = GotoLineWindow::new();
-                window.input = self.app.goto_input.value().to_string();
-                let result = crate::ui::dispatch_key(&mut window, key);
-                self.app.goto_input.set(&window.input);
-                if result == crate::ui::ComponentResult::Close {
-                    if window.confirmed {
-                        self.app.goto_line();
-                    }
-                    self.app.input_mode = InputMode::Normal;
-                }
-            }
-            InputMode::QuickExclude => match key.code {
-                KeyCode::Enter => {
-                    self.app.apply_quick_exclude();
-                    self.app.input_mode = InputMode::Normal;
-                }
-                KeyCode::Esc => self.app.input_mode = InputMode::Normal,
-                _ => {
-                    self.app.quick_filter_input.handle_key(key);
-                }
-            },
-            InputMode::QuickInclude => match key.code {
-                KeyCode::Enter => {
-                    self.app.apply_quick_include();
-                    self.app.input_mode = InputMode::Normal;
-                }
-                KeyCode::Esc => self.app.input_mode = InputMode::Normal,
-                _ => {
-                    self.app.quick_filter_input.handle_key(key);
-                }
-            },
-            InputMode::FieldFilter => {
-                use crate::ui::windows::field_filter_window::FieldFilterWindow;
-                if let Some(mut window) = FieldFilterWindow::from_app(&self.app) {
-                    let result = crate::ui::dispatch_key(&mut window, key);
-                    match result {
-                        crate::ui::ComponentResult::Close => {
-                            if window.confirmed {
-                                window.sync_to_app(&mut self.app);
-                                self.app.apply_field_filter();
-                            } else {
-                                self.app.field_filter = None;
-                            }
-                            self.app.input_mode = InputMode::Normal;
-                        }
-                        _ => {
-                            window.sync_to_app(&mut self.app);
-                        }
-                    }
-                } else {
-                    self.app.input_mode = InputMode::Normal;
-                }
-            }
-            InputMode::FilterManager => {
-                // Dispatched via overlay_stack
-                self.app.input_mode = InputMode::Normal;
-            }
-            InputMode::ColumnSelector => {
-                // Dispatched via overlay_stack
-                self.app.input_mode = InputMode::Normal;
-            }
-            InputMode::CopyFormat => {
-                use crate::ui::windows::copy_format_window::CopyFormatWindow;
-                let mut window = CopyFormatWindow::from_app(&self.app);
-                let result = crate::ui::dispatch_key(&mut window, key);
-                self.app.copy_format_cursor = window.cursor;
-                if result == crate::ui::ComponentResult::Close {
-                    if window.confirmed {
-                        CopyFormatWindow::select_format(&mut self.app, window.selected_format());
-                    }
-                    self.app.input_mode = InputMode::Normal;
-                    self.app.copy_format_cursor = 0;
-                }
-            }
-            InputMode::Help => {
-                // Dispatched via overlay_stack — shouldn't reach here.
-                // Fallback: close the mode.
-                self.app.input_mode = InputMode::Normal;
-            }
-            InputMode::Command => match key.code {
-                KeyCode::Enter => {
-                    self.app.execute_command();
-                    self.app.input_mode = InputMode::Normal;
-                    if self.app.should_quit {
-                        return true;
-                    }
-                }
-                KeyCode::Esc => {
-                    self.app.input_mode = InputMode::Normal;
-                }
-                _ => {
-                    self.app.command_input.handle_key(key);
-                }
-            },
-            InputMode::Highlight => match key.code {
-                KeyCode::Enter => {
-                    let pattern = self.app.highlight_input.value().to_string();
-                    if let Err(e) = self.app.add_highlight_rule(&pattern) {
-                        self.app.set_status(e);
-                    }
-                    self.app.input_mode = InputMode::Normal;
-                }
-                KeyCode::Esc => {
-                    self.app.input_mode = InputMode::Normal;
-                }
-                _ => {
-                    self.app.highlight_input.handle_key(key);
-                }
-            },
-            InputMode::HighlightManager => {
-                // Dispatched via overlay_stack
-                self.app.input_mode = InputMode::Normal;
-            }
-            InputMode::BookmarkManager => {
-                // Dispatched via overlay_stack
-                self.app.input_mode = InputMode::Normal;
-            }
-            InputMode::LevelFilter => {
-                // Dispatched via overlay_stack
-                self.app.input_mode = InputMode::Normal;
-            }
-            InputMode::SavePreset => {
-                use crate::ui::windows::save_preset_window::SavePresetWindow;
-                let mut window = SavePresetWindow::new();
-                window.input = self.app.preset_name_input.clone();
-                let result = crate::ui::dispatch_key(&mut window, key);
-                self.app.preset_name_input = window.input;
-                if result == crate::ui::ComponentResult::Close {
-                    if window.confirmed {
-                        let name = self.app.preset_name_input.value().to_string();
-                        self.app.save_filter_preset(&name);
-                    }
-                    self.app.input_mode = InputMode::Normal;
-                }
-            }
-            InputMode::LoadPreset => {
-                use crate::ui::windows::load_preset_window::LoadPresetWindow;
-                let mut window = LoadPresetWindow::new(self.app.preset_list.clone());
-                window.cursor = self.app.preset_list_cursor;
-                let result = crate::ui::dispatch_key(&mut window, key);
-                if let Some(ref name) = window.delete_name {
-                    let _ = crate::config::filter_preset::delete_preset(name);
-                }
-                self.app.preset_list = window.presets;
-                self.app.preset_list_cursor = window.cursor;
-                if result == crate::ui::ComponentResult::Close {
-                    if window.confirmed {
-                        if let Some(ref name) = window.selected {
-                            self.app.load_filter_preset(name);
-                        }
-                    }
-                    self.app.input_mode = InputMode::Normal;
-                }
-            }
-            InputMode::DensitySelector => {
-                // Dispatched via overlay_stack
-                self.app.input_mode = InputMode::Normal;
-            }
-            InputMode::SaveDialog => {
-                // Dispatched via overlay_stack
-                self.app.input_mode = InputMode::Normal;
-            }
-            InputMode::RegionManager => {
-                // Dispatched via overlay_stack
-                self.app.input_mode = InputMode::Normal;
-            }
-        }
+    /// Legacy overlay key handler — now all modes dispatched via overlay_stack.
+    /// This fallback handles the case where overlay_stack is empty but
+    /// input_mode is non-Normal (shouldn't happen, but safety).
+    pub fn handle_overlay_key(&mut self, _key: KeyEvent) -> bool {
+        // All modes are now dispatched via overlay_stack.
+        // If we reach here, something went wrong — reset to Normal.
+        tracing::warn!(
+            mode = ?self.app.input_mode,
+            "handle_overlay_key reached unexpectedly, resetting to Normal"
+        );
+        self.app.input_mode = InputMode::Normal;
         false
     }
 }
@@ -530,6 +377,30 @@ impl Window for MainWindow {
         // Overlay stack gets priority — input isolation
         if !self.overlay_stack.is_empty() {
             self.overlay_stack.handle_key(&mut self.app, event);
+
+            // After overlay close, check if a transition was requested
+            // (e.g., FilterManager → SavePreset/LoadPreset)
+            if self.overlay_stack.is_empty() && self.app.input_mode != InputMode::Normal {
+                match self.app.input_mode {
+                    InputMode::SavePreset => {
+                        self.overlay_stack.push(Box::new(
+                            crate::ui::windows::overlay_adapters::SavePresetOverlay::new(),
+                        ));
+                    }
+                    InputMode::LoadPreset => {
+                        self.overlay_stack.push(Box::new(
+                            crate::ui::windows::overlay_adapters::LoadPresetOverlay::new(),
+                        ));
+                    }
+                    _ => {}
+                }
+            }
+
+            // Check if command mode triggered quit
+            if self.app.should_quit {
+                return WindowAction::Close;
+            }
+
             return WindowAction::Handled;
         }
 
