@@ -48,7 +48,7 @@ The detail panel and region UI (region manager + density chart) currently have i
 │                                                       │
 │                    Log Table                           │
 │                                                       │
-├─── [Detail] ── [Region] ─────────────────────────────┤  ← Panel Tab Bar (only this line when collapsed)
+├─── [Detail] ── [Region] ── [Stats] ─────────────────────┤  ← Panel Tab Bar (only this line when collapsed)
 │                                                       │
 │              Active Panel Content                     │
 │                                                       │
@@ -59,7 +59,7 @@ The detail panel and region UI (region manager + density chart) currently have i
 ```
 
 - Panel area sits between the log table and the status bar
-- **Collapsed:** only the panel tab bar is visible (one line height), showing tab names like `[Detail] [Region]` with the selected tab highlighted
+- **Collapsed:** only the panel tab bar is visible (one line height), showing tab names like `[Detail] [Region] [Stats]` with the selected tab highlighted
 - **Expanded:** tab bar + panel content area; each panel has its own default height (see individual panel definitions)
 - Only one panel is expanded at a time
 

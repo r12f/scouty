@@ -100,6 +100,11 @@ Shortcut hints are **context-sensitive** — they update based on current focus:
 [REGION] j/k: Navigate │ Tab: Next Tab │ Ctrl+↑: Back │ z: Maximize │ Esc: Close
 ```
 
+**Stats Panel focus:**
+```
+[STATS] Tab: Next Tab │ Ctrl+↑: Back │ z: Maximize │ Esc: Close
+```
+
 When focus switches (e.g., `Ctrl+↓` to enter panel, `Tab` to switch panel, `Ctrl+↑` to return to log table), the status bar line 2 immediately updates to show the relevant shortcuts for the new context.
 
 **Mode B — Input mode:**
@@ -145,3 +150,4 @@ Navigation (j/k/PageUp/PageDown/g/G) does **not** trigger recomputation. Only th
 | 2026-02-23 | Time per column snaps up to standard intervals (5/15/30 for s and m) |
 | 2026-02-24 | Density chart level/highlight selector (d/D keys) |
 | 2026-02-28 | Status bar line 2 shows context-sensitive shortcuts based on current focus (log table / detail panel / region panel) |
+| 2026-02-28 | Added Stats panel focus hints `[STATS]` |
