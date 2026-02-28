@@ -74,6 +74,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut pipe_level: Option<String> = None;
     let mut pipe_format: Option<String> = None;
     let mut pipe_fields: Option<String> = None;
+    let mut log_level: Option<String> = None;
     let mut i = 1;
     while i < args.len() {
         match args[i].as_str() {
@@ -115,6 +116,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 );
                 eprintln!("  --config <path>   Load additional config file (overrides file-based configs)");
                 eprintln!("  --regions <path>  Load region definitions (file or directory)");
+                eprintln!("  --log [level]     Enable logging to ~/.scouty/log/ (default: info)");
                 eprintln!("  --generate-config          Generate default config to stdout");
                 eprintln!(
                     "  --generate-theme <name>    Generate built-in theme to stdout (or 'list')"
@@ -184,6 +186,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         std::process::exit(1);
                     }
                 }
+            }
+            "--log" => {
+                // --log [level]  (level is optional, default "info")
+                if i + 1 < args.len() && !args[i + 1].starts_with("-") {
+                    log_level = Some(args[i + 1].clone());
+                    i += 2;
+                } else {
+                    log_level = Some("info".to_string());
+                    i += 1;
+                }
+            }
+            arg if arg.starts_with("--log=") => {
+                log_level = Some(arg.trim_start_matches("--log=").to_string());
+                i += 1;
             }
             "--no-tui" => {
                 no_tui = true;
@@ -275,8 +291,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Load config early so default_paths is available for file resolution
     let cfg = config::load_config_layered(config_override.as_deref());
 
-    // ── Initialize tracing (file-based logging to ~/.scouty/log/) ──
-    let _tracing_guard = {
+    // ── Initialize tracing (only when --log is passed) ──
+    let _tracing_guard = if let Some(ref level) = log_level {
         let log_dir = dirs::home_dir()
             .unwrap_or_else(|| std::path::PathBuf::from("."))
             .join(".scouty")
@@ -287,7 +303,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let (non_blocking, guard) = tracing_appender::non_blocking(file_appender);
 
         let env_filter =
-            EnvFilter::try_from_env("SCOUTY_LOG").unwrap_or_else(|_| EnvFilter::new("info"));
+            EnvFilter::try_from_env("SCOUTY_LOG").unwrap_or_else(|_| EnvFilter::new(level));
 
         tracing_subscriber::registry()
             .with(env_filter)
@@ -303,7 +319,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             .init();
 
         tracing::info!("scouty starting up, version {}", env!("CARGO_PKG_VERSION"));
-        guard
+        Some(guard)
+    } else {
+        None
     };
 
     let files: Vec<String> = if !piped && file_args.is_empty() {
