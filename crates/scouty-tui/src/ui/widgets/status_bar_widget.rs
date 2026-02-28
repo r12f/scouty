@@ -253,36 +253,34 @@ impl StatusBarWidget {
                 let shortcuts: &[(&str, &str)] = if panel_focused {
                     match app.panel_state.active {
                         crate::panel::PanelId::Detail => &[
-                            ("Tab", "Next Tab"),
+                            ("h/l", "Fold"),
+                            ("H/L", "All"),
+                            ("Tab/S-Tab", "Switch"),
                             ("Ctrl+↑", "Back"),
-                            ("z", "Maximize"),
+                            ("z", "Max"),
                             ("Esc", "Close"),
-                            ("?", "Help"),
                         ],
                         crate::panel::PanelId::Region => &[
-                            ("j/k", "Navigate"),
-                            ("Tab", "Next Tab"),
+                            ("j/k", "↑↓"),
+                            ("Tab/S-Tab", "Switch"),
                             ("Ctrl+↑", "Back"),
+                            ("z", "Max"),
                             ("Esc", "Close"),
-                            ("z", "Maximize"),
                         ],
                         crate::panel::PanelId::Stats => &[
-                            ("Tab", "Next Tab"),
+                            ("Tab/S-Tab", "Switch"),
                             ("Ctrl+↑", "Back"),
-                            ("z", "Maximize"),
+                            ("z", "Max"),
                             ("Esc", "Close"),
                         ],
                     }
                 } else {
                     &[
+                        ("j/k", "↑↓"),
                         ("/", "Search"),
                         ("f", "Filter"),
-                        ("-", "Exclude"),
-                        ("=", "Include"),
-                        ("_", "ExclField"),
-                        ("+", "InclField"),
+                        ("-/=", "Exclude/Include"),
                         ("Enter", "Detail"),
-                        ("c", "Columns"),
                         ("?", "Help"),
                     ]
                 };

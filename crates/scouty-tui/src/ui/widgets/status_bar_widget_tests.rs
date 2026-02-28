@@ -178,4 +178,77 @@ mod tests {
             21_600_000.0
         ); // → 6h
     }
+
+    /// Helper: return the shortcut hints for a given mode/panel state.
+    fn get_hints(
+        panel_focused: bool,
+        active: crate::panel::PanelId,
+    ) -> Vec<(&'static str, &'static str)> {
+        if panel_focused {
+            match active {
+                crate::panel::PanelId::Detail => vec![
+                    ("h/l", "Fold"),
+                    ("H/L", "All"),
+                    ("Tab/S-Tab", "Switch"),
+                    ("Ctrl+↑", "Back"),
+                    ("z", "Max"),
+                    ("Esc", "Close"),
+                ],
+                crate::panel::PanelId::Region => vec![
+                    ("j/k", "↑↓"),
+                    ("Tab/S-Tab", "Switch"),
+                    ("Ctrl+↑", "Back"),
+                    ("z", "Max"),
+                    ("Esc", "Close"),
+                ],
+                crate::panel::PanelId::Stats => vec![
+                    ("Tab/S-Tab", "Switch"),
+                    ("Ctrl+↑", "Back"),
+                    ("z", "Max"),
+                    ("Esc", "Close"),
+                ],
+            }
+        } else {
+            vec![
+                ("j/k", "↑↓"),
+                ("/", "Search"),
+                ("f", "Filter"),
+                ("-/=", "Exclude/Include"),
+                ("Enter", "Detail"),
+                ("?", "Help"),
+            ]
+        }
+    }
+
+    #[test]
+    fn test_view_mode_hints_simplified() {
+        let hints = get_hints(false, crate::panel::PanelId::Detail);
+        // j/k merged, -/= merged, no separate Exclude/Include/ExclField/InclField
+        assert_eq!(hints[0], ("j/k", "↑↓"));
+        assert_eq!(hints[3], ("-/=", "Exclude/Include"));
+        assert_eq!(hints.len(), 6);
+    }
+
+    #[test]
+    fn test_detail_panel_hints_simplified() {
+        let hints = get_hints(true, crate::panel::PanelId::Detail);
+        assert_eq!(hints[0], ("h/l", "Fold"));
+        assert_eq!(hints[1], ("H/L", "All"));
+        assert_eq!(hints[2], ("Tab/S-Tab", "Switch"));
+        assert_eq!(hints[4], ("z", "Max")); // abbreviated
+    }
+
+    #[test]
+    fn test_region_panel_hints_simplified() {
+        let hints = get_hints(true, crate::panel::PanelId::Region);
+        assert_eq!(hints[0], ("j/k", "↑↓"));
+        assert_eq!(hints[1], ("Tab/S-Tab", "Switch"));
+    }
+
+    #[test]
+    fn test_stats_panel_hints_simplified() {
+        let hints = get_hints(true, crate::panel::PanelId::Stats);
+        assert_eq!(hints.len(), 4);
+        assert_eq!(hints[0], ("Tab/S-Tab", "Switch"));
+    }
 }
