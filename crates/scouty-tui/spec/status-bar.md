@@ -83,7 +83,9 @@ The density chart can be switched to show only a specific log level or highlight
 
 **Mode A — Default (shortcut hints):**
 
-Shortcut hints are **context-sensitive** — they update based on current focus:
+Shortcut hints are **dynamically collected** from the widget tree — see [ui-architecture.md](ui-architecture.md) for the collection mechanism. The status bar walks from the focused widget up to the window root, concatenating each widget's `shortcut_hints()`. No hardcoded per-mode strings.
+
+**Expected output per focus context (for reference):**
 
 **Log Table focus (default):**
 ```
@@ -151,3 +153,5 @@ Navigation (j/k/PageUp/PageDown/g/G) does **not** trigger recomputation. Only th
 | 2026-02-24 | Density chart level/highlight selector (d/D keys) |
 | 2026-02-28 | Status bar line 2 shows context-sensitive shortcuts based on current focus (log table / detail panel / region panel) |
 | 2026-02-28 | Added Stats panel focus hints `[STATS]` |
+| 2026-02-28 | Compact hints: merge related keys, abbreviate labels |
+| 2026-02-28 | Dynamic hint collection: walk focused widget → parent → root via `shortcut_hints()`, no hardcoded per-mode strings |

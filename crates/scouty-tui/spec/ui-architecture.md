@@ -106,12 +106,55 @@ trait Widget {
     fn render(&self, frame: &mut Frame, area: Rect);
     fn handle_key(&mut self, event: KeyEvent) -> KeyAction;
     fn is_focusable(&self) -> bool;
+    fn shortcut_hints(&self) -> Vec<ShortcutHint>;  // Hints for keys this widget handles
+}
+
+struct ShortcutHint {
+    keys: String,    // e.g. "j/k", "Tab/S-Tab", "Esc"
+    action: String,  // e.g. "↑↓", "Switch", "Close"
 }
 
 enum KeyAction {
     Handled,    // Consumed, stop propagation
     Unhandled,  // Not consumed, bubble to parent
 }
+```
+
+### Shortcut Hint Collection
+
+The status bar collects shortcut hints by walking the widget tree from the **focused widget up to the window root**:
+
+```
+1. Start at focused widget → collect its shortcut_hints()
+2. Walk to parent → collect its shortcut_hints()
+3. Continue to grandparent → … → window root
+4. Concatenate all hints (focused widget's hints first, then parent's, then grandparent's…)
+5. Render as: [MODE] hint1 │ hint2 │ hint3 │ …
+```
+
+**Rules:**
+- Each widget only advertises hints for keys **it actually handles** — if a widget doesn't process any keys, it returns an empty list
+- Hints from the focused widget appear first (most specific), parent hints appear later (more general)
+- The mode label (e.g., `[VIEW]`, `[DETAIL]`) comes from the focused widget's name or the window root
+- When focus changes, hints are re-collected automatically — no hardcoded per-mode hint strings
+
+**Example — focus on RegionPanelWidget:**
+
+```
+RegionPanelWidget.shortcut_hints() → [("j/k", "↑↓"), ("Enter", "Jump")]
+TabbedContainer.shortcut_hints()   → [("Tab/S-Tab", "Switch")]
+MainWindow.shortcut_hints()        → [("Ctrl+↑", "Back"), ("z", "Max"), ("Esc", "Close")]
+
+Status bar: [REGION] j/k: ↑↓ │ Enter: Jump │ Tab/S-Tab: Switch │ Ctrl+↑: Back │ z: Max │ Esc: Close
+```
+
+**Example — focus on LogTableWidget:**
+
+```
+LogTableWidget.shortcut_hints()    → [("j/k", "↑↓"), ("/", "Search"), ("f", "Filter"), ("-/=", "Exclude/Include"), ("Enter", "Detail")]
+MainWindow.shortcut_hints()        → [("?", "Help")]
+
+Status bar: [VIEW] j/k: ↑↓ │ /: Search │ f: Filter │ -/=: Exclude/Include │ Enter: Detail │ ?: Help
 ```
 
 ### Focus Management
@@ -207,3 +250,4 @@ The existing windows and widgets map cleanly to this architecture:
 |------|--------|
 | 2026-02-28 | Initial spec — window stack + widget tree architecture |
 | 2026-02-28 | PanelManager replaced by generic TabbedContainer — panels are child widgets of a tabbed container |
+| 2026-02-28 | Widget trait gains `shortcut_hints()` — status bar collects hints dynamically from focused widget up to root |
