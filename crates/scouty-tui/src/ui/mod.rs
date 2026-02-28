@@ -1,5 +1,6 @@
 //! TUI component architecture — trait, dispatch, and component modules.
 
+pub mod framework;
 pub mod widgets;
 pub mod windows;
 
