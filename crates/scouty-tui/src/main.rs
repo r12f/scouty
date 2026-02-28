@@ -627,6 +627,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         if !key_handled
                             && key.code == crossterm::event::KeyCode::Tab
                             && app.detail_open
+                            && app.panel_state.has_focus()
+                            && app.panel_state.active == crate::panel::PanelId::Detail
                         {
                             if let Some(record) = app.selected_record() {
                                 if record.expanded.as_ref().is_some_and(|e| !e.is_empty()) {
