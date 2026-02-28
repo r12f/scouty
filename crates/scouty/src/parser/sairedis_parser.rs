@@ -15,7 +15,7 @@ use std::cell::RefCell;
 use std::sync::Arc;
 
 /// Known op codes for sairedis logs.
-const KNOWN_OPS: &[u8] = b"crsgGpCRSBqQn";
+const KNOWN_OPS: &[u8] = b"crsgGpCRSBqQnaA";
 
 /// Parser for SONiC sairedis log format.
 ///
@@ -183,6 +183,16 @@ impl SairedisParser {
             b'n' => {
                 let (name, msg) = Self::parse_notification(detail);
                 (format!("Notification: {}", name), None, None, msg)
+            }
+            // NotifySyncd request: a (key = INIT_VIEW, APPLY_VIEW, etc.)
+            b'a' => {
+                let key = str_from_bytes(detail);
+                ("NotifySyncd".to_string(), None, Some(key.clone()), key)
+            }
+            // NotifySyncd response: A (SAI status code)
+            b'A' => {
+                let status = str_from_bytes(detail);
+                ("NotifySyncdResponse".to_string(), None, None, status)
             }
             // Unknown op code: graceful fallback
             _ => {
