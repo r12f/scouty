@@ -48,7 +48,7 @@ Follow mode can be **dynamically disabled** from within the TUI but **cannot be 
 
 | Action | Effect |
 |--------|--------|
-| `Ctrl+Q` | Disable follow mode — stop watching file, stop loading new records. View becomes static. Requires modifier key to prevent accidental toggle. |
+| `Ctrl+]` | Disable follow mode — stop watching file, stop loading new records. View becomes static. Requires modifier key to prevent accidental toggle. |
 | Re-enable | Not possible from TUI. User must restart scouty with `--follow` to re-enable. |
 
 When follow is disabled:
@@ -96,7 +96,7 @@ The `[FOLLOW]` indicator appears before the density chart on status bar line 1.
 - [ ] Incremental loading — parse new bytes, append records to LogStore (dependency: file watcher)
 - [ ] Auto-scroll when cursor is at last record (dependency: incremental loading)
 - [ ] `[FOLLOW]` status bar indicator (dependency: follow mode state)
-- [ ] `Ctrl+Q` to disable follow mode (dependency: follow mode state)
+- [ ] `Ctrl+]` to disable follow mode (dependency: follow mode state)
 
 ### P1 — Should Have
 - [ ] `[FOLLOW ↓N]` indicator showing count of new records below when scrolled up (dependency: follow mode + status bar)
@@ -122,8 +122,8 @@ The `[FOLLOW]` indicator appears before the density chart on status bar line 1.
 - [ ] Auto-scroll works when cursor is at the last record
 - [ ] Scrolling up pauses auto-scroll; `G` resumes it
 - [ ] `[FOLLOW]` indicator shown in status bar when active
-- [ ] `Ctrl+Q` disables follow mode; indicator disappears; no more records loaded
-- [ ] `Ctrl+Q` when follow is already disabled is a no-op (does not re-enable)
+- [ ] `Ctrl+]` disables follow mode; indicator disappears; no more records loaded
+- [ ] `Ctrl+]` when follow is already disabled is a no-op (does not re-enable)
 - [ ] Filters, regions, categories, stats all process new records correctly
 - [ ] Stdin input is implicitly followed until EOF
 
