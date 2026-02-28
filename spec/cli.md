@@ -27,6 +27,7 @@ scouty-tui [OPTIONS] [file1] [file2] ...
 | `--format <fmt>` | Output format (pipe mode): `raw` (default), `json`, `yaml`, `csv` |
 | `--fields <list>` | Comma-separated fields to include in structured output (pipe mode) |
 | `--no-tui` | Force pipe mode even when stdout is a TTY |
+| `--log [<level>]` | Enable diagnostic logging to `~/.scouty/log/` (daily rotation). Optional level: `trace`, `debug`, `info` (default), `warn`, `error`. Without this flag, no log files are written. `SCOUTY_LOG` env var is an alternative (same values). |
 
 ### Pipe Output Mode (Non-interactive)
 
@@ -199,3 +200,4 @@ When `name` is `list`, prints all available built-in theme names (one per line).
 | 2026-02-24 | Added --generate-config and --generate-theme for default config generation |
 | 2026-02-24 | Pipe output mode: --filter, --level, --format, --fields, --no-tui for non-interactive use |
 | 2026-02-24 | Added --filter-preset to load saved filter presets (works in both pipe and TUI mode) |
+| 2026-02-28 | Added --log flag: diagnostic logging disabled by default, opt-in via CLI or SCOUTY_LOG env |
