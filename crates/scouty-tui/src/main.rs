@@ -515,6 +515,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     InputMode::Normal => {
                         use keybinding::Action;
 
+                        let mut key_handled = false;
+
                         // Detail panel tree navigation (when focused)
                         if app.detail_open && app.detail_tree_focus {
                             use crossterm::event::{KeyCode, KeyModifiers};
@@ -559,22 +561,26 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 _ => false,
                             };
                             if handled {
-                                continue;
+                                key_handled = true;
                             }
                         }
 
                         // Tab toggles tree focus when detail panel is open with expanded data
-                        if key.code == crossterm::event::KeyCode::Tab && app.detail_open {
+                        if !key_handled
+                            && key.code == crossterm::event::KeyCode::Tab
+                            && app.detail_open
+                        {
                             if let Some(record) = app.selected_record() {
                                 if record.expanded.as_ref().is_some_and(|e| !e.is_empty()) {
                                     app.detail_tree_focus = !app.detail_tree_focus;
-                                    continue;
+                                    key_handled = true;
                                 }
                             }
                         }
 
                         // Region panel key handling (when focused)
-                        if app.panel_state.has_focus()
+                        if !key_handled
+                            && app.panel_state.has_focus()
                             && app.panel_state.active == crate::panel::PanelId::Region
                         {
                             use crate::ui::widgets::region_panel_widget::RegionPanelWidget;
@@ -644,12 +650,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 _ => false,
                             };
                             if handled {
-                                continue;
+                                key_handled = true;
                             }
                         }
 
                         // Panel system keybindings (Ctrl+arrows, Tab/BackTab, z)
-                        {
+                        if !key_handled {
                             use crossterm::event::{KeyCode, KeyModifiers};
                             let ctrl = key.modifiers.contains(KeyModifiers::CONTROL);
                             let handled = match key.code {
@@ -714,156 +720,159 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 _ => false,
                             };
                             if handled {
-                                continue;
+                                key_handled = true;
                             }
                         }
 
-                        if let Some(action) = keymap.action(&key) {
-                            match action {
-                                Action::Quit => {
-                                    should_break = true;
-                                    break;
-                                }
-                                Action::CloseDetail => {
-                                    if app.detail_open {
-                                        app.detail_open = false;
+                        if !key_handled {
+                            if let Some(action) = keymap.action(&key) {
+                                match action {
+                                    Action::Quit => {
+                                        should_break = true;
+                                        break;
                                     }
-                                }
-                                Action::MoveDown => app.select_down(1),
-                                Action::MoveUp => app.select_up(1),
-                                Action::PageDown => app.page_down(),
-                                Action::PageUp => app.page_up(),
-                                Action::ScrollToTop => app.scroll_to_top(),
-                                Action::ScrollToBottom => app.scroll_to_bottom(),
-                                Action::ToggleDetail => app.toggle_detail(),
-                                Action::Filter => {
-                                    app.input_mode = InputMode::Filter;
-                                }
-                                Action::Search => {
-                                    app.input_mode = InputMode::Search;
-                                }
-                                Action::JumpForward => {
-                                    app.input_mode = InputMode::JumpForward;
-                                    app.time_input.clear();
-                                }
-                                Action::JumpBackward => {
-                                    app.input_mode = InputMode::JumpBackward;
-                                    app.time_input.clear();
-                                }
-                                Action::QuickExclude => {
-                                    app.input_mode = InputMode::QuickExclude;
-                                    app.quick_filter_input.clear();
-                                }
-                                Action::QuickInclude => {
-                                    app.input_mode = InputMode::QuickInclude;
-                                    app.quick_filter_input.clear();
-                                }
-                                Action::FieldExclude => {
-                                    app.open_field_filter(true);
-                                }
-                                Action::FieldInclude => {
-                                    app.open_field_filter(false);
-                                }
-                                Action::FilterManager => {
-                                    app.input_mode = InputMode::FilterManager;
-                                    app.filter_manager_cursor = 0;
-                                }
-                                Action::LevelFilter => {
-                                    app.input_mode = InputMode::LevelFilter;
-                                    app.level_filter_cursor = app
-                                        .level_filter
-                                        .map(|l| (l.as_number() - 1) as usize)
-                                        .unwrap_or(0);
-                                }
-                                Action::DensityCycle => {
-                                    app.cycle_density_source();
-                                }
-                                Action::DensitySelector => {
-                                    app.density_selector_cursor = app
-                                        .density_source_options()
-                                        .iter()
-                                        .position(|s| *s == app.density_source)
-                                        .unwrap_or(0);
-                                    app.input_mode = InputMode::DensitySelector;
-                                }
-                                Action::GotoLine => {
-                                    app.input_mode = InputMode::GotoLine;
-                                    app.goto_input.clear();
-                                }
-                                Action::ToggleFollow => {
-                                    app.toggle_follow();
-                                }
-                                Action::NextMatch => app.next_search_match(),
-                                Action::PrevMatch => app.prev_search_match(),
-                                Action::CopyRaw => {
-                                    if let Some(text) = app.copy_raw() {
-                                        app::osc52_copy(&text);
-                                    }
-                                }
-                                Action::CopyFormat => {
-                                    app.input_mode = InputMode::CopyFormat;
-                                    app.copy_format_cursor = 0;
-                                }
-                                Action::Save => {
-                                    app.input_mode = InputMode::SaveDialog;
-                                }
-                                Action::ColumnSelector => {
-                                    app.input_mode = InputMode::ColumnSelector;
-                                    app.column_config.cursor = 0;
-                                }
-                                Action::Help => {
-                                    app.input_mode = InputMode::Help;
-                                    app.help_scroll = 0;
-                                }
-                                Action::Command => {
-                                    app.command_input.clear();
-                                    app.input_mode = InputMode::Command;
-                                }
-                                Action::AddHighlight => {
-                                    app.input_mode = InputMode::Highlight;
-                                    app.highlight_input.clear();
-                                }
-                                Action::HighlightManager => {
-                                    app.input_mode = InputMode::HighlightManager;
-                                    app.highlight_manager_cursor = 0;
-                                }
-                                Action::ToggleBookmark => {
-                                    app.toggle_bookmark();
-                                }
-                                Action::NextBookmark => {
-                                    app.jump_next_bookmark();
-                                }
-                                Action::PrevBookmark => {
-                                    app.jump_prev_bookmark();
-                                }
-                                Action::BookmarkManager => {
-                                    app.input_mode = InputMode::BookmarkManager;
-                                    app.bookmark_manager_cursor = 0;
-                                }
-                                Action::RegionManager => {
-                                    app.panel_state.open(crate::panel::PanelId::Region);
-                                }
-                                Action::NextRegion => {
-                                    // Jump to the next region start after current position
-                                    if let Some(record_idx) = app.filtered_indices.get(app.selected)
-                                    {
-                                        if let Some(region) = app
-                                            .regions
-                                            .regions()
-                                            .iter()
-                                            .find(|r| r.start_index > *record_idx)
-                                        {
-                                            app.jump_to_record_index(region.start_index);
+                                    Action::CloseDetail => {
+                                        if app.detail_open {
+                                            app.detail_open = false;
                                         }
                                     }
-                                }
-                                Action::Stats => {
-                                    use ui::windows::stats_window::StatsData;
-                                    app.cached_stats = Some(StatsData::compute(&app));
-                                    app.input_mode = InputMode::Statistics;
+                                    Action::MoveDown => app.select_down(1),
+                                    Action::MoveUp => app.select_up(1),
+                                    Action::PageDown => app.page_down(),
+                                    Action::PageUp => app.page_up(),
+                                    Action::ScrollToTop => app.scroll_to_top(),
+                                    Action::ScrollToBottom => app.scroll_to_bottom(),
+                                    Action::ToggleDetail => app.toggle_detail(),
+                                    Action::Filter => {
+                                        app.input_mode = InputMode::Filter;
+                                    }
+                                    Action::Search => {
+                                        app.input_mode = InputMode::Search;
+                                    }
+                                    Action::JumpForward => {
+                                        app.input_mode = InputMode::JumpForward;
+                                        app.time_input.clear();
+                                    }
+                                    Action::JumpBackward => {
+                                        app.input_mode = InputMode::JumpBackward;
+                                        app.time_input.clear();
+                                    }
+                                    Action::QuickExclude => {
+                                        app.input_mode = InputMode::QuickExclude;
+                                        app.quick_filter_input.clear();
+                                    }
+                                    Action::QuickInclude => {
+                                        app.input_mode = InputMode::QuickInclude;
+                                        app.quick_filter_input.clear();
+                                    }
+                                    Action::FieldExclude => {
+                                        app.open_field_filter(true);
+                                    }
+                                    Action::FieldInclude => {
+                                        app.open_field_filter(false);
+                                    }
+                                    Action::FilterManager => {
+                                        app.input_mode = InputMode::FilterManager;
+                                        app.filter_manager_cursor = 0;
+                                    }
+                                    Action::LevelFilter => {
+                                        app.input_mode = InputMode::LevelFilter;
+                                        app.level_filter_cursor = app
+                                            .level_filter
+                                            .map(|l| (l.as_number() - 1) as usize)
+                                            .unwrap_or(0);
+                                    }
+                                    Action::DensityCycle => {
+                                        app.cycle_density_source();
+                                    }
+                                    Action::DensitySelector => {
+                                        app.density_selector_cursor = app
+                                            .density_source_options()
+                                            .iter()
+                                            .position(|s| *s == app.density_source)
+                                            .unwrap_or(0);
+                                        app.input_mode = InputMode::DensitySelector;
+                                    }
+                                    Action::GotoLine => {
+                                        app.input_mode = InputMode::GotoLine;
+                                        app.goto_input.clear();
+                                    }
+                                    Action::ToggleFollow => {
+                                        app.toggle_follow();
+                                    }
+                                    Action::NextMatch => app.next_search_match(),
+                                    Action::PrevMatch => app.prev_search_match(),
+                                    Action::CopyRaw => {
+                                        if let Some(text) = app.copy_raw() {
+                                            app::osc52_copy(&text);
+                                        }
+                                    }
+                                    Action::CopyFormat => {
+                                        app.input_mode = InputMode::CopyFormat;
+                                        app.copy_format_cursor = 0;
+                                    }
+                                    Action::Save => {
+                                        app.input_mode = InputMode::SaveDialog;
+                                    }
+                                    Action::ColumnSelector => {
+                                        app.input_mode = InputMode::ColumnSelector;
+                                        app.column_config.cursor = 0;
+                                    }
+                                    Action::Help => {
+                                        app.input_mode = InputMode::Help;
+                                        app.help_scroll = 0;
+                                    }
+                                    Action::Command => {
+                                        app.command_input.clear();
+                                        app.input_mode = InputMode::Command;
+                                    }
+                                    Action::AddHighlight => {
+                                        app.input_mode = InputMode::Highlight;
+                                        app.highlight_input.clear();
+                                    }
+                                    Action::HighlightManager => {
+                                        app.input_mode = InputMode::HighlightManager;
+                                        app.highlight_manager_cursor = 0;
+                                    }
+                                    Action::ToggleBookmark => {
+                                        app.toggle_bookmark();
+                                    }
+                                    Action::NextBookmark => {
+                                        app.jump_next_bookmark();
+                                    }
+                                    Action::PrevBookmark => {
+                                        app.jump_prev_bookmark();
+                                    }
+                                    Action::BookmarkManager => {
+                                        app.input_mode = InputMode::BookmarkManager;
+                                        app.bookmark_manager_cursor = 0;
+                                    }
+                                    Action::RegionManager => {
+                                        app.panel_state.open(crate::panel::PanelId::Region);
+                                    }
+                                    Action::NextRegion => {
+                                        // Jump to the next region start after current position
+                                        if let Some(record_idx) =
+                                            app.filtered_indices.get(app.selected)
+                                        {
+                                            if let Some(region) = app
+                                                .regions
+                                                .regions()
+                                                .iter()
+                                                .find(|r| r.start_index > *record_idx)
+                                            {
+                                                app.jump_to_record_index(region.start_index);
+                                            }
+                                        }
+                                    }
+                                    Action::Stats => {
+                                        use ui::windows::stats_window::StatsData;
+                                        app.cached_stats = Some(StatsData::compute(&app));
+                                        app.input_mode = InputMode::Statistics;
+                                    }
                                 }
                             }
-                        }
+                        } // if !key_handled
                     }
                     InputMode::Filter => match key.code {
                         KeyCode::Enter => {
