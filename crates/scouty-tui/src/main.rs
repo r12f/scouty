@@ -506,6 +506,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             processor.process_records(&records_vec);
             app.regions =
                 scouty::region::store::RegionStore::from_regions(processor.regions().to_vec());
+            app.region_processor = Some(processor);
         }
 
         // Load and process categories
@@ -610,6 +611,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         let count = new_records.len();
                         if let Some(ref mut proc) = main_window.app.category_processor {
                             proc.process_records(&new_records);
+                        }
+                        // Region processing for new records
+                        if let Some(ref mut proc) = main_window.app.region_processor {
+                            let records_vec: Vec<scouty::record::LogRecord> =
+                                new_records.iter().map(|r| (**r).clone()).collect();
+                            proc.process_records(&records_vec);
+                            main_window.app.regions =
+                                scouty::region::store::RegionStore::from_regions(
+                                    proc.regions().to_vec(),
+                                );
                         }
                         main_window.app.append_records(new_records);
                         tracing::debug!(count, "follow: appended new records");

@@ -99,6 +99,8 @@ mod tests {
             density_source: DensitySource::All,
             density_selector_cursor: 0,
             regions: scouty::region::store::RegionStore::default(),
+            region_processor: None,
+            search_regex: None,
             category_processor: None,
             category_cursor: 0,
             region_manager_cursor: 0,
