@@ -236,13 +236,13 @@ impl Keymap {
                         let normalized = normalize_key(&key_event);
                         if let Some(existing) = map.get(&normalized) {
                             if pass == 0 {
-                                // User config conflict — warn but keep first
+                                // User config has two actions bound to same key
                                 eprintln!(
                                     "scouty: warning: key '{}' mapped to both {:?} and {:?}, keeping first",
                                     key_str, existing, action
                                 );
                             }
-                            // Pass 1 (defaults): silently skip keys already claimed by user config
+                            // Pass 1: silently skip — key already claimed by user config or earlier default
                         } else {
                             map.insert(normalized, *action);
                         }
