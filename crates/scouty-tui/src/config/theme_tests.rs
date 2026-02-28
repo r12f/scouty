@@ -69,4 +69,27 @@ mod tests {
             );
         }
     }
+
+    #[test]
+    fn all_presets_header_matches_panel_tab_focused() {
+        let themes = vec![
+            ("default", Theme::default()),
+            ("dark", Theme::dark()),
+            ("light", Theme::light()),
+            ("solarized", Theme::solarized()),
+            ("landmine", Theme::landmine()),
+        ];
+        for (name, theme) in &themes {
+            assert_eq!(
+                theme.table.header.fg, theme.panel_tab.focused.fg,
+                "preset '{}': table.header.fg should match panel_tab.focused.fg",
+                name
+            );
+            assert_eq!(
+                theme.table.header.bg, theme.panel_tab.focused.bg,
+                "preset '{}': table.header.bg should match panel_tab.focused.bg",
+                name
+            );
+        }
+    }
 }

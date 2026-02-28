@@ -163,8 +163,8 @@ impl Default for TableTheme {
     fn default() -> Self {
         Self {
             header: StyleEntry {
-                fg: Some(ThemeColor(Color::Rgb(184, 196, 206))), // light steel #B8C4CE
-                bg: Some(ThemeColor(Color::Rgb(30, 42, 56))),    // dark slate #1E2A38
+                fg: Some(ThemeColor(Color::Rgb(27, 40, 56))),   // #1B2838 (matches panel_tab.focused)
+                bg: Some(ThemeColor(Color::Rgb(79, 195, 247))), // #4FC3F7 accent
                 bold: Some(true),
             },
             header_unfocused: StyleEntry::fg_bg(
@@ -442,7 +442,11 @@ impl Theme {
                 trace: StyleEntry::fg(DarkGray),
             },
             table: TableTheme {
-                header: StyleEntry::fg_bg(Rgb(180, 180, 180), Rgb(30, 30, 40)),
+                header: StyleEntry {
+                    fg: Some(ThemeColor(Black)),
+                    bg: Some(ThemeColor(Rgb(100, 160, 180))),
+                    bold: Some(true),
+                },
                 header_unfocused: StyleEntry::fg_bg(Rgb(85, 85, 85), Rgb(30, 30, 40)),
                 selected: StyleEntry::bg(Rgb(40, 40, 55)),
                 ..TableTheme::default()
@@ -516,7 +520,11 @@ impl Theme {
                 trace: StyleEntry::fg(Rgb(150, 150, 150)),
             },
             table: TableTheme {
-                header: StyleEntry::fg_bg(Rgb(30, 30, 40), Rgb(220, 220, 230)),
+                header: StyleEntry {
+                    fg: Some(ThemeColor(White)),
+                    bg: Some(ThemeColor(Rgb(0, 120, 150))),
+                    bold: Some(true),
+                },
                 header_unfocused: StyleEntry::fg_bg(Rgb(153, 153, 153), Rgb(220, 220, 230)),
                 selected: StyleEntry::fg_bg(Black, Rgb(200, 210, 230)),
                 ..TableTheme::default()
@@ -602,7 +610,11 @@ impl Theme {
                 trace: StyleEntry::fg(base01),
             },
             table: TableTheme {
-                header: StyleEntry::fg_bg(base1, base02),
+                header: StyleEntry {
+                    fg: Some(ThemeColor(base03)),
+                    bg: Some(ThemeColor(blue)),
+                    bold: Some(true),
+                },
                 header_unfocused: StyleEntry::fg_bg(Rgb(101, 123, 131), base02), // #657B83
                 selected: StyleEntry::fg_bg(base1, base02),
                 ..TableTheme::default()
@@ -693,8 +705,8 @@ impl Theme {
             },
             table: TableTheme {
                 header: StyleEntry {
-                    fg: Some(ThemeColor(soft_pink)),
-                    bg: Some(ThemeColor(dark_wine)),
+                    fg: Some(ThemeColor(deep_black)),
+                    bg: Some(ThemeColor(rose_pink)),
                     bold: Some(true),
                 },
                 header_unfocused: StyleEntry::fg_bg(Rgb(107, 74, 94), dark_wine), // #6B4A5E
