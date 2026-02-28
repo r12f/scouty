@@ -12,6 +12,7 @@ use scouty::parser::factory::ParserFactory;
 use scouty::record::LogRecord;
 use scouty::traits::LogLoader;
 use std::sync::Arc;
+use tracing::{instrument, warn};
 
 /// Input mode for the TUI.
 #[derive(Debug, Clone, PartialEq)]
@@ -478,6 +479,7 @@ pub struct DensityCache {
 impl App {
     /// Load log records from file paths.
     /// Load log records from file paths and/or SSH URLs.
+    #[instrument(skip(paths), fields(file_count = paths.len()))]
     pub fn load_files(
         paths: &[&str],
         ssh_connect_timeout: u32,
@@ -507,6 +509,7 @@ impl App {
     }
 
     /// Load log records from pre-read stdin lines.
+    #[instrument(skip(lines), fields(line_count = lines.len()))]
     pub fn load_stdin(lines: Vec<String>) -> Result<Self, Box<dyn std::error::Error>> {
         use scouty::loader::stdin::StdinLoader;
 
@@ -808,6 +811,7 @@ impl App {
     // ── Filter application ──────────────────────────────────────
 
     /// Re-apply all active filters to compute filtered_indices.
+    #[instrument(skip(self))]
     pub fn reapply_filters(&mut self) {
         // Remember the record index at the current cursor position
         let prev_record_idx = self.filtered_indices.get(self.selected).copied();
@@ -868,6 +872,7 @@ impl App {
     }
 
     /// Apply filter expression from the `f` input mode.
+    #[instrument(skip(self))]
     pub fn apply_filter(&mut self) {
         if self.filter_input.is_empty() {
             self.filter_error = None;
@@ -892,6 +897,7 @@ impl App {
     }
 
     /// Add a quick exclude filter (message contains text).
+    #[instrument(skip(self))]
     pub fn apply_quick_exclude(&mut self) {
         let text = self.quick_filter_input.trim().to_string();
         if text.is_empty() {
@@ -916,6 +922,7 @@ impl App {
     }
 
     /// Add a quick include filter (message contains text).
+    #[instrument(skip(self))]
     pub fn apply_quick_include(&mut self) {
         let text = self.quick_filter_input.trim().to_string();
         if text.is_empty() {
@@ -1240,6 +1247,7 @@ impl App {
     }
 
     /// Clear all filters.
+    #[instrument(skip(self))]
     pub fn clear_filters(&mut self) {
         self.filters.clear();
         self.reapply_filters();
@@ -1248,6 +1256,7 @@ impl App {
     // ── Search ──────────────────────────────────────────────────
 
     /// Execute regex search across filtered records.
+    #[instrument(skip(self))]
     pub fn execute_search(&mut self) {
         if self.search_input.is_empty() {
             self.clear_search();
@@ -1333,6 +1342,7 @@ impl App {
     // ── Navigation ──────────────────────────────────────────────
 
     /// Toggle bookmark on the currently selected record.
+    #[instrument(skip(self))]
     pub fn toggle_bookmark(&mut self) {
         if let Some(&ri) = self.filtered_indices.get(self.selected) {
             let id = self.records[ri].id;
@@ -1543,6 +1553,7 @@ impl App {
         true
     }
 
+    #[instrument(skip(self))]
     pub fn goto_line(&mut self) {
         let input = self.goto_input.trim();
         if input.is_empty() {

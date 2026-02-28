@@ -12,6 +12,7 @@ use crate::parser::swss_parser::SwssParser;
 use crate::parser::unified_syslog_parser::UnifiedSyslogParser;
 use crate::traits::{LoaderInfo, LoaderType};
 use std::sync::OnceLock;
+use tracing::instrument;
 
 /// Built-in parser definitions that the factory can produce.
 pub struct ParserFactory;
@@ -21,6 +22,7 @@ impl ParserFactory {
     ///
     /// Uses the loader type and sample lines to pick appropriate parsers.
     /// Returns a parser group with a fallback chain.
+    #[instrument(skip(info), fields(loader_id = %info.id, loader_type = ?info.loader_type))]
     pub fn create_parser_group(info: &LoaderInfo) -> ParserGroup {
         let mut group = ParserGroup::new(format!("auto:{}", info.id));
 

@@ -12,3 +12,6 @@ description = "A log viewing and analysis tool"
 
 [workspace.dependencies]
 scouty = { path = "crates/scouty", version = "0.2.0" }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+tracing-appender = "0.2"

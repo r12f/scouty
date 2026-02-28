@@ -16,6 +16,7 @@ pub use theme::Theme;
 
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
+use tracing::{instrument, warn};
 
 /// Top-level configuration.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -166,6 +167,7 @@ pub fn local_config_path() -> PathBuf {
 
 /// Load config with layered merge: defaults → /etc/scouty → ~/.scouty → ./scouty.yaml → optional CLI path.
 /// `cli_config_path` corresponds to `--config <path>`.
+#[instrument(skip(cli_config_path))]
 pub fn load_config_layered(cli_config_path: Option<&str>) -> Config {
     // Start with defaults as YAML value
     let mut merged = serde_yaml::to_value(Config::default()).unwrap_or(serde_yaml::Value::Null);

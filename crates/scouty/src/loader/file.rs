@@ -7,6 +7,7 @@ mod file_tests;
 use crate::traits::{LoaderInfo, LoaderType, LogLoader, Result};
 use chrono::Datelike;
 use std::path::PathBuf;
+use tracing::info;
 
 /// Loads log lines from a local text file.
 #[derive(Debug)]
@@ -38,6 +39,7 @@ impl LogLoader for FileLoader {
     }
 
     fn load(&mut self) -> Result<Vec<String>> {
+        info!(path = %self.path.display(), "loading file");
         // Extract file modification year early for BSD syslog timestamp inference
         if let Ok(metadata) = std::fs::metadata(&self.path) {
             if let Ok(modified) = metadata.modified() {
