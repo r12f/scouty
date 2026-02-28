@@ -735,14 +735,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                     app.panel_state.prev_panel();
                                     true
                                 }
-                                // Tab cycles forward: log table → panel content → next panel → ... → log table
+                                // Tab cycles: Log Table → Detail → Region → Log Table
                                 KeyCode::Tab
                                     if key.modifiers.is_empty() && app.panel_state.expanded =>
                                 {
                                     if app.panel_state.focus == crate::panel::PanelFocus::LogTable {
                                         app.panel_state.focus_panel();
                                     } else {
-                                        // On last panel, cycle back to log table; otherwise next panel
                                         let all = crate::panel::PanelId::all();
                                         if app.panel_state.active == *all.last().unwrap() {
                                             app.panel_state.focus_log_table();
@@ -752,10 +751,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                     }
                                     true
                                 }
-                                // Shift+Tab (BackTab) cycles backward
+                                // Shift+Tab cycles backward: Log Table → Region → Detail → Log Table
                                 KeyCode::BackTab if app.panel_state.expanded => {
                                     if app.panel_state.focus == crate::panel::PanelFocus::LogTable {
-                                        // Focus last panel
                                         let all = crate::panel::PanelId::all();
                                         app.panel_state.active = *all.last().unwrap();
                                         app.panel_state.focus_panel();
