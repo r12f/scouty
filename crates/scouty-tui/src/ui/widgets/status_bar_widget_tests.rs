@@ -192,10 +192,12 @@ mod tests {
     #[test]
     fn test_detail_panel_hints_simplified() {
         let hints = StatusBarWidget::shortcut_hints(true, crate::panel::PanelId::Detail);
-        assert_eq!(hints[0], ("h/l", "Fold"));
+        assert_eq!(hints[0], ("←/→", "Fold"));
         assert_eq!(hints[1], ("H/L", "All"));
         assert_eq!(hints[2], ("Tab/S-Tab", "Switch"));
-        assert_eq!(hints[4], ("z", "Max")); // abbreviated
+        assert_eq!(hints[3], ("z", "Max"));
+        assert_eq!(hints[4], ("Esc", "Close"));
+        assert_eq!(hints.len(), 5);
     }
 
     #[test]
@@ -203,12 +205,13 @@ mod tests {
         let hints = StatusBarWidget::shortcut_hints(true, crate::panel::PanelId::Region);
         assert_eq!(hints[0], ("j/k", "↑↓"));
         assert_eq!(hints[1], ("Tab/S-Tab", "Switch"));
+        assert_eq!(hints.len(), 4);
     }
 
     #[test]
     fn test_stats_panel_hints_simplified() {
         let hints = StatusBarWidget::shortcut_hints(true, crate::panel::PanelId::Stats);
-        assert_eq!(hints.len(), 4);
+        assert_eq!(hints.len(), 3);
         assert_eq!(hints[0], ("Tab/S-Tab", "Switch"));
     }
 }

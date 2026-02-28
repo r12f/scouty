@@ -486,17 +486,15 @@ mod tests {
     }
 
     #[test]
-    fn tabbed_container_ctrl_arrows() {
+    fn tabbed_container_ctrl_arrows_removed() {
         let mut tc = make_test_tabbed();
 
         let ctrl_right = KeyEvent::new(KeyCode::Right, KeyModifiers::CONTROL);
         let ctrl_left = KeyEvent::new(KeyCode::Left, KeyModifiers::CONTROL);
 
-        assert_eq!(tc.handle_key(ctrl_right), KeyAction::Handled);
-        assert_eq!(tc.active, 1);
-
-        assert_eq!(tc.handle_key(ctrl_left), KeyAction::Handled);
-        assert_eq!(tc.active, 0);
+        // Ctrl+Arrow should no longer be handled
+        assert_eq!(tc.handle_key(ctrl_right), KeyAction::Unhandled);
+        assert_eq!(tc.handle_key(ctrl_left), KeyAction::Unhandled);
     }
 
     #[test]

@@ -36,26 +36,21 @@ impl StatusBarWidget {
         if panel_focused {
             match active {
                 crate::panel::PanelId::Detail => &[
-                    ("h/l", "Fold"),
+                    ("←/→", "Fold"),
                     ("H/L", "All"),
                     ("Tab/S-Tab", "Switch"),
-                    ("Ctrl+↑", "Back"),
                     ("z", "Max"),
                     ("Esc", "Close"),
                 ],
                 crate::panel::PanelId::Region => &[
                     ("j/k", "↑↓"),
                     ("Tab/S-Tab", "Switch"),
-                    ("Ctrl+↑", "Back"),
                     ("z", "Max"),
                     ("Esc", "Close"),
                 ],
-                crate::panel::PanelId::Stats => &[
-                    ("Tab/S-Tab", "Switch"),
-                    ("Ctrl+↑", "Back"),
-                    ("z", "Max"),
-                    ("Esc", "Close"),
-                ],
+                crate::panel::PanelId::Stats => {
+                    &[("Tab/S-Tab", "Switch"), ("z", "Max"), ("Esc", "Close")]
+                }
             }
         } else {
             &[
