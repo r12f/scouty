@@ -19,6 +19,7 @@ Theme
 ├── filter            # active indicator, error text
 ├── dialog            # border, title, selected/unselected items, muted
 ├── detail_panel      # field name, field value, separator
+├── panel_tab         # focused tab, unfocused tab, tab bar background
 ├── input             # prompt, cursor, text, background, error
 ├── highlight_palette # color rotation for user highlight rules
 └── general           # accent, muted, border
@@ -66,6 +67,11 @@ detail_panel:
   field_name: { fg: "#4FC3F7" }     # Light blue labels
   field_value: { fg: "#D4D4D4" }
   separator: { fg: "#3B4252" }
+
+panel_tab:
+  focused: { fg: "#1B2838", bg: "#4FC3F7", bold: true }   # Accent color bg — panel has keyboard focus
+  unfocused: { fg: "#6B7B8D", bg: "#1B2838" }             # Muted/gray — panel does not have focus
+  bar_bg: { bg: "#0D1117" }                                # Tab bar background
 
 input:
   prompt: { fg: "#FFD93D" }         # Yellow prompt label
@@ -144,6 +150,14 @@ general:
 | Dialog border fg | ![](https://placehold.co/16x16/4FC3F7/4FC3F7.png) `#4FC3F7` | ![](https://placehold.co/16x16/6699CC/6699CC.png) `#6699CC` | ![](https://placehold.co/16x16/268BD2/268BD2.png) `#268BD2` | ![](https://placehold.co/16x16/268BD2/268BD2.png) `#268BD2` | ![](https://placehold.co/16x16/E8577E/E8577E.png) `#E8577E` |
 | Input prompt fg | ![](https://placehold.co/16x16/FFD93D/FFD93D.png) `#FFD93D` | ![](https://placehold.co/16x16/CCAA33/CCAA33.png) `#CCAA33` | ![](https://placehold.co/16x16/B58900/B58900.png) `#B58900` | ![](https://placehold.co/16x16/B58900/B58900.png) `#B58900` | ![](https://placehold.co/16x16/F5A0C0/F5A0C0.png) `#F5A0C0` |
 
+#### Panel Tab
+
+| Area | default | dark | light | solarized | landmine |
+|------|---------|------|-------|-----------|----------|
+| Focused fg/bg | ![](https://placehold.co/16x16/1B2838/1B2838.png) `#1B2838` / ![](https://placehold.co/16x16/4FC3F7/4FC3F7.png) `#4FC3F7` bold | ![](https://placehold.co/16x16/0D0D0D/0D0D0D.png) `#0D0D0D` / ![](https://placehold.co/16x16/6699CC/6699CC.png) `#6699CC` bold | ![](https://placehold.co/16x16/FFFFFF/FFFFFF.png) `white` / ![](https://placehold.co/16x16/268BD2/268BD2.png) `#268BD2` bold | ![](https://placehold.co/16x16/FDF6E3/FDF6E3.png) `#FDF6E3` / ![](https://placehold.co/16x16/268BD2/268BD2.png) `#268BD2` bold | ![](https://placehold.co/16x16/0D060B/0D060B.png) `#0D060B` / ![](https://placehold.co/16x16/E8577E/E8577E.png) `#E8577E` bold |
+| Unfocused fg/bg | ![](https://placehold.co/16x16/6B7B8D/6B7B8D.png) `#6B7B8D` / ![](https://placehold.co/16x16/1B2838/1B2838.png) `#1B2838` | ![](https://placehold.co/16x16/555555/555555.png) `#555555` / ![](https://placehold.co/16x16/1A1A1A/1A1A1A.png) `#1A1A1A` | ![](https://placehold.co/16x16/999999/999999.png) `#999999` / ![](https://placehold.co/16x16/E8E8E8/E8E8E8.png) `#E8E8E8` | ![](https://placehold.co/16x16/657B83/657B83.png) `#657B83` / ![](https://placehold.co/16x16/073642/073642.png) `#073642` | ![](https://placehold.co/16x16/6B4A5E/6B4A5E.png) `#6B4A5E` / ![](https://placehold.co/16x16/1A0A14/1A0A14.png) `#1A0A14` |
+| Bar bg | ![](https://placehold.co/16x16/0D1117/0D1117.png) `#0D1117` | ![](https://placehold.co/16x16/0D0D0D/0D0D0D.png) `#0D0D0D` | ![](https://placehold.co/16x16/F0F0F0/F0F0F0.png) `#F0F0F0` | ![](https://placehold.co/16x16/002B36/002B36.png) `#002B36` | ![](https://placehold.co/16x16/0D060B/0D060B.png) `#0D060B` |
+
 #### General & Accents
 
 | Area | default | dark | light | solarized | landmine |
@@ -179,3 +193,4 @@ general:
 | 2026-02-23 | Redesign default theme: distinct status bar lines, softer colors, clear visual hierarchy |
 | 2026-02-23 | Replace text descriptions with color swatch tables for all 4 built-in presets |
 | 2026-02-24 | Added `landmine` theme (地雷系 Jirai Kei: black + pink); separator char now themeable |
+| 2026-02-28 | Added `panel_tab` theme section: focused (accent), unfocused (gray) styles for all 5 presets |
