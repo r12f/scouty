@@ -515,6 +515,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     InputMode::Normal => {
                         use keybinding::Action;
 
+                        let mut key_handled = false;
+
                         // Detail panel tree navigation (when focused)
                         if app.detail_open && app.detail_tree_focus {
                             use crossterm::event::{KeyCode, KeyModifiers};
@@ -559,22 +561,22 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 _ => false,
                             };
                             if handled {
-                                break;
+                                key_handled = true;
                             }
                         }
 
                         // Tab toggles tree focus when detail panel is open with expanded data
-                        if key.code == crossterm::event::KeyCode::Tab && app.detail_open {
+                        if !key_handled && key.code == crossterm::event::KeyCode::Tab && app.detail_open {
                             if let Some(record) = app.selected_record() {
                                 if record.expanded.as_ref().is_some_and(|e| !e.is_empty()) {
                                     app.detail_tree_focus = !app.detail_tree_focus;
-                                    break;
+                                    key_handled = true;
                                 }
                             }
                         }
 
                         // Region panel key handling (when focused)
-                        if app.panel_state.has_focus()
+                        if !key_handled && app.panel_state.has_focus()
                             && app.panel_state.active == crate::panel::PanelId::Region
                         {
                             use crate::ui::widgets::region_panel_widget::RegionPanelWidget;
@@ -644,12 +646,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 _ => false,
                             };
                             if handled {
-                                break;
+                                key_handled = true;
                             }
                         }
 
                         // Panel system keybindings (Ctrl+arrows, Tab/BackTab, z)
-                        {
+                        if !key_handled {
                             use crossterm::event::{KeyCode, KeyModifiers};
                             let ctrl = key.modifiers.contains(KeyModifiers::CONTROL);
                             let handled = match key.code {
@@ -714,10 +716,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 _ => false,
                             };
                             if handled {
-                                break;
+                                key_handled = true;
                             }
                         }
 
+                        if !key_handled {
                         if let Some(action) = keymap.action(&key) {
                             match action {
                                 Action::Quit => {
@@ -864,6 +867,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 }
                             }
                         }
+                        } // if !key_handled
                     }
                     InputMode::Filter => match key.code {
                         KeyCode::Enter => {
