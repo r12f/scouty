@@ -36,6 +36,7 @@ pub enum Action {
     ToggleDetail,
     ColumnSelector,
     Stats,
+    Category,
 
     // Highlight
     AddHighlight,
@@ -163,6 +164,7 @@ pub struct KeybindingConfig {
     pub toggle_detail: Option<KeyOrKeys>,
     pub column_selector: Option<KeyOrKeys>,
     pub stats: Option<KeyOrKeys>,
+    pub category: Option<KeyOrKeys>,
     pub add_highlight: Option<KeyOrKeys>,
     pub highlight_manager: Option<KeyOrKeys>,
     pub density_cycle: Option<KeyOrKeys>,
@@ -277,6 +279,7 @@ impl KeybindingConfig {
             Action::ToggleDetail => self.toggle_detail.as_ref(),
             Action::ColumnSelector => self.column_selector.as_ref(),
             Action::Stats => self.stats.as_ref(),
+            Action::Category => self.category.as_ref(),
             Action::AddHighlight => self.add_highlight.as_ref(),
             Action::HighlightManager => self.highlight_manager.as_ref(),
             Action::DensityCycle => self.density_cycle.as_ref(),
@@ -327,6 +330,7 @@ fn default_bindings() -> Vec<(Action, Vec<&'static str>)> {
         (Action::ToggleDetail, vec!["enter"]),
         (Action::ColumnSelector, vec!["c"]),
         (Action::Stats, vec!["S"]),
+        (Action::Category, vec!["C"]),
         // Highlight
         (Action::AddHighlight, vec!["h"]),
         (Action::HighlightManager, vec!["H"]),

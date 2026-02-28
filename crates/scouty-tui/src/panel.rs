@@ -45,6 +45,7 @@ pub enum PanelId {
     Detail,
     Region,
     Stats,
+    Category,
 }
 
 impl PanelId {
@@ -54,12 +55,18 @@ impl PanelId {
             PanelId::Detail => "Detail",
             PanelId::Region => "Region",
             PanelId::Stats => "Stats",
+            PanelId::Category => "Category",
         }
     }
 
     /// All panels in tab order.
     pub fn all() -> &'static [PanelId] {
-        &[PanelId::Detail, PanelId::Region, PanelId::Stats]
+        &[
+            PanelId::Detail,
+            PanelId::Region,
+            PanelId::Stats,
+            PanelId::Category,
+        ]
     }
 
     /// Next panel in tab order.
@@ -82,6 +89,7 @@ impl PanelId {
             PanelId::Detail => PanelHeight::FitContent,
             PanelId::Region => PanelHeight::Percentage(40),
             PanelId::Stats => PanelHeight::Percentage(40),
+            PanelId::Category => PanelHeight::Percentage(40),
         }
     }
 }

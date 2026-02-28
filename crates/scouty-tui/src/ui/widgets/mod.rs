@@ -1,5 +1,7 @@
 //! Persistent widget components (always present in the layout).
 
+pub mod category_panel_keys;
+pub mod category_panel_widget;
 pub mod detail_panel_keys;
 pub mod detail_panel_widget;
 pub mod filter_input_widget;
