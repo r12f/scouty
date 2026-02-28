@@ -87,22 +87,22 @@ Shortcut hints are **context-sensitive** — they update based on current focus:
 
 **Log Table focus (default):**
 ```
-[VIEW] /: Search │ f: Filter │ -: Exclude │ =: Include │ Enter: Detail │ ?: Help
+[VIEW] j/k: ↑↓ │ /: Search │ f: Filter │ -/=: Exclude/Include │ Enter: Detail │ ?: Help
 ```
 
 **Detail Panel focus:**
 ```
-[DETAIL] Tab: Next Tab │ Ctrl+↑: Back │ z: Maximize │ Esc: Close │ ?: Help
+[DETAIL] h/l: Fold │ H/L: All │ Tab/S-Tab: Switch │ Ctrl+↑: Back │ z: Max │ Esc: Close
 ```
 
 **Region Panel focus:**
 ```
-[REGION] j/k: Navigate │ Tab: Next Tab │ Ctrl+↑: Back │ z: Maximize │ Esc: Close
+[REGION] j/k: ↑↓ │ Tab/S-Tab: Switch │ Ctrl+↑: Back │ z: Max │ Esc: Close
 ```
 
 **Stats Panel focus:**
 ```
-[STATS] Tab: Next Tab │ Ctrl+↑: Back │ z: Maximize │ Esc: Close
+[STATS] Tab/S-Tab: Switch │ Ctrl+↑: Back │ z: Max │ Esc: Close
 ```
 
 When focus switches (e.g., `Ctrl+↓` to enter panel, `Tab` to switch panel, `Ctrl+↑` to return to log table), the status bar line 2 immediately updates to show the relevant shortcuts for the new context.
