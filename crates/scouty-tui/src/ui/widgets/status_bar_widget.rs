@@ -32,35 +32,16 @@ impl StatusBarWidget {
     pub fn shortcut_hints(
         panel_focused: bool,
         active: crate::panel::PanelId,
-    ) -> &'static [(&'static str, &'static str)] {
+    ) -> Vec<(&'static str, &'static str)> {
         if panel_focused {
-            match active {
-                crate::panel::PanelId::Detail => &[
-                    ("←/→", "Fold"),
-                    ("H/L", "All"),
-                    ("Tab/S-Tab", "Switch"),
-                    ("z", "Max"),
-                    ("Esc", "Close"),
-                ],
-                crate::panel::PanelId::Region => &[
-                    ("j/k", "↑↓"),
-                    ("Tab/S-Tab", "Switch"),
-                    ("z", "Max"),
-                    ("Esc", "Close"),
-                ],
-                crate::panel::PanelId::Stats => {
-                    &[("Tab/S-Tab", "Switch"), ("z", "Max"), ("Esc", "Close")]
-                }
-                crate::panel::PanelId::Category => &[
-                    ("j/k", "↑↓"),
-                    ("Enter", "Filter"),
-                    ("Tab/S-Tab", "Switch"),
-                    ("z", "Max"),
-                    ("Esc", "Close"),
-                ],
-            }
+            // Panel-specific hints from registry + common panel hints
+            let mut hints = crate::ui::windows::main_window::panel_shortcut_hints(active);
+            hints.push(("Tab/S-Tab", "Switch"));
+            hints.push(("z", "Max"));
+            hints.push(("Esc", "Close"));
+            hints
         } else {
-            &[
+            vec![
                 ("j/k", "↑↓"),
                 ("/", "Search"),
                 ("f", "Filter"),
@@ -303,12 +284,7 @@ impl StatusBarWidget {
                 && app.panel_state.focus == crate::panel::PanelFocus::PanelContent;
 
             let (mode_label, mode_style) = if panel_focused {
-                let label = match app.panel_state.active {
-                    crate::panel::PanelId::Detail => "[DETAIL]",
-                    crate::panel::PanelId::Region => "[REGION]",
-                    crate::panel::PanelId::Stats => "[STATS]",
-                    crate::panel::PanelId::Category => "[CATEGORY]",
-                };
+                let label = app.panel_state.active.status_label();
                 (label, theme.status_bar.mode_view.to_style())
             } else if app.follow_mode {
                 ("[FOLLOW]", theme.status_bar.mode_follow.to_style())
@@ -326,7 +302,7 @@ impl StatusBarWidget {
             } else {
                 let shortcuts: Vec<(&str, &str)> = if app.shortcut_hints_cache.is_empty() {
                     // Fallback to static hints if cache not populated
-                    Self::shortcut_hints(panel_focused, app.panel_state.active).to_vec()
+                    Self::shortcut_hints(panel_focused, app.panel_state.active)
                 } else {
                     app.shortcut_hints_cache
                         .iter()

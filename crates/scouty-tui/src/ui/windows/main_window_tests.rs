@@ -113,7 +113,7 @@ mod tests {
     fn test_detail_tree_nav_when_focused() {
         let mut mw = make_main_window();
         mw.app.detail_open = true;
-        // Set panel focus to Detail via panel system
+        // Use panel system focus state for dispatch
         mw.app.panel_state.expanded = true;
         mw.app.panel_state.active = crate::panel::PanelId::Detail;
         mw.app.panel_state.focus = crate::panel::PanelFocus::PanelContent;
@@ -130,7 +130,7 @@ mod tests {
         let result = mw.handle_key(key(KeyCode::Left));
         assert_eq!(result, WindowAction::Handled);
 
-        // Esc should exit detail tree focus
+        // Esc should exit panel focus
         let result = mw.handle_key(key(KeyCode::Esc));
         assert_eq!(result, WindowAction::Handled);
         assert!(!mw.app.panel_state.has_focus());
@@ -157,7 +157,6 @@ mod tests {
 
         // Now focus the detail panel
         mw.app.detail_open = true;
-        mw.app.detail_tree_focus = true;
         mw.app.panel_state.expanded = true;
         mw.app.panel_state.active = crate::panel::PanelId::Detail;
         mw.app.panel_state.focus = crate::panel::PanelFocus::PanelContent;
