@@ -172,6 +172,32 @@ mod tests {
     }
 
     #[test]
+    fn test_stats_panel_focus_blocks_log_table_keys() {
+        // Stats panel is read-only — all keys return Unhandled.
+        // Verify that unhandled keys do NOT leak to the log table.
+        let mut mw = make_main_window_with_records();
+        assert!(mw.app.filtered_indices.len() > 1);
+
+        // Sanity: j moves cursor when log table focused
+        let before = mw.app.selected;
+        mw.handle_key(key(KeyCode::Char('j')));
+        assert_ne!(mw.app.selected, before);
+        mw.app.selected = 0;
+
+        // Focus Stats panel
+        mw.app.panel_state.active = crate::panel::PanelId::Stats;
+        mw.app.panel_state.focus_panel();
+
+        let before = mw.app.selected;
+        let result = mw.handle_normal_key(key(KeyCode::Char('j')));
+        assert_eq!(result, WindowAction::Handled);
+        assert_eq!(
+            mw.app.selected, before,
+            "log table cursor must not move when Stats panel has focus"
+        );
+    }
+
+    #[test]
     fn test_search_input_mode_typing() {
         let mut mw = make_main_window();
         mw.app.input_mode = InputMode::Search;

@@ -341,7 +341,7 @@ impl MainWindow {
     /// Handle a key event in Normal mode.
     /// Returns `WindowAction::Close` if the app should quit.
     pub fn handle_normal_key(&mut self, key: KeyEvent) -> WindowAction {
-        // 1. Focused panel gets priority (generic dispatch — no match on PanelId)
+        // 1. Focused panel gets priority (dispatched via registry, not inline match)
         if self.app.panel_state.has_focus()
             && dispatch_panel_key(&mut self.app, key) == KeyAction::Handled
         {
