@@ -48,6 +48,8 @@ impl MainWindow {
                 if self.app.panel_state.focus == crate::panel::PanelFocus::LogTable {
                     self.app.panel_state.active = crate::panel::PanelId::all()[0];
                     self.app.panel_state.focus_panel();
+                    self.app.detail_tree_focus =
+                        self.app.panel_state.active == crate::panel::PanelId::Detail;
                     self.app.detail_open = self.app.panel_state.expanded
                         && self.app.panel_state.active == crate::panel::PanelId::Detail;
                     tracing::debug!(active = ?self.app.panel_state.active, "Tab: log table → panel");
@@ -60,6 +62,10 @@ impl MainWindow {
                     } else {
                         self.app.detail_tree_focus = false;
                         self.app.panel_state.next_panel();
+                        // Set detail_tree_focus when entering Detail panel
+                        if self.app.panel_state.active == crate::panel::PanelId::Detail {
+                            self.app.detail_tree_focus = true;
+                        }
                         tracing::debug!(active = ?self.app.panel_state.active, "Tab: → next panel");
                     }
                 }
@@ -72,6 +78,8 @@ impl MainWindow {
                     tracing::info!(target_panel = ?target, "BackTab: entering panels from log table (reverse)");
                     self.app.panel_state.active = target;
                     self.app.panel_state.focus_panel();
+                    self.app.detail_tree_focus =
+                        self.app.panel_state.active == crate::panel::PanelId::Detail;
                     self.app.detail_open = self.app.panel_state.expanded
                         && self.app.panel_state.active == crate::panel::PanelId::Detail;
                     tracing::debug!(active = ?self.app.panel_state.active, "Shift+Tab: log table → panel");
@@ -84,6 +92,10 @@ impl MainWindow {
                     } else {
                         self.app.detail_tree_focus = false;
                         self.app.panel_state.prev_panel();
+                        // Set detail_tree_focus when entering Detail panel
+                        if self.app.panel_state.active == crate::panel::PanelId::Detail {
+                            self.app.detail_tree_focus = true;
+                        }
                         tracing::debug!(active = ?self.app.panel_state.active, "Shift+Tab: → prev panel");
                     }
                 }
@@ -318,6 +330,8 @@ impl MainWindow {
     /// Handle a key event in Normal mode.
     /// Returns `WindowAction::Close` if the app should quit.
     pub fn handle_normal_key(&mut self, key: KeyEvent) -> WindowAction {
+        let panel_focused = self.app.panel_state.has_focus();
+
         // 1. Detail tree focus
         if self.app.detail_open
             && self.app.detail_tree_focus
@@ -327,7 +341,7 @@ impl MainWindow {
         }
 
         // 2. Region panel focus
-        if self.app.panel_state.has_focus()
+        if panel_focused
             && self.app.panel_state.active == crate::panel::PanelId::Region
             && self.handle_region_panel_key(key) == KeyAction::Handled
         {
@@ -335,7 +349,7 @@ impl MainWindow {
         }
 
         // 2b. Category panel focus
-        if self.app.panel_state.has_focus()
+        if panel_focused
             && self.app.panel_state.active == crate::panel::PanelId::Category
             && crate::ui::widgets::category_panel_keys::handle_key(&mut self.app, key)
                 == KeyAction::Handled
@@ -343,12 +357,23 @@ impl MainWindow {
             return WindowAction::Handled;
         }
 
-        // 3. Panel system keys
+        // 3. Panel system keys (Tab/BackTab/Esc/z — work regardless of focus)
         if self.handle_panel_keys(key) == KeyAction::Handled {
             return WindowAction::Handled;
         }
 
-        // 4. Log table / global keys via keymap
+        // 4. If a panel has focus, do NOT fall through to log table keys.
+        //    Only panel-specific keys and panel system keys (above) should work.
+        if panel_focused {
+            tracing::debug!(
+                panel = ?self.app.panel_state.active,
+                key_code = ?key.code,
+                "key not handled by focused panel, ignoring"
+            );
+            return WindowAction::Handled;
+        }
+
+        // 5. Log table / global keys via keymap (only when log table has focus)
         match self.handle_log_table_key(key) {
             Some(true) => WindowAction::Close, // quit
             Some(false) => WindowAction::Handled,

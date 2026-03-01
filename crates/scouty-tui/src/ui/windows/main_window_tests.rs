@@ -124,6 +124,82 @@ mod tests {
     }
 
     #[test]
+    fn test_panel_focus_blocks_log_table_keys() {
+        // When a panel has focus, j/k should NOT move the log table cursor.
+        let mut mw = make_main_window();
+        // Tab into panel system (first panel = Detail)
+        mw.handle_key(key(KeyCode::Tab));
+        assert!(mw.app.panel_state.has_focus());
+        assert_eq!(
+            mw.app.panel_state.active,
+            crate::panel::PanelId::Detail
+        );
+
+        // 'q' should NOT quit when panel has focus
+        let result = mw.handle_normal_key(key(KeyCode::Char('q')));
+        assert_ne!(result, WindowAction::Close);
+    }
+
+    #[test]
+    fn test_tab_into_detail_sets_tree_focus() {
+        let mut mw = make_main_window();
+        // Tab into panels — first panel is Detail
+        mw.handle_key(key(KeyCode::Tab));
+        assert!(mw.app.panel_state.has_focus());
+        assert_eq!(
+            mw.app.panel_state.active,
+            crate::panel::PanelId::Detail
+        );
+        assert!(
+            mw.app.detail_tree_focus,
+            "detail_tree_focus should be set when Tab enters Detail panel"
+        );
+    }
+
+    #[test]
+    fn test_backtab_into_detail_sets_tree_focus() {
+        let mut mw = make_main_window();
+        // Tab into panels, then navigate with Tab until we wrap to Detail
+        // BackTab from log table goes to last panel (Category), then prev...
+        // Simpler: Tab in, Tab to Region, BackTab back to Detail
+        mw.handle_key(key(KeyCode::Tab)); // → Detail (focus)
+        mw.handle_key(key(KeyCode::Tab)); // → Region
+        assert_eq!(
+            mw.app.panel_state.active,
+            crate::panel::PanelId::Region
+        );
+        assert!(!mw.app.detail_tree_focus);
+
+        // BackTab back to Detail
+        let backtab = KeyEvent::new(KeyCode::BackTab, KeyModifiers::SHIFT);
+        mw.handle_key(backtab);
+        assert_eq!(
+            mw.app.panel_state.active,
+            crate::panel::PanelId::Detail
+        );
+        assert!(
+            mw.app.detail_tree_focus,
+            "detail_tree_focus should be set when BackTab enters Detail panel"
+        );
+    }
+
+    #[test]
+    fn test_stats_panel_focus_blocks_log_keys() {
+        // Stats panel is read-only but should still block log table keys
+        let mut mw = make_main_window();
+        // Manually set focus to Stats panel
+        mw.app.panel_state.active = crate::panel::PanelId::Stats;
+        mw.app.panel_state.focus_panel();
+        assert!(mw.app.panel_state.has_focus());
+
+        // j should NOT move the log table
+        let selected_before = mw.app.selected;
+        let result = mw.handle_normal_key(key(KeyCode::Char('j')));
+        assert_eq!(result, WindowAction::Handled);
+        assert_eq!(mw.app.selected, selected_before);
+    }
+
+    #[test]
     fn test_search_input_mode_typing() {
         let mut mw = make_main_window();
         mw.app.input_mode = InputMode::Search;
