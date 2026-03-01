@@ -348,4 +348,43 @@ mod tests {
         assert_eq!(state.active, PanelId::Region);
         assert_eq!(state.focus, PanelFocus::PanelContent);
     }
+
+    #[test]
+    fn test_dispatch_key_all_panels_callable() {
+        // Verify dispatch_key works for every PanelId without panicking.
+        // This ensures adding a new panel requires implementing dispatch_key.
+        let mut app = crate::app::App::load_stdin(Vec::new()).unwrap();
+        let key = crossterm::event::KeyEvent::new(
+            crossterm::event::KeyCode::Char('x'),
+            crossterm::event::KeyModifiers::NONE,
+        );
+        for &panel in PanelId::all() {
+            // Should not panic — every panel has a dispatch_key arm
+            let _action = panel.dispatch_key(&mut app, key);
+        }
+    }
+
+    #[test]
+    fn test_shortcut_hints_all_panels() {
+        // Every panel should return hints without panicking.
+        for &panel in PanelId::all() {
+            let hints = panel.shortcut_hints();
+            // Hints is a vec (possibly empty for Stats)
+            assert!(hints.len() <= 20, "sanity: too many hints for {:?}", panel);
+        }
+    }
+
+    #[test]
+    fn test_dispatch_key_detail_handles_j() {
+        // Detail panel should handle 'j' key
+        let mut app = crate::app::App::load_stdin(Vec::new()).unwrap();
+        app.detail_open = true;
+        app.detail_tree_focus = true;
+        let key = crossterm::event::KeyEvent::new(
+            crossterm::event::KeyCode::Char('j'),
+            crossterm::event::KeyModifiers::NONE,
+        );
+        let action = PanelId::Detail.dispatch_key(&mut app, key);
+        assert_eq!(action, crate::ui::framework::KeyAction::Handled);
+    }
 }

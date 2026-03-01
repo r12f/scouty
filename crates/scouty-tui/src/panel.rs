@@ -69,6 +69,52 @@ impl PanelId {
         ]
     }
 
+    /// Dispatch a key event to this panel's key handler.
+    ///
+    /// This is the generic dispatch point — adding a new panel only requires
+    /// adding a match arm here (and the panel's key handler module), with
+    /// zero changes to main_window dispatch logic.
+    pub fn dispatch_key(
+        self,
+        app: &mut crate::app::App,
+        key: crossterm::event::KeyEvent,
+    ) -> crate::ui::framework::KeyAction {
+        use crate::ui::framework::KeyAction;
+        match self {
+            PanelId::Detail => {
+                crate::ui::widgets::detail_panel_keys::handle_key(app, key)
+            }
+            PanelId::Region => {
+                crate::ui::widgets::region_panel_keys::handle_key(app, key)
+            }
+            PanelId::Category => {
+                crate::ui::widgets::category_panel_keys::handle_key(app, key)
+            }
+            PanelId::Stats => {
+                // Stats panel is read-only, no panel-specific keys
+                KeyAction::Unhandled
+            }
+        }
+    }
+
+    /// Return shortcut hints for this panel when it has focus.
+    pub fn shortcut_hints(self) -> Vec<(&'static str, &'static str)> {
+        match self {
+            PanelId::Detail => {
+                crate::ui::widgets::detail_panel_keys::shortcut_hints()
+            }
+            PanelId::Region => {
+                crate::ui::widgets::region_panel_keys::shortcut_hints()
+            }
+            PanelId::Stats => {
+                crate::ui::widgets::stats_panel_keys::shortcut_hints()
+            }
+            PanelId::Category => {
+                crate::ui::widgets::category_panel_keys::shortcut_hints()
+            }
+        }
+    }
+
     /// Next panel in tab order.
     pub fn next(self) -> PanelId {
         let all = Self::all();
@@ -199,5 +245,15 @@ impl PanelState {
     /// Whether the panel has keyboard focus.
     pub fn has_focus(&self) -> bool {
         self.focus == PanelFocus::PanelContent
+    }
+
+    /// Dispatch a key event to the currently active panel.
+    /// Only call when `has_focus()` is true.
+    pub fn dispatch_key(
+        &self,
+        app: &mut crate::app::App,
+        key: crossterm::event::KeyEvent,
+    ) -> crate::ui::framework::KeyAction {
+        self.active.dispatch_key(app, key)
     }
 }

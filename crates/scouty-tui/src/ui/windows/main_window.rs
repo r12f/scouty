@@ -31,12 +31,7 @@ impl MainWindow {
         }
     }
 
-    /// Handle keys when region panel has focus.
-    fn handle_region_panel_key(&mut self, key: KeyEvent) -> KeyAction {
-        crate::ui::widgets::region_panel_keys::handle_key(&mut self.app, key)
-    }
-
-    /// Handle panel system keys (Tab/BackTab, z).
+        /// Handle panel system keys (Tab/BackTab, z).
     fn handle_panel_keys(&mut self, key: KeyEvent) -> KeyAction {
         let handled = match key.code {
             KeyCode::Tab if key.modifiers.is_empty() => {
@@ -313,22 +308,10 @@ impl MainWindow {
     /// Handle a key event in Normal mode.
     /// Returns `WindowAction::Close` if the app should quit.
     pub fn handle_normal_key(&mut self, key: KeyEvent) -> WindowAction {
-        // 1. Focused panel gets priority
+        // 1. Focused panel gets priority (generic dispatch — no match on PanelId)
         if self.app.panel_state.has_focus() {
-            let action = match self.app.panel_state.active {
-                crate::panel::PanelId::Detail => {
-                    crate::ui::widgets::detail_panel_keys::handle_key(&mut self.app, key)
-                }
-                crate::panel::PanelId::Region => self.handle_region_panel_key(key),
-                crate::panel::PanelId::Category => {
-                    crate::ui::widgets::category_panel_keys::handle_key(&mut self.app, key)
-                }
-                crate::panel::PanelId::Stats => {
-                    // Stats panel is read-only, no panel-specific keys
-                    KeyAction::Unhandled
-                }
-            };
-            if action == KeyAction::Handled {
+            let active = self.app.panel_state.active;
+            if active.dispatch_key(&mut self.app, key) == KeyAction::Handled {
                 return WindowAction::Handled;
             }
         }
@@ -436,21 +419,8 @@ impl Window for MainWindow {
             && self.app.panel_state.focus == crate::panel::PanelFocus::PanelContent;
 
         if panel_focused {
-            // Collect panel-specific hints first, then common panel hints
-            let mut hints: Vec<(&str, &str)> = match self.app.panel_state.active {
-                crate::panel::PanelId::Detail => {
-                    crate::ui::widgets::detail_panel_keys::shortcut_hints()
-                }
-                crate::panel::PanelId::Region => {
-                    crate::ui::widgets::region_panel_keys::shortcut_hints()
-                }
-                crate::panel::PanelId::Stats => {
-                    crate::ui::widgets::stats_panel_keys::shortcut_hints()
-                }
-                crate::panel::PanelId::Category => {
-                    crate::ui::widgets::category_panel_keys::shortcut_hints()
-                }
-            };
+            // Generic panel hints dispatch — no match on PanelId
+            let mut hints: Vec<(&str, &str)> = self.app.panel_state.active.shortcut_hints();
             // Common panel hints from MainWindow
             hints.push(("Tab/S-Tab", "Switch"));
             hints.push(("z", "Max"));
