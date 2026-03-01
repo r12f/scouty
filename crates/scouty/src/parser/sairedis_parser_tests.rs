@@ -684,4 +684,45 @@ mod tests {
             panic!("Expected KeyValue for Attributes");
         }
     }
+
+    #[test]
+    fn test_get_response_status_key_value_format() {
+        // Status in key=value format: the value part should be extracted as status
+        let p = SairedisParser::new();
+        p.parse(
+            "2025-01-15.10:30:45.123456|g|SAI_OBJECT_TYPE_PORT:oid:0x100000000000d",
+            "test",
+            "loader",
+            1,
+        );
+        let r = p
+            .parse(
+                "2025-01-15.10:30:45.123457|G|SAI_STATUS=SAI_STATUS_NOT_SUPPORTED|SAI_PORT_ATTR_SPEED=100000",
+                "test",
+                "loader",
+                2,
+            )
+            .unwrap();
+
+        let expanded = r.expanded.as_ref().unwrap();
+        let status_field = expanded
+            .iter()
+            .find(|f| f.label == "Status")
+            .expect("Status field missing");
+        assert_eq!(
+            status_field.value,
+            crate::record::ExpandedValue::Text("SAI_STATUS_NOT_SUPPORTED".to_string())
+        );
+
+        let attrs_field = expanded
+            .iter()
+            .find(|f| f.label == "Attributes")
+            .expect("Attributes field missing");
+        if let crate::record::ExpandedValue::KeyValue(pairs) = &attrs_field.value {
+            assert_eq!(pairs.len(), 1);
+            assert_eq!(pairs[0].0, "SAI_PORT_ATTR_SPEED");
+        } else {
+            panic!("Expected KeyValue for Attributes");
+        }
+    }
 }
