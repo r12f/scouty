@@ -75,6 +75,8 @@ Parses SAI Redis operation logs: `YYYY-MM-DD.HH:MM:SS.ffffff|<op>|<detail...>`
 
 **Structured expansion:** Populates `expanded` with Operation (human-readable name), Object Type, OID, and Attributes. For stateful `G`/`Q` responses, expansion includes the correlated request context.
 
+**Response status extraction:** For response operations (`G`, `A`, `Q`), the first attribute in the detail is a SAI status code (e.g., `SAI_STATUS_SUCCESS`). The parser must extract this as a dedicated **Status** field in the expansion (separate from the Attributes list). Remaining attributes follow as normal KV pairs. This ensures the error/success status is prominently visible in the Detail panel rather than buried inside the attributes tree.
+
 ### JSON Log Parser
 
 Parses log lines that are complete JSON objects (one object per line, i.e., NDJSON/JSON Lines).
