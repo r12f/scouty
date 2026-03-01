@@ -523,4 +523,165 @@ mod tests {
             "2025-01-15.10:30:45.123456|A|SAI_STATUS_SUCCESS"
         ));
     }
+
+    #[test]
+    fn test_get_response_status_extraction() {
+        let p = SairedisParser::new();
+        // First send a get request to set context
+        p.parse(
+            "2025-01-15.10:30:45.123456|g|SAI_OBJECT_TYPE_PORT:oid:0x100000000000d|SAI_PORT_ATTR_HW_LANE_LIST=4",
+            "test", "loader", 1,
+        );
+        // GetResponse: first attr is status
+        let r = p.parse(
+            "2025-01-15.10:30:45.123457|G|SAI_STATUS_SUCCESS|SAI_PORT_ATTR_HW_LANE_LIST=4:1,2,3,4|SAI_PORT_ATTR_SPEED=100000",
+            "test", "loader", 2,
+        ).unwrap();
+
+        let expanded = r.expanded.as_ref().unwrap();
+        // Should have: Operation, OID (from context), Status, Attributes, Request Context
+        let status_field = expanded
+            .iter()
+            .find(|f| f.label == "Status")
+            .expect("Status field missing");
+        assert_eq!(
+            status_field.value,
+            crate::record::ExpandedValue::Text("SAI_STATUS_SUCCESS".to_string())
+        );
+
+        // Remaining attributes should NOT include the status
+        let attrs_field = expanded
+            .iter()
+            .find(|f| f.label == "Attributes")
+            .expect("Attributes field missing");
+        if let crate::record::ExpandedValue::KeyValue(pairs) = &attrs_field.value {
+            assert_eq!(pairs.len(), 2);
+            assert_eq!(pairs[0].0, "SAI_PORT_ATTR_HW_LANE_LIST");
+            assert_eq!(pairs[1].0, "SAI_PORT_ATTR_SPEED");
+        } else {
+            panic!("Expected KeyValue for Attributes");
+        }
+    }
+
+    #[test]
+    fn test_notify_syncd_response_status_extraction() {
+        let p = SairedisParser::new();
+        let r = p
+            .parse(
+                "2025-01-15.10:30:45.123456|A|SAI_STATUS_SUCCESS",
+                "test",
+                "loader",
+                1,
+            )
+            .unwrap();
+
+        let expanded = r.expanded.as_ref().unwrap();
+        let status_field = expanded
+            .iter()
+            .find(|f| f.label == "Status")
+            .expect("Status field missing");
+        assert_eq!(
+            status_field.value,
+            crate::record::ExpandedValue::Text("SAI_STATUS_SUCCESS".to_string())
+        );
+
+        // No Attributes field since status was the only content
+        assert!(expanded.iter().all(|f| f.label != "Attributes"));
+    }
+
+    #[test]
+    fn test_query_response_status_extraction() {
+        let p = SairedisParser::new();
+        // First send a query to set context
+        p.parse(
+            "2025-01-15.10:30:45.123456|q|SAI_OBJECT_TYPE_PORT:oid:0x100000000000d|SAI_PORT_ATTR_SPEED=0",
+            "test", "loader", 1,
+        );
+        // QueryResponse: first attr after query_name is status
+        let r = p.parse(
+            "2025-01-15.10:30:45.123457|Q|SAI_OBJECT_TYPE_PORT|SAI_STATUS_SUCCESS|SAI_PORT_ATTR_SPEED=100000",
+            "test", "loader", 2,
+        ).unwrap();
+
+        let expanded = r.expanded.as_ref().unwrap();
+        let status_field = expanded
+            .iter()
+            .find(|f| f.label == "Status")
+            .expect("Status field missing");
+        assert_eq!(
+            status_field.value,
+            crate::record::ExpandedValue::Text("SAI_STATUS_SUCCESS".to_string())
+        );
+
+        let attrs_field = expanded
+            .iter()
+            .find(|f| f.label == "Attributes")
+            .expect("Attributes field missing");
+        if let crate::record::ExpandedValue::KeyValue(pairs) = &attrs_field.value {
+            assert_eq!(pairs.len(), 1);
+            assert_eq!(pairs[0].0, "SAI_PORT_ATTR_SPEED");
+        } else {
+            panic!("Expected KeyValue for Attributes");
+        }
+    }
+
+    #[test]
+    fn test_get_response_failure_status_no_attrs() {
+        let p = SairedisParser::new();
+        p.parse(
+            "2025-01-15.10:30:45.123456|g|SAI_OBJECT_TYPE_PORT:oid:0x100000000000d",
+            "test",
+            "loader",
+            1,
+        );
+        // GetResponse with only status, no attributes
+        let r = p
+            .parse(
+                "2025-01-15.10:30:45.123457|G|SAI_STATUS_FAILURE",
+                "test",
+                "loader",
+                2,
+            )
+            .unwrap();
+
+        let expanded = r.expanded.as_ref().unwrap();
+        let status_field = expanded
+            .iter()
+            .find(|f| f.label == "Status")
+            .expect("Status field missing");
+        assert_eq!(
+            status_field.value,
+            crate::record::ExpandedValue::Text("SAI_STATUS_FAILURE".to_string())
+        );
+
+        // No Attributes field
+        assert!(expanded.iter().all(|f| f.label != "Attributes"));
+    }
+
+    #[test]
+    fn test_create_op_no_status_extraction() {
+        // Non-response ops should NOT have Status field
+        let p = SairedisParser::new();
+        let r = p.parse(
+            "2025-01-15.10:30:45.123456|c|SAI_OBJECT_TYPE_PORT:oid:0x100000000000d|SAI_PORT_ATTR_SPEED=100000",
+            "test", "loader", 1,
+        ).unwrap();
+
+        let expanded = r.expanded.as_ref().unwrap();
+        assert!(
+            expanded.iter().all(|f| f.label != "Status"),
+            "Non-response ops should not have Status field"
+        );
+
+        // First attribute should be in Attributes, not extracted as Status
+        let attrs_field = expanded
+            .iter()
+            .find(|f| f.label == "Attributes")
+            .expect("Attributes field missing");
+        if let crate::record::ExpandedValue::KeyValue(pairs) = &attrs_field.value {
+            assert_eq!(pairs[0].0, "SAI_PORT_ATTR_SPEED");
+        } else {
+            panic!("Expected KeyValue for Attributes");
+        }
+    }
 }

@@ -399,8 +399,8 @@ impl SairedisParser {
 
 /// Build expanded field for sairedis entries.
 ///
-/// Structure: Operation, Object Type, OID (if present), Attributes (if present),
-/// and Request Context for stateful G/Q responses.
+/// Structure: Operation, Object Type, OID (if present), Status (for response ops),
+/// Attributes (if present), and Request Context for stateful G/Q responses.
 fn build_expanded(
     op: u8,
     function: &str,
@@ -409,6 +409,7 @@ fn build_expanded(
     message: &str,
 ) -> Option<Vec<ExpandedField>> {
     let mut fields = Vec::new();
+    let is_response = matches!(op, b'G' | b'A' | b'Q');
 
     // Operation (human-readable name)
     fields.push(ExpandedField {
@@ -432,9 +433,38 @@ fn build_expanded(
         });
     }
 
+    // For response ops (G/A/Q), extract first attribute as Status
+    let attrs_message = if is_response && !message.is_empty() {
+        // Split message into segments; first segment is the status code
+        let first_pipe = message.find('|');
+        let (status_str, remaining) = match first_pipe {
+            Some(pos) => (&message[..pos], &message[pos + 1..]),
+            None => (message, ""),
+        };
+
+        // Extract status: for "key=value" format, the value is the status;
+        // for plain text (e.g. "SAI_STATUS_SUCCESS"), the whole thing is status
+        let status = if let Some(eq_pos) = status_str.find('=') {
+            &status_str[eq_pos + 1..]
+        } else {
+            status_str
+        };
+
+        if !status.is_empty() {
+            fields.push(ExpandedField {
+                label: "Status".to_string(),
+                value: ExpandedValue::Text(status.to_string()),
+            });
+        }
+
+        remaining
+    } else {
+        message
+    };
+
     // Attributes from message (pipe-delimited "key=value" pairs)
-    if !message.is_empty() {
-        let pairs: Vec<(String, ExpandedValue)> = message
+    if !attrs_message.is_empty() {
+        let pairs: Vec<(String, ExpandedValue)> = attrs_message
             .split('|')
             .filter(|s| !s.is_empty())
             .map(|attr| {
