@@ -10,10 +10,43 @@ mod main_window_tests;
 
 use crate::app::{App, InputMode};
 use crate::keybinding::{Action, Keymap};
+use crate::panel::PanelId;
 use crate::ui::framework::{KeyAction, OverlayStack, Window, WindowAction};
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::layout::Rect;
 use ratatui::Frame;
+
+/// Panel key handler function signature.
+type PanelKeyHandler = fn(&mut App, KeyEvent) -> KeyAction;
+
+/// Registry of panel key handlers.
+///
+/// Adding a new panel requires only adding an entry here — no changes
+/// to the dispatch logic in `handle_normal_key`.
+fn panel_key_handler(panel: PanelId) -> PanelKeyHandler {
+    match panel {
+        PanelId::Detail => crate::ui::widgets::detail_panel_keys::handle_key,
+        PanelId::Region => crate::ui::widgets::region_panel_keys::handle_key,
+        PanelId::Category => crate::ui::widgets::category_panel_keys::handle_key,
+        PanelId::Stats => crate::ui::widgets::stats_panel_keys::handle_key,
+    }
+}
+
+/// Dispatch a key event to the currently focused panel's handler.
+fn dispatch_panel_key(app: &mut App, key: KeyEvent) -> KeyAction {
+    let handler = panel_key_handler(app.panel_state.active);
+    handler(app, key)
+}
+
+/// Registry of panel shortcut hint providers.
+pub fn panel_shortcut_hints(panel: PanelId) -> Vec<(&'static str, &'static str)> {
+    match panel {
+        PanelId::Detail => crate::ui::widgets::detail_panel_keys::shortcut_hints(),
+        PanelId::Region => crate::ui::widgets::region_panel_keys::shortcut_hints(),
+        PanelId::Category => crate::ui::widgets::category_panel_keys::shortcut_hints(),
+        PanelId::Stats => crate::ui::widgets::stats_panel_keys::shortcut_hints(),
+    }
+}
 
 /// The root window managing the main TUI view.
 pub struct MainWindow {
@@ -29,11 +62,6 @@ impl MainWindow {
             keymap,
             overlay_stack: OverlayStack::new(),
         }
-    }
-
-    /// Handle keys when region panel has focus.
-    fn handle_region_panel_key(&mut self, key: KeyEvent) -> KeyAction {
-        crate::ui::widgets::region_panel_keys::handle_key(&mut self.app, key)
     }
 
     /// Handle panel system keys (Tab/BackTab, z).
@@ -313,24 +341,11 @@ impl MainWindow {
     /// Handle a key event in Normal mode.
     /// Returns `WindowAction::Close` if the app should quit.
     pub fn handle_normal_key(&mut self, key: KeyEvent) -> WindowAction {
-        // 1. Focused panel gets priority
-        if self.app.panel_state.has_focus() {
-            let action = match self.app.panel_state.active {
-                crate::panel::PanelId::Detail => {
-                    crate::ui::widgets::detail_panel_keys::handle_key(&mut self.app, key)
-                }
-                crate::panel::PanelId::Region => self.handle_region_panel_key(key),
-                crate::panel::PanelId::Category => {
-                    crate::ui::widgets::category_panel_keys::handle_key(&mut self.app, key)
-                }
-                crate::panel::PanelId::Stats => {
-                    // Stats panel is read-only, no panel-specific keys
-                    KeyAction::Unhandled
-                }
-            };
-            if action == KeyAction::Handled {
-                return WindowAction::Handled;
-            }
+        // 1. Focused panel gets priority (dispatched via registry, not inline match)
+        if self.app.panel_state.has_focus()
+            && dispatch_panel_key(&mut self.app, key) == KeyAction::Handled
+        {
+            return WindowAction::Handled;
         }
 
         // 2. Panel system keys (Tab/Shift+Tab/z/Esc)
@@ -338,7 +353,17 @@ impl MainWindow {
             return WindowAction::Handled;
         }
 
-        // 3. Log table / global keys via keymap
+        // 3. If a panel has focus, do NOT fall through to log table keys
+        if self.app.panel_state.has_focus() {
+            tracing::debug!(
+                panel = ?self.app.panel_state.active,
+                key_code = ?key.code,
+                "key not handled by focused panel, ignoring"
+            );
+            return WindowAction::Handled;
+        }
+
+        // 4. Log table / global keys via keymap (only when log table has focus)
         match self.handle_log_table_key(key) {
             Some(true) => WindowAction::Close,
             Some(false) => WindowAction::Handled,
@@ -436,21 +461,8 @@ impl Window for MainWindow {
             && self.app.panel_state.focus == crate::panel::PanelFocus::PanelContent;
 
         if panel_focused {
-            // Collect panel-specific hints first, then common panel hints
-            let mut hints: Vec<(&str, &str)> = match self.app.panel_state.active {
-                crate::panel::PanelId::Detail => {
-                    crate::ui::widgets::detail_panel_keys::shortcut_hints()
-                }
-                crate::panel::PanelId::Region => {
-                    crate::ui::widgets::region_panel_keys::shortcut_hints()
-                }
-                crate::panel::PanelId::Stats => {
-                    crate::ui::widgets::stats_panel_keys::shortcut_hints()
-                }
-                crate::panel::PanelId::Category => {
-                    crate::ui::widgets::category_panel_keys::shortcut_hints()
-                }
-            };
+            // Collect panel-specific hints via registry, then common panel hints
+            let mut hints: Vec<(&str, &str)> = panel_shortcut_hints(self.app.panel_state.active);
             // Common panel hints from MainWindow
             hints.push(("Tab/S-Tab", "Switch"));
             hints.push(("z", "Max"));

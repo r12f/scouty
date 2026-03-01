@@ -128,25 +128,11 @@ pub fn render(frame: &mut Frame, app: &mut App) {
 
     // Render panel content
     if panel_content_height > 0 {
-        use crate::panel::PanelId;
-        match app.panel_state.active {
-            PanelId::Detail => {
-                // Sync legacy state
-                app.detail_open = true;
-                render_detail_panel(frame, app, panel_area);
-            }
-            PanelId::Region => {
-                render_region_panel(frame, app, panel_area);
-            }
-            PanelId::Stats => {
-                render_stats_panel(frame, panel_area, app);
-            }
-            PanelId::Category => {
-                crate::ui::widgets::category_panel_widget::CategoryPanelWidget::render(
-                    frame, app, panel_area,
-                );
-            }
+        // Sync legacy state for detail panel
+        if app.panel_state.active == crate::panel::PanelId::Detail {
+            app.detail_open = true;
         }
+        render_panel(frame, app, panel_area, app.panel_state.active);
     } else {
         app.detail_open = false;
     }
@@ -294,6 +280,21 @@ fn render_panel_tab_bar(frame: &mut Frame, app: &App, area: Rect) {
         .unwrap_or(Color::Reset);
     let line = Paragraph::new(Line::from(spans)).style(Style::default().bg(bar_bg));
     frame.render_widget(line, area);
+}
+
+/// Render the active panel content (generic dispatch).
+fn render_panel(frame: &mut Frame, app: &App, area: Rect, panel: crate::panel::PanelId) {
+    use crate::panel::PanelId;
+    match panel {
+        PanelId::Detail => render_detail_panel(frame, app, area),
+        PanelId::Region => render_region_panel(frame, app, area),
+        PanelId::Stats => render_stats_panel(frame, area, app),
+        PanelId::Category => {
+            crate::ui::widgets::category_panel_widget::CategoryPanelWidget::render(
+                frame, app, area,
+            );
+        }
+    }
 }
 
 fn render_region_panel(frame: &mut Frame, app: &App, area: Rect) {

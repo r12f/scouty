@@ -59,6 +59,16 @@ impl PanelId {
         }
     }
 
+    /// Status bar label for this panel (e.g. "[DETAIL]").
+    pub fn status_label(self) -> &'static str {
+        match self {
+            PanelId::Detail => "[DETAIL]",
+            PanelId::Region => "[REGION]",
+            PanelId::Stats => "[STATS]",
+            PanelId::Category => "[CATEGORY]",
+        }
+    }
+
     /// All panels in tab order.
     pub fn all() -> &'static [PanelId] {
         &[

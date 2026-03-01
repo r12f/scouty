@@ -113,7 +113,7 @@ mod tests {
     fn test_detail_tree_nav_when_focused() {
         let mut mw = make_main_window();
         mw.app.detail_open = true;
-        // Set panel focus to Detail via panel system
+        // Use panel system focus state for dispatch
         mw.app.panel_state.expanded = true;
         mw.app.panel_state.active = crate::panel::PanelId::Detail;
         mw.app.panel_state.focus = crate::panel::PanelFocus::PanelContent;
@@ -130,7 +130,7 @@ mod tests {
         let result = mw.handle_key(key(KeyCode::Left));
         assert_eq!(result, WindowAction::Handled);
 
-        // Esc should exit detail tree focus
+        // Esc should exit panel focus
         let result = mw.handle_key(key(KeyCode::Esc));
         assert_eq!(result, WindowAction::Handled);
         assert!(!mw.app.panel_state.has_focus());
@@ -157,7 +157,6 @@ mod tests {
 
         // Now focus the detail panel
         mw.app.detail_open = true;
-        mw.app.detail_tree_focus = true;
         mw.app.panel_state.expanded = true;
         mw.app.panel_state.active = crate::panel::PanelId::Detail;
         mw.app.panel_state.focus = crate::panel::PanelFocus::PanelContent;
@@ -169,6 +168,32 @@ mod tests {
         assert_eq!(
             mw.app.selected, selected_before,
             "log table cursor should not move when detail panel has focus"
+        );
+    }
+
+    #[test]
+    fn test_stats_panel_focus_blocks_log_table_keys() {
+        // Stats panel is read-only — all keys return Unhandled.
+        // Verify that unhandled keys do NOT leak to the log table.
+        let mut mw = make_main_window_with_records();
+        assert!(mw.app.filtered_indices.len() > 1);
+
+        // Sanity: j moves cursor when log table focused
+        let before = mw.app.selected;
+        mw.handle_key(key(KeyCode::Char('j')));
+        assert_ne!(mw.app.selected, before);
+        mw.app.selected = 0;
+
+        // Focus Stats panel
+        mw.app.panel_state.active = crate::panel::PanelId::Stats;
+        mw.app.panel_state.focus_panel();
+
+        let before = mw.app.selected;
+        let result = mw.handle_normal_key(key(KeyCode::Char('j')));
+        assert_eq!(result, WindowAction::Handled);
+        assert_eq!(
+            mw.app.selected, before,
+            "log table cursor must not move when Stats panel has focus"
         );
     }
 
