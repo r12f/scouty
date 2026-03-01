@@ -43,17 +43,13 @@ impl MainWindow {
                 if self.app.panel_state.focus == crate::panel::PanelFocus::LogTable {
                     self.app.panel_state.active = crate::panel::PanelId::all()[0];
                     self.app.panel_state.focus_panel();
-                    self.app.detail_open = self.app.panel_state.expanded
-                        && self.app.panel_state.active == crate::panel::PanelId::Detail;
                     tracing::debug!(active = ?self.app.panel_state.active, "Tab: log table → panel");
                 } else {
                     let all = crate::panel::PanelId::all();
                     if self.app.panel_state.active == *all.last().unwrap() {
-                        self.app.detail_tree_focus = false;
                         self.app.panel_state.focus_log_table();
                         tracing::debug!("Tab: last panel → log table");
                     } else {
-                        self.app.detail_tree_focus = false;
                         self.app.panel_state.next_panel();
                         tracing::debug!(active = ?self.app.panel_state.active, "Tab: → next panel");
                     }
@@ -67,17 +63,13 @@ impl MainWindow {
                     tracing::info!(target_panel = ?target, "BackTab: entering panels from log table (reverse)");
                     self.app.panel_state.active = target;
                     self.app.panel_state.focus_panel();
-                    self.app.detail_open = self.app.panel_state.expanded
-                        && self.app.panel_state.active == crate::panel::PanelId::Detail;
                     tracing::debug!(active = ?self.app.panel_state.active, "Shift+Tab: log table → panel");
                 } else {
                     let all = crate::panel::PanelId::all();
                     if self.app.panel_state.active == all[0] {
-                        self.app.detail_tree_focus = false;
                         self.app.panel_state.focus_log_table();
                         tracing::debug!("Shift+Tab: first panel → log table");
                     } else {
-                        self.app.detail_tree_focus = false;
                         self.app.panel_state.prev_panel();
                         tracing::debug!(active = ?self.app.panel_state.active, "Shift+Tab: → prev panel");
                     }
@@ -89,7 +81,6 @@ impl MainWindow {
                 true
             }
             KeyCode::Esc if self.app.panel_state.has_focus() => {
-                self.app.detail_tree_focus = false;
                 self.app.panel_state.focus_log_table();
                 tracing::debug!("Esc: panel → log table");
                 true
@@ -111,8 +102,8 @@ impl MainWindow {
         match action {
             Action::Quit => return Some(true),
             Action::CloseDetail => {
-                if self.app.detail_open {
-                    self.app.detail_open = false;
+                if self.app.detail_open() {
+                    self.app.panel_state.close();
                 }
             }
             Action::MoveDown => self.app.select_down(1),

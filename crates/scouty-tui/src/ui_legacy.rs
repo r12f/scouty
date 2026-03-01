@@ -131,8 +131,6 @@ pub fn render(frame: &mut Frame, app: &mut App) {
         use crate::panel::PanelId;
         match app.panel_state.active {
             PanelId::Detail => {
-                // Sync legacy state
-                app.detail_open = true;
                 render_detail_panel(frame, app, panel_area);
             }
             PanelId::Region => {
@@ -147,8 +145,6 @@ pub fn render(frame: &mut Frame, app: &mut App) {
                 );
             }
         }
-    } else {
-        app.detail_open = false;
     }
 
     render_footer(frame, app, footer_area);
@@ -436,11 +432,9 @@ mod ui_legacy_tests {
             scroll_offset: 0,
             selected: 0,
             visible_rows: 10,
-            detail_open: false,
             detail_panel_ratio: 0.3,
             detail_tree_cursor: 0,
             detail_tree_collapsed: std::collections::HashSet::new(),
-            detail_tree_focus: false,
             panel_state: crate::panel::PanelState::default(),
             input_mode: InputMode::Normal,
             filter_input: TextInput::new(),

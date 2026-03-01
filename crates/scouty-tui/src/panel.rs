@@ -149,7 +149,8 @@ impl PanelState {
             // Collapse
             self.expanded = false;
             self.maximized = false;
-            tracing::debug!(?panel, "panel: collapsed (focus unchanged)");
+            self.focus = PanelFocus::LogTable;
+            tracing::debug!(?panel, "panel: collapsed → log table focus");
         } else {
             // Expand (or switch to different panel)
             self.active = panel;
@@ -199,5 +200,15 @@ impl PanelState {
     /// Whether the panel has keyboard focus.
     pub fn has_focus(&self) -> bool {
         self.focus == PanelFocus::PanelContent
+    }
+
+    /// Whether a specific panel is currently open (expanded and active).
+    pub fn is_panel_open(&self, panel: PanelId) -> bool {
+        self.expanded && self.active == panel
+    }
+
+    /// Whether a specific panel has keyboard focus.
+    pub fn is_panel_focused(&self, panel: PanelId) -> bool {
+        self.has_focus() && self.active == panel
     }
 }

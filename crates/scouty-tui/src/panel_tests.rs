@@ -348,4 +348,50 @@ mod tests {
         assert_eq!(state.active, PanelId::Region);
         assert_eq!(state.focus, PanelFocus::PanelContent);
     }
+
+    #[test]
+    fn test_is_panel_open() {
+        let mut state = PanelState::default();
+        assert!(!state.is_panel_open(PanelId::Detail));
+
+        state.toggle_expand(PanelId::Detail);
+        assert!(state.is_panel_open(PanelId::Detail));
+        assert!(!state.is_panel_open(PanelId::Region));
+
+        state.active = PanelId::Region;
+        assert!(!state.is_panel_open(PanelId::Detail));
+        assert!(state.is_panel_open(PanelId::Region));
+    }
+
+    #[test]
+    fn test_is_panel_focused() {
+        let mut state = PanelState::default();
+        assert!(!state.is_panel_focused(PanelId::Detail));
+
+        state.active = PanelId::Detail;
+        state.focus_panel();
+        assert!(state.is_panel_focused(PanelId::Detail));
+        assert!(!state.is_panel_focused(PanelId::Region));
+
+        state.focus_log_table();
+        assert!(!state.is_panel_focused(PanelId::Detail));
+    }
+
+    #[test]
+    fn test_app_detail_open_derived() {
+        let mut app = crate::app::App::load_stdin(Vec::new()).unwrap();
+        assert!(!app.detail_open());
+        assert!(!app.detail_tree_focus());
+
+        app.toggle_detail();
+        assert!(app.detail_open());
+        assert!(!app.detail_tree_focus());
+
+        app.panel_state.focus_panel();
+        assert!(app.detail_tree_focus());
+
+        app.toggle_detail();
+        assert!(!app.detail_open());
+        assert!(!app.detail_tree_focus());
+    }
 }
