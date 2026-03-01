@@ -273,7 +273,9 @@ impl DetailPanelWidget {
         } else {
             " Log Content "
         };
-        let left_border_style = if app.detail_tree_focus && has_expanded {
+        let detail_has_focus =
+            app.panel_state.has_focus() && app.panel_state.active == crate::panel::PanelId::Detail;
+        let left_border_style = if detail_has_focus && has_expanded {
             theme
                 .detail_panel
                 .border
@@ -297,7 +299,7 @@ impl DetailPanelWidget {
                 inner_left,
                 &flat,
                 app.detail_tree_cursor,
-                app.detail_tree_focus,
+                detail_has_focus,
                 theme,
             );
         } else {

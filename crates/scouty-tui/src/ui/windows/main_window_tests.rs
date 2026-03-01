@@ -21,6 +21,16 @@ mod tests {
         MainWindow::new(app, keymap)
     }
 
+    /// Create a MainWindow with multiple log records so cursor movement is possible.
+    fn make_main_window_with_records() -> MainWindow {
+        let lines: Vec<String> = (0..10)
+            .map(|i| format!("2025-01-01T00:00:0{}Z INFO test message {}", i, i))
+            .collect();
+        let app = crate::app::App::load_stdin(lines).unwrap();
+        let keymap = Keymap::default_keymap();
+        MainWindow::new(app, keymap)
+    }
+
     #[test]
     fn test_normal_mode_quit() {
         let mut mw = make_main_window();
@@ -103,7 +113,10 @@ mod tests {
     fn test_detail_tree_nav_when_focused() {
         let mut mw = make_main_window();
         mw.app.detail_open = true;
-        mw.app.detail_tree_focus = true;
+        // Set panel focus to Detail via panel system
+        mw.app.panel_state.expanded = true;
+        mw.app.panel_state.active = crate::panel::PanelId::Detail;
+        mw.app.panel_state.focus = crate::panel::PanelFocus::PanelContent;
 
         // j should move down in detail tree
         let result = mw.handle_key(key(KeyCode::Char('j')));
@@ -120,7 +133,43 @@ mod tests {
         // Esc should exit detail tree focus
         let result = mw.handle_key(key(KeyCode::Esc));
         assert_eq!(result, WindowAction::Handled);
-        assert!(!mw.app.detail_tree_focus);
+        assert!(!mw.app.panel_state.has_focus());
+    }
+
+    #[test]
+    fn test_detail_focus_blocks_log_table_navigation() {
+        let mut mw = make_main_window_with_records();
+        assert!(
+            mw.app.filtered_indices.len() > 1,
+            "need multiple records so cursor can move"
+        );
+
+        // First, verify j DOES move cursor when log table has focus (no panel focus)
+        let selected_before = mw.app.selected;
+        mw.handle_key(key(KeyCode::Char('j')));
+        assert_ne!(
+            mw.app.selected, selected_before,
+            "sanity check: j should move cursor when log table has focus"
+        );
+
+        // Reset cursor
+        mw.app.selected = 0;
+
+        // Now focus the detail panel
+        mw.app.detail_open = true;
+        mw.app.detail_tree_focus = true;
+        mw.app.panel_state.expanded = true;
+        mw.app.panel_state.active = crate::panel::PanelId::Detail;
+        mw.app.panel_state.focus = crate::panel::PanelFocus::PanelContent;
+
+        let selected_before = mw.app.selected;
+
+        // j should go to detail panel, NOT move log table cursor
+        mw.handle_key(key(KeyCode::Char('j')));
+        assert_eq!(
+            mw.app.selected, selected_before,
+            "log table cursor should not move when detail panel has focus"
+        );
     }
 
     #[test]
