@@ -241,16 +241,12 @@ pub struct App {
     pub selected: usize,
     /// Number of visible rows in the log list (updated by render).
     pub visible_rows: usize,
-    /// Whether the detail panel is open.
-    pub detail_open: bool,
     /// Detail panel max height ratio (0.1 - 0.9).
     pub detail_panel_ratio: f64,
     /// Detail panel: tree cursor position (index into flattened tree).
     pub detail_tree_cursor: usize,
     /// Detail panel: set of collapsed node indices (path-based keys).
     pub detail_tree_collapsed: std::collections::HashSet<String>,
-    /// Detail panel: whether left pane (tree/content) has focus.
-    pub detail_tree_focus: bool,
     /// Panel system state.
     pub panel_state: crate::panel::PanelState,
     /// Current input mode.
@@ -569,11 +565,9 @@ impl App {
             scroll_offset: 0,
             selected: 0,
             visible_rows: 20,
-            detail_open: false,
             detail_panel_ratio: 0.3,
             detail_tree_cursor: 0,
             detail_tree_collapsed: std::collections::HashSet::new(),
-            detail_tree_focus: false,
             panel_state: crate::panel::PanelState::default(),
             input_mode: InputMode::Normal,
             filter_input: TextInput::new(),
@@ -1647,15 +1641,12 @@ impl App {
     pub fn toggle_detail(&mut self) {
         self.panel_state
             .toggle_expand(crate::panel::PanelId::Detail);
-        self.detail_open =
-            self.panel_state.expanded && self.panel_state.active == crate::panel::PanelId::Detail;
         tracing::debug!(
-            detail_open = self.detail_open,
+            detail_open = self
+                .panel_state
+                .is_panel_open(crate::panel::PanelId::Detail),
             "toggled detail panel (focus unchanged)"
         );
-        if !self.detail_open {
-            self.detail_tree_focus = false;
-        }
     }
 
     /// Get the flattened tree nodes for the current record.
@@ -2110,11 +2101,9 @@ mod tests {
             scroll_offset: 0,
             selected: 0,
             visible_rows: 10,
-            detail_open: false,
             detail_panel_ratio: 0.3,
             detail_tree_cursor: 0,
             detail_tree_collapsed: std::collections::HashSet::new(),
-            detail_tree_focus: false,
             panel_state: crate::panel::PanelState::default(),
             input_mode: InputMode::Normal,
             filter_input: TextInput::new(),
@@ -2186,11 +2175,9 @@ mod tests {
             scroll_offset: 0,
             selected: 0,
             visible_rows: 10,
-            detail_open: false,
             detail_panel_ratio: 0.3,
             detail_tree_cursor: 0,
             detail_tree_collapsed: std::collections::HashSet::new(),
-            detail_tree_focus: false,
             panel_state: crate::panel::PanelState::default(),
             input_mode: InputMode::Normal,
             filter_input: TextInput::new(),
@@ -2259,11 +2246,9 @@ mod tests {
             scroll_offset: 0,
             selected: 0,
             visible_rows: 10,
-            detail_open: false,
             detail_panel_ratio: 0.3,
             detail_tree_cursor: 0,
             detail_tree_collapsed: std::collections::HashSet::new(),
-            detail_tree_focus: false,
             panel_state: crate::panel::PanelState::default(),
             input_mode: InputMode::Normal,
             filter_input: TextInput::new(),
@@ -2358,11 +2343,11 @@ mod tests {
     #[test]
     fn test_toggle_detail() {
         let mut app = make_app(10);
-        assert!(!app.detail_open);
+        assert!(!app.panel_state.is_panel_open(crate::panel::PanelId::Detail));
         app.toggle_detail();
-        assert!(app.detail_open);
+        assert!(app.panel_state.is_panel_open(crate::panel::PanelId::Detail));
         app.toggle_detail();
-        assert!(!app.detail_open);
+        assert!(!app.panel_state.is_panel_open(crate::panel::PanelId::Detail));
     }
 
     #[test]
@@ -2787,11 +2772,9 @@ mod field_filter_v2_tests {
             scroll_offset: 0,
             selected: 0,
             visible_rows: 10,
-            detail_open: false,
             detail_panel_ratio: 0.3,
             detail_tree_cursor: 0,
             detail_tree_collapsed: std::collections::HashSet::new(),
-            detail_tree_focus: false,
             panel_state: crate::panel::PanelState::default(),
             input_mode: InputMode::Normal,
             filter_input: TextInput::new(),
@@ -2986,11 +2969,9 @@ mod column_follow_tests {
             scroll_offset: 0,
             selected: 0,
             visible_rows: 10,
-            detail_open: false,
             detail_panel_ratio: 0.3,
             detail_tree_cursor: 0,
             detail_tree_collapsed: std::collections::HashSet::new(),
-            detail_tree_focus: false,
             panel_state: crate::panel::PanelState::default(),
             input_mode: InputMode::Normal,
             filter_input: TextInput::new(),
@@ -3342,11 +3323,9 @@ mod copy_tests {
             scroll_offset: 0,
             selected: 0,
             visible_rows: 10,
-            detail_open: false,
             detail_panel_ratio: 0.3,
             detail_tree_cursor: 0,
             detail_tree_collapsed: std::collections::HashSet::new(),
-            detail_tree_focus: false,
             panel_state: crate::panel::PanelState::default(),
             input_mode: InputMode::Normal,
             filter_input: TextInput::new(),
@@ -3526,11 +3505,9 @@ mod time_jump_tests {
             scroll_offset: 0,
             selected,
             visible_rows: 10,
-            detail_open: false,
             detail_panel_ratio: 0.3,
             detail_tree_cursor: 0,
             detail_tree_collapsed: std::collections::HashSet::new(),
-            detail_tree_focus: false,
             panel_state: crate::panel::PanelState::default(),
             input_mode: InputMode::Normal,
             filter_input: TextInput::new(),
@@ -3673,11 +3650,9 @@ mod command_tests {
             scroll_offset: 0,
             selected: 0,
             visible_rows: 10,
-            detail_open: false,
             detail_panel_ratio: 0.3,
             detail_tree_cursor: 0,
             detail_tree_collapsed: std::collections::HashSet::new(),
-            detail_tree_focus: false,
             panel_state: crate::panel::PanelState::default(),
             input_mode: InputMode::Normal,
             filter_input: TextInput::new(),

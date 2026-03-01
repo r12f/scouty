@@ -210,4 +210,9 @@ impl PanelState {
     pub fn has_focus(&self) -> bool {
         self.focus == PanelFocus::PanelContent
     }
+
+    /// Whether a specific panel is currently expanded and showing content.
+    pub fn is_panel_open(&self, panel: PanelId) -> bool {
+        self.expanded && self.active == panel
+    }
 }

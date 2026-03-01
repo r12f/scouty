@@ -112,7 +112,6 @@ mod tests {
     #[test]
     fn test_detail_tree_nav_when_focused() {
         let mut mw = make_main_window();
-        mw.app.detail_open = true;
         // Use panel system focus state for dispatch
         mw.app.panel_state.expanded = true;
         mw.app.panel_state.active = crate::panel::PanelId::Detail;
@@ -156,7 +155,6 @@ mod tests {
         mw.app.selected = 0;
 
         // Now focus the detail panel
-        mw.app.detail_open = true;
         mw.app.panel_state.expanded = true;
         mw.app.panel_state.active = crate::panel::PanelId::Detail;
         mw.app.panel_state.focus = crate::panel::PanelFocus::PanelContent;
