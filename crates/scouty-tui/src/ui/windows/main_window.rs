@@ -31,11 +31,6 @@ impl MainWindow {
         }
     }
 
-    /// Handle keys when detail tree has focus.
-    fn handle_detail_tree_key(&mut self, key: KeyEvent) -> KeyAction {
-        crate::ui::widgets::detail_panel_keys::handle_key(&mut self.app, key)
-    }
-
     /// Handle keys when region panel has focus.
     fn handle_region_panel_key(&mut self, key: KeyEvent) -> KeyAction {
         crate::ui::widgets::region_panel_keys::handle_key(&mut self.app, key)
@@ -318,39 +313,34 @@ impl MainWindow {
     /// Handle a key event in Normal mode.
     /// Returns `WindowAction::Close` if the app should quit.
     pub fn handle_normal_key(&mut self, key: KeyEvent) -> WindowAction {
-        // 1. Detail tree focus
-        if self.app.detail_open
-            && self.app.detail_tree_focus
-            && self.handle_detail_tree_key(key) == KeyAction::Handled
-        {
-            return WindowAction::Handled;
+        // 1. Focused panel gets priority
+        if self.app.panel_state.has_focus() {
+            let action = match self.app.panel_state.active {
+                crate::panel::PanelId::Detail => {
+                    crate::ui::widgets::detail_panel_keys::handle_key(&mut self.app, key)
+                }
+                crate::panel::PanelId::Region => self.handle_region_panel_key(key),
+                crate::panel::PanelId::Category => {
+                    crate::ui::widgets::category_panel_keys::handle_key(&mut self.app, key)
+                }
+                crate::panel::PanelId::Stats => {
+                    // Stats panel is read-only, no panel-specific keys
+                    KeyAction::Unhandled
+                }
+            };
+            if action == KeyAction::Handled {
+                return WindowAction::Handled;
+            }
         }
 
-        // 2. Region panel focus
-        if self.app.panel_state.has_focus()
-            && self.app.panel_state.active == crate::panel::PanelId::Region
-            && self.handle_region_panel_key(key) == KeyAction::Handled
-        {
-            return WindowAction::Handled;
-        }
-
-        // 2b. Category panel focus
-        if self.app.panel_state.has_focus()
-            && self.app.panel_state.active == crate::panel::PanelId::Category
-            && crate::ui::widgets::category_panel_keys::handle_key(&mut self.app, key)
-                == KeyAction::Handled
-        {
-            return WindowAction::Handled;
-        }
-
-        // 3. Panel system keys
+        // 2. Panel system keys (Tab/Shift+Tab/z/Esc)
         if self.handle_panel_keys(key) == KeyAction::Handled {
             return WindowAction::Handled;
         }
 
-        // 4. Log table / global keys via keymap
+        // 3. Log table / global keys via keymap
         match self.handle_log_table_key(key) {
-            Some(true) => WindowAction::Close, // quit
+            Some(true) => WindowAction::Close,
             Some(false) => WindowAction::Handled,
             None => WindowAction::Unhandled,
         }
