@@ -7,8 +7,10 @@ mod tests {
 
     fn test_app() -> App {
         let mut app = App::load_stdin(Vec::new()).unwrap();
-        app.detail_open = true;
-        app.detail_tree_focus = true;
+        // Use panel system to set detail panel focus
+        app.panel_state.expanded = true;
+        app.panel_state.active = crate::panel::PanelId::Detail;
+        app.panel_state.focus = crate::panel::PanelFocus::PanelContent;
         app
     }
 
@@ -33,15 +35,11 @@ mod tests {
     #[test]
     fn test_esc_exits_focus() {
         let mut app = test_app();
-        // Set up: panel has focus and tree is focused
-        app.panel_state.focus_panel();
-        app.detail_tree_focus = true;
         assert_eq!(
             app.panel_state.focus,
             crate::panel::PanelFocus::PanelContent
         );
         assert_eq!(handle_key(&mut app, key(KeyCode::Esc)), KeyAction::Handled);
-        assert!(!app.detail_tree_focus);
         assert_eq!(app.panel_state.focus, crate::panel::PanelFocus::LogTable);
     }
 

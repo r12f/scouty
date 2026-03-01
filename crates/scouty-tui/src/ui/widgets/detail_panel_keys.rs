@@ -44,7 +44,6 @@ pub fn handle_key(app: &mut App, key: KeyEvent) -> KeyAction {
             true
         }
         KeyCode::Esc => {
-            app.detail_tree_focus = false;
             app.panel_state.focus_log_table();
             true
         }
