@@ -1,0 +1,137 @@
+# SONiC Port Operation Regions
+#
+# Pre-built region definitions for common SONiC port operations.
+# These regions automatically detect, correlate, and visualize port operation
+# lifecycles — boot init, admin up/down, link flap, system port init, and
+# attribute changes.
+#
+# Install to: /etc/scouty/regions/sonic-port-operations.yaml
+# Or place in: ~/.scouty/regions/ or ./scouty-regions/
+#
+# Based on sonic-swss orchagent/portsyncd log patterns.
+# See: crates/scouty/spec/sonic-port-operation-regions.md
+
+regions:
+  # Region 1: Port Boot Init (P0)
+  # Tracks per-port cold boot initialization from orchagent "Initialized port"
+  # to first oper state change (up or down).
+  - name: "sonic_port_boot_init"
+    description: "Per-port cold boot initialization lifecycle"
+    start_points:
+      - filter: 'message contains "Initialized port"'
+        regex: 'Initialized port (?P<port>Ethernet\d+)'
+        reason: "port initialized"
+    end_points:
+      - filter: 'message contains "oper state set from"'
+        regex: 'Port (?P<port>Ethernet\d+) oper state set from \S+ to (?P<state>up|down)'
+        reason: "oper {state}"
+    correlate:
+      - "port"
+    template:
+      name: "Boot Init {port}"
+      description: "{port} boot init → oper {state}"
+    timeout: "120s"
+    timeout_reason: "port did not reach oper state within 120s"
+
+  # Region 2: Port Admin Up (P0)
+  # Tracks runtime admin up to oper up latency.
+  # Also triggers during cold boot (nested within Boot Init) — intentional,
+  # as it measures physical link establishment time.
+  - name: "sonic_port_admin_up"
+    description: "Admin up to oper up latency"
+    start_points:
+      - filter: 'message contains "Set admin status UP"'
+        regex: 'Set admin status UP host_tx_ready to true for port (?P<port>Ethernet\d+)'
+        reason: "admin up"
+    end_points:
+      - filter: 'message contains "oper state set from"'
+        regex: 'Port (?P<port>Ethernet\d+) oper state set from \S+ to (?P<state>up)'
+        reason: "oper up"
+    correlate:
+      - "port"
+    template:
+      name: "Admin Up {port}"
+      description: "{port} admin up → oper up"
+    timeout: "60s"
+    timeout_reason: "port did not reach oper up within 60s after admin up"
+
+  # Region 3: Port Admin Down (P0)
+  # Tracks admin down to oper down transition.
+  - name: "sonic_port_admin_down"
+    description: "Admin down to oper down transition"
+    start_points:
+      - filter: 'message contains "Set admin status DOWN"'
+        regex: 'Set admin status DOWN host_tx_ready to false for port (?P<port>Ethernet\d+)'
+        reason: "admin down"
+    end_points:
+      - filter: 'message contains "oper state set from"'
+        regex: 'Port (?P<port>Ethernet\d+) oper state set from \S+ to (?P<state>down)'
+        reason: "oper down"
+    correlate:
+      - "port"
+    template:
+      name: "Admin Down {port}"
+      description: "{port} admin down → oper down"
+    timeout: "10s"
+    timeout_reason: "port did not reach oper down within 10s after admin down"
+
+  # Region 4: Port Link Flap (P1)
+  # Tracks link down to recovery (oper up).
+  # Known limitation: admin-initiated shutdowns also trigger this region.
+  # Users can distinguish by looking for a co-occurring Admin Down region.
+  - name: "sonic_port_link_flap"
+    description: "Link flap detection — oper down to recovery"
+    start_points:
+      - filter: 'message contains "oper state set from up to down"'
+        regex: 'Port (?P<port>Ethernet\d+) oper state set from up to down'
+        reason: "link down"
+    end_points:
+      - filter: 'message contains "oper state set from"'
+        regex: 'Port (?P<port>Ethernet\d+) oper state set from \S+ to (?P<state>up)'
+        reason: "link recovered"
+    correlate:
+      - "port"
+    template:
+      name: "Link Flap {port}"
+      description: "{port} link flap → recovered"
+    timeout: "300s"
+    timeout_reason: "link did not recover within 300s"
+
+  # Region 5: System Port Init (P1)
+  # Tracks system-level boot completion (PortConfigDone → PortInitDone).
+  # System-wide, only one instance per boot.
+  - name: "sonic_system_port_init"
+    description: "System-level port initialization (PortConfigDone → PortInitDone)"
+    start_points:
+      - filter: 'message contains "PortConfigDone"'
+        reason: "PortConfigDone"
+    end_points:
+      - filter: 'message contains "PortInitDone"'
+        reason: "PortInitDone"
+    correlate: []
+    template:
+      name: "System Port Init"
+      description: "System port initialization complete"
+    timeout: "300s"
+    timeout_reason: "PortInitDone not received within 300s after PortConfigDone"
+
+  # Region 6: Port Attribute Change (P2)
+  # Tracks FEC/attribute change to oper up cycle.
+  # Known limitation: only covers FEC changes currently.
+  - name: "sonic_port_attr_change"
+    description: "Port attribute change (FEC) to oper up"
+    start_points:
+      - filter: 'message contains "Set port"'
+        regex: 'Set port (?P<port>Ethernet\d+) FEC mode'
+        reason: "FEC mode changed"
+    end_points:
+      - filter: 'message contains "oper state set from"'
+        regex: 'Port (?P<port>Ethernet\d+) oper state set from \S+ to (?P<state>up)'
+        reason: "oper up"
+    correlate:
+      - "port"
+    template:
+      name: "Attr Change {port}"
+      description: "{port} FEC change → oper up"
+    timeout: "60s"
+    timeout_reason: "port did not reach oper up within 60s after attribute change"

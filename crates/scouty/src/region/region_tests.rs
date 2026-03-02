@@ -189,4 +189,45 @@ regions:
         assert_eq!(defs[0].start_points.len(), 2);
         assert_eq!(defs[0].end_points.len(), 2);
     }
+
+    #[test]
+    fn test_sonic_port_operations_yaml() {
+        let yaml = include_str!("../../../../regions/sonic-port-operations.yaml");
+        let defs = load_from_str(yaml).unwrap();
+        assert_eq!(defs.len(), 6, "Expected 6 region definitions");
+
+        // Verify names
+        assert_eq!(defs[0].name, "sonic_port_boot_init");
+        assert_eq!(defs[1].name, "sonic_port_admin_up");
+        assert_eq!(defs[2].name, "sonic_port_admin_down");
+        assert_eq!(defs[3].name, "sonic_port_link_flap");
+        assert_eq!(defs[4].name, "sonic_system_port_init");
+        assert_eq!(defs[5].name, "sonic_port_attr_change");
+
+        // Verify all have timeouts
+        for def in &defs {
+            assert!(def.timeout.is_some(), "Region '{}' should have a timeout", def.name);
+            assert!(def.timeout_reason.is_some(), "Region '{}' should have a timeout_reason", def.name);
+        }
+
+        // Verify correlate fields
+        assert_eq!(defs[0].correlate, vec!["port"]);
+        assert!(defs[4].correlate.is_empty(), "System Port Init should have no correlate");
+
+        // Verify regex extracts port name
+        let re = defs[0].start_points[0].regex.as_ref().unwrap();
+        let caps = re.captures("Initialized port Ethernet0 admin_status").unwrap();
+        assert_eq!(&caps["port"], "Ethernet0");
+
+        // Verify end point regex
+        let re = defs[0].end_points[0].regex.as_ref().unwrap();
+        let caps = re.captures("Port Ethernet4 oper state set from down to up").unwrap();
+        assert_eq!(&caps["port"], "Ethernet4");
+        assert_eq!(&caps["state"], "up");
+
+        // Verify link flap start only matches "from up to down"
+        let re = defs[3].start_points[0].regex.as_ref().unwrap();
+        assert!(re.captures("Port Ethernet0 oper state set from up to down").is_some());
+        assert!(re.captures("Port Ethernet0 oper state set from down to up").is_none());
+    }
 }

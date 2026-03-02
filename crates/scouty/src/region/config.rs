@@ -206,11 +206,26 @@ pub fn load_from_dir(dir: &Path) -> Result<Vec<RegionDefinition>, String> {
     Ok(defs)
 }
 
-/// Load all region definitions from standard config locations.
-/// System (/etc/scouty/regions/) → User (~/.scouty/regions/) → Project (./scouty-regions/).
+/// Built-in region definitions embedded at compile time.
+static BUILTIN_REGION_CONFIGS: &[&str] = &[
+    include_str!("../../../../regions/sonic-port-operations.yaml"),
+];
+
+/// Load all region definitions from built-in presets + standard config locations.
+/// Built-in → System (/etc/scouty/regions/) → User (~/.scouty/regions/) → Project (./scouty-regions/).
 #[instrument]
 pub fn load_all() -> Vec<RegionDefinition> {
     let mut defs = Vec::new();
+
+    // Load built-in region definitions first (lowest precedence).
+    for yaml in BUILTIN_REGION_CONFIGS {
+        match load_from_str(yaml) {
+            Ok(mut builtin_defs) => defs.append(&mut builtin_defs),
+            Err(e) => {
+                warn!("Failed to load built-in region config: {}", e);
+            }
+        }
+    }
 
     let dirs = [
         PathBuf::from("/etc/scouty/regions"),
