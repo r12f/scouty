@@ -301,6 +301,7 @@ impl DetailPanelWidget {
                 app.detail_tree_cursor,
                 detail_has_focus,
                 theme,
+                app.detail_horizontal_offset,
             );
         } else {
             // Show message field (not raw line — raw duplicates fields already in right pane).
@@ -319,13 +320,21 @@ impl DetailPanelWidget {
         // Right pane: fields table
         let pairs = build_field_pairs(record);
         let label_style = theme.detail_panel.field_name.to_style();
+        let h_offset = app.detail_horizontal_offset;
         let rows: Vec<Row> = pairs
             .into_iter()
             .map(|(key, val)| {
-                let val_cell = if key == "Level" {
-                    Cell::from(Span::styled(val, level_style(record.level, theme)))
+                let display_val = if h_offset > 0 && h_offset < val.len() {
+                    val[h_offset..].to_string()
+                } else if h_offset >= val.len() && !val.is_empty() && h_offset > 0 {
+                    String::new()
                 } else {
-                    Cell::from(val)
+                    val.clone()
+                };
+                let val_cell = if key == "Level" {
+                    Cell::from(Span::styled(display_val, level_style(record.level, theme)))
+                } else {
+                    Cell::from(display_val)
                 };
                 Row::new(vec![Cell::from(Span::styled(key, label_style)), val_cell])
             })
@@ -347,6 +356,7 @@ impl DetailPanelWidget {
         cursor: usize,
         focused: bool,
         theme: &Theme,
+        h_offset: usize,
     ) {
         let visible_rows = area.height as usize;
         if nodes.is_empty() || visible_rows == 0 {
@@ -383,21 +393,21 @@ impl DetailPanelWidget {
             };
 
             let line_text = if let Some(ref val) = node.value {
-                let truncated = if val.len() > MAX_VALUE_LEN {
-                    format!("{}…", &val[..MAX_VALUE_LEN])
-                } else {
-                    val.clone()
-                };
-                format!("{}{}{}: {}", indent, indicator, node.label, truncated)
+                format!("{}{}{}: {}", indent, indicator, node.label, val)
             } else {
                 format!("{}{}{}", indent, indicator, node.label)
             };
 
-            // Pad/truncate to width
-            let display = if line_text.len() > width {
-                format!("{}…", &line_text[..width.saturating_sub(1)])
+            // Apply horizontal scroll offset
+            let display = if h_offset >= line_text.len() {
+                String::new()
             } else {
-                line_text
+                let sliced = &line_text[h_offset..];
+                if sliced.len() > width {
+                    format!("{}…", &sliced[..width.saturating_sub(1)])
+                } else {
+                    sliced.to_string()
+                }
             };
 
             let style = if is_selected {

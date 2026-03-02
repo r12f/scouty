@@ -70,7 +70,7 @@ mod tests {
             status_message: None,
             shortcut_hints_cache: Vec::new(),
             status_message_at: None,
-            col_widths: [19, 5, 11, 3, 3, 9],
+            col_widths: [19, 5, 11, 3, 3, 9, 7, 8],
             column_config: ColumnConfig::default(),
             follow_mode: false,
             follow_new_count: 0,
