@@ -469,7 +469,11 @@ impl Theme {
                 },
                 header_unfocused: StyleEntry::fg_bg(Rgb(85, 85, 85), Rgb(30, 30, 40)),
                 selected: StyleEntry::bg(Rgb(40, 40, 55)),
-                ..TableTheme::default()
+                selected_search: StyleEntry::bg(Rgb(80, 80, 30)),
+                selected_highlight: StyleEntry::bg(Rgb(35, 45, 60)),
+                search_match: StyleEntry::bg(Rgb(60, 60, 20)),
+                bookmark: StyleEntry::bg(Rgb(25, 35, 50)),
+                separator: SeparatorStyle::default(),
             },
             status_bar: StatusBarTheme {
                 line1_bg: StyleEntry::bg(Rgb(30, 30, 40)),
@@ -548,7 +552,11 @@ impl Theme {
                 },
                 header_unfocused: StyleEntry::fg_bg(Rgb(153, 153, 153), Rgb(220, 220, 230)),
                 selected: StyleEntry::fg_bg(Black, Rgb(200, 210, 230)),
-                ..TableTheme::default()
+                selected_search: StyleEntry::fg_bg(Black, Rgb(220, 220, 160)),
+                selected_highlight: StyleEntry::fg_bg(Black, Rgb(210, 218, 235)),
+                search_match: StyleEntry::bg(Rgb(240, 240, 180)),
+                bookmark: StyleEntry::bg(Rgb(200, 220, 240)),
+                separator: SeparatorStyle::default(),
             },
             status_bar: StatusBarTheme {
                 line1_bg: StyleEntry::bg(Rgb(220, 220, 230)),
@@ -639,7 +647,11 @@ impl Theme {
                 },
                 header_unfocused: StyleEntry::fg_bg(Rgb(101, 123, 131), base02), // #657B83
                 selected: StyleEntry::fg_bg(base1, base02),
-                ..TableTheme::default()
+                selected_search: StyleEntry::bg(Rgb(80, 80, 20)),
+                selected_highlight: StyleEntry::bg(Rgb(10, 50, 60)),
+                search_match: StyleEntry::bg(Rgb(60, 60, 10)),
+                bookmark: StyleEntry::bg(Rgb(0, 50, 70)),
+                separator: SeparatorStyle::default(),
             },
             status_bar: StatusBarTheme {
                 line1_bg: StyleEntry::bg(base02),
@@ -734,12 +746,15 @@ impl Theme {
                 },
                 header_unfocused: StyleEntry::fg_bg(Rgb(107, 74, 94), dark_wine), // #6B4A5E
                 selected: StyleEntry::bg(selected_bg),
+                selected_search: StyleEntry::bg(Rgb(90, 60, 30)),
+                selected_highlight: StyleEntry::bg(Rgb(50, 25, 40)),
+                search_match: StyleEntry::bg(Rgb(70, 50, 20)),
+                bookmark: StyleEntry::bg(Rgb(45, 20, 45)),
                 separator: SeparatorStyle {
                     fg: Some(ThemeColor(separator_fg)),
                     bg: None,
                     char: "♡".to_string(),
                 },
-                ..TableTheme::default()
             },
             status_bar: StatusBarTheme {
                 line1_bg: StyleEntry::fg_bg(dusty_rose, dark_wine),
@@ -853,7 +868,10 @@ impl Theme {
                     bg: None,
                     char: "│".to_string(),
                 },
-                ..TableTheme::default()
+                selected_search: StyleEntry::bg(Rgb(20, 50, 80)), // #143250 deep ocean search selection
+                selected_highlight: StyleEntry::bg(Rgb(18, 40, 68)), // #122844 dark blue highlight
+                search_match: StyleEntry::bg(Rgb(40, 70, 100)),   // #284664 steel blue search match
+                bookmark: StyleEntry::bg(Rgb(15, 45, 75)),        // #0F2D4B navy bookmark
             },
             status_bar: StatusBarTheme {
                 line1_bg: StyleEntry::fg_bg(silver_mist, dark_ocean),
@@ -965,7 +983,10 @@ impl Theme {
                     bg: None,
                     char: "♡".to_string(),
                 },
-                ..TableTheme::default()
+                selected_search: StyleEntry::bg(Rgb(70, 20, 50)), // #461432 deep rose search selection
+                selected_highlight: StyleEntry::bg(Rgb(55, 22, 44)), // #37162C dark berry highlight
+                search_match: StyleEntry::bg(Rgb(90, 30, 60)),    // #5A1E3C berry search match
+                bookmark: StyleEntry::bg(Rgb(60, 18, 48)),        // #3C1230 plum bookmark
             },
             status_bar: StatusBarTheme {
                 line1_bg: StyleEntry::fg_bg(dusty_pink, dark_berry),
@@ -1075,7 +1096,10 @@ impl Theme {
                     bg: None,
                     char: "│".to_string(),
                 },
-                ..TableTheme::default()
+                selected_search: StyleEntry::bg(Rgb(50, 20, 42)), // #32142A wine-tinted search selection
+                selected_highlight: StyleEntry::bg(Rgb(35, 30, 55)), // #231E37 muted purple highlight
+                search_match: StyleEntry::bg(Rgb(80, 25, 50)), // #501932 wine-red search match
+                bookmark: StyleEntry::bg(Rgb(40, 20, 45)),     // #28142D deep plum bookmark
             },
             status_bar: StatusBarTheme {
                 line1_bg: StyleEntry::fg_bg(lace_shadow, dark_fabric),
@@ -1186,7 +1210,10 @@ impl Theme {
                     bg: None,
                     char: "│".to_string(),
                 },
-                ..TableTheme::default()
+                selected_search: StyleEntry::bg(Rgb(70, 50, 20)), // #463214 warm bronze search selection
+                selected_highlight: StyleEntry::bg(Rgb(55, 38, 18)), // #372612 dark bronze highlight
+                search_match: StyleEntry::bg(Rgb(90, 65, 25)),       // #5A4119 golden search match
+                bookmark: StyleEntry::bg(Rgb(60, 45, 15)),           // #3C2D0F deep gold bookmark
             },
             status_bar: StatusBarTheme {
                 line1_bg: StyleEntry::fg_bg(tan, warm_brown),
