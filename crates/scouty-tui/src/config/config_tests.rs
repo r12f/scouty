@@ -224,6 +224,6 @@ mod tests {
         let names = super::super::Theme::builtin_names();
         assert!(names.contains(&"default"));
         assert!(names.contains(&"landmine"));
-        assert_eq!(names.len(), 5);
+        assert_eq!(names.len(), 9);
     }
 }
