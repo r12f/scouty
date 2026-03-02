@@ -90,6 +90,9 @@ impl StatusBarWidget {
             43_200_000.0, // 12h
             86_400_000.0, // 24h
         ];
+        if ms <= 0.0 {
+            return INTERVALS_MS[0];
+        }
         for &iv in INTERVALS_MS {
             if ms <= iv {
                 return iv;

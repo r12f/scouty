@@ -191,14 +191,18 @@ mod tests {
         assert_eq!(StatusBarWidget::snap_to_standard(180_000.0), 300_000.0); // 3m -> 5m
         assert_eq!(StatusBarWidget::snap_to_standard(480_000.0), 600_000.0); // 8m -> 10m
         assert_eq!(StatusBarWidget::snap_to_standard(700_000.0), 900_000.0); // ~11.7m -> 15m
-        assert_eq!(StatusBarWidget::snap_to_standard(2_700_000.0), 3_600_000.0); // 45m -> 1h
+        assert_eq!(StatusBarWidget::snap_to_standard(2_700_000.0), 3_600_000.0);
+        // 45m -> 1h
     }
 
     #[test]
     fn test_snap_to_standard_hours() {
         assert_eq!(StatusBarWidget::snap_to_standard(3_600_000.0), 3_600_000.0); // 1h exact
         assert_eq!(StatusBarWidget::snap_to_standard(5_000_000.0), 7_200_000.0); // -> 2h
-        assert_eq!(StatusBarWidget::snap_to_standard(10_000_000.0), 21_600_000.0); // -> 6h
+        assert_eq!(
+            StatusBarWidget::snap_to_standard(10_000_000.0),
+            21_600_000.0
+        ); // -> 6h
     }
 
     #[test]
