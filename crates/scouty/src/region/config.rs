@@ -208,7 +208,7 @@ pub fn load_from_dir(dir: &Path) -> Result<Vec<RegionDefinition>, String> {
 
 /// Built-in region definitions embedded at compile time.
 static BUILTIN_REGION_CONFIGS: &[&str] = &[
-    include_str!("../../../../regions/sonic-port-operations.yaml"),
+    include_str!("../../../../src/scouty-config/sonic/sonic-port-operations.yaml"),
 ];
 
 /// Load all region definitions from built-in presets + standard config locations.

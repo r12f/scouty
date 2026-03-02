@@ -192,7 +192,7 @@ regions:
 
     #[test]
     fn test_sonic_port_operations_yaml() {
-        let yaml = include_str!("../../../../regions/sonic-port-operations.yaml");
+        let yaml = include_str!("../../../../src/scouty-config/sonic/sonic-port-operations.yaml");
         let defs = load_from_str(yaml).unwrap();
         assert_eq!(defs.len(), 6, "Expected 6 region definitions");
 
