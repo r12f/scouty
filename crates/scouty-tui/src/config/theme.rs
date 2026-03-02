@@ -709,7 +709,7 @@ impl Theme {
         }
     }
 
-    /// Landmine theme — Jirai Kei (地雷系) black and pink aesthetic.
+    /// Landmine theme — Jirai Kei black and pink aesthetic.
     pub fn landmine() -> Self {
         use Color::*;
         let deep_black = Rgb(13, 6, 11); // #0D060B
@@ -826,7 +826,7 @@ impl Theme {
         }
     }
 
-    /// Mizuiro (水色) — clear, transparent, aqua theme.
+    /// Mizuiro — clear, transparent, aqua theme.
     pub fn mizuiro() -> Self {
         use Color::*;
         let deep_navy = Rgb(10, 22, 40); // #0A1628
@@ -943,7 +943,7 @@ impl Theme {
         }
     }
 
-    /// Amai (甜系) — Sweet Lolita, dreamy pastel pink theme.
+    /// Amai — Sweet Lolita, dreamy pastel pink theme.
     pub fn amai() -> Self {
         use Color::*;
         let deep_rose = Rgb(20, 10, 16); // #140A10 (darker, sweeter bg)
@@ -1062,7 +1062,7 @@ impl Theme {
     }
 
 
-    /// Maid (女仆) — classic maid, black & white high contrast with wine red accents.
+    /// Maid — classic maid, black & white high contrast with wine red accents.
     pub fn maid() -> Self {
         use Color::*;
         let black_dress = Rgb(13, 13, 26); // #0D0D1A
@@ -1175,7 +1175,7 @@ impl Theme {
         }
     }
 
-    /// Gyaru (ギャル) — Shibuya bold, gold and hot pink glamour.
+    /// Gyaru — Shibuya bold, gold and hot pink glamour.
     pub fn gyaru() -> Self {
         use Color::*;
         let dark_bronze = Rgb(26, 18, 8); // #1A1208
