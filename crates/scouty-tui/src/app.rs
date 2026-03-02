@@ -44,7 +44,7 @@ pub enum InputMode {
 }
 
 /// Column identifiers for the log table.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Column {
     Time,
     Level,
@@ -121,6 +121,8 @@ pub struct ColumnConfig {
     pub columns: Vec<(Column, bool)>,
     /// Cursor in the column selector dialog.
     pub cursor: usize,
+    /// Manual width overrides set by the user.
+    pub width_overrides: std::collections::HashMap<Column, u16>,
 }
 
 impl Default for ColumnConfig {
@@ -141,6 +143,7 @@ impl Default for ColumnConfig {
                 (Column::Log, true),
             ],
             cursor: 0,
+            width_overrides: std::collections::HashMap::new(),
         }
     }
 }
@@ -172,6 +175,34 @@ impl ColumnConfig {
             }
             self.columns[index].1 = !self.columns[index].1;
         }
+    }
+
+    /// Get the effective width for a column: override if set, otherwise auto-computed.
+    #[allow(dead_code)]
+    pub fn effective_width(&self, col: Column, auto_width: u16) -> u16 {
+        if col == Column::Log {
+            return 0;
+        }
+        match self.width_overrides.get(&col) {
+            Some(&w) => w,
+            None => auto_width,
+        }
+    }
+
+    /// Set a manual width override for a column, clamped to min_width.
+    #[allow(dead_code)]
+    pub fn set_width(&mut self, col: Column, width: u16) {
+        if col == Column::Log {
+            return;
+        }
+        let w = width.max(col.min_width());
+        self.width_overrides.insert(col, w);
+    }
+
+    /// Reset a column's width override (back to auto-computed).
+    #[allow(dead_code)]
+    pub fn reset_width(&mut self, col: Column) {
+        self.width_overrides.remove(&col);
     }
 }
 

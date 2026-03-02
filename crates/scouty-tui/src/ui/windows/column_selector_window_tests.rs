@@ -18,6 +18,8 @@ mod tests {
                 (Column::Log, true),
             ],
             theme: crate::config::Theme::default(),
+            auto_widths: std::collections::HashMap::new(),
+            width_overrides: std::collections::HashMap::new(),
         }
     }
 

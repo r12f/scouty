@@ -84,7 +84,12 @@ impl MainWindow {
                 }
                 true
             }
-            KeyCode::BackTab => {
+            KeyCode::BackTab | KeyCode::Tab
+                if key.code == KeyCode::BackTab
+                    || key
+                        .modifiers
+                        .contains(crossterm::event::KeyModifiers::SHIFT) =>
+            {
                 if self.app.panel_state.focus == crate::panel::PanelFocus::LogTable {
                     let all = crate::panel::PanelId::all();
                     let target = *all.last().unwrap();
