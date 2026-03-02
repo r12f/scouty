@@ -3,7 +3,7 @@ members = ["crates/scouty", "crates/scouty-tui"]
 resolver = "2"
 
 [workspace.package]
-version = "0.3.1"
+version = "0.3.2"
 edition = "2021"
 rust-version = "1.70"
 license = "Apache-2.0"
@@ -11,7 +11,7 @@ repository = "https://github.com/r12f/scouty"
 description = "A log viewing and analysis tool"
 
 [workspace.dependencies]
-scouty = { path = "crates/scouty", version = "0.3.1" }
+scouty = { path = "crates/scouty", version = "0.3.2" }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
 tracing-appender = "0.2"
