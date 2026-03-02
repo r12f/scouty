@@ -32,50 +32,41 @@ Users with custom terminal themes (Solarized, Dracula, Gruvbox, etc.) see incorr
     - `White` → `#D4D4D4`
     - `DarkGray` → `#5C5C5C` (matches existing trace color)
 
+- [ ] **New theme field: `density_tick`** — subtle tick marks every 10 columns on density chart X-axis (dependency: none)
+
+  | Theme | `density_tick` | Rationale |
+  |-------|---------------|-----------|
+  | **Default** (dark blue) | `#3B4252` | Matches border color, subtle against `#1B2838` bg |
+  | **Ocean** | `#2A4A5A` | Muted teal, between ocean `density_normal` and bg |
+  | **Forest** | `#2A4A2A` | Dark green, consistent with forest green palette |
+  | **Solarized** | `#073642` | Solarized base02, standard subtle element color |
+  | **Sakura** | `#4A2040` | Dark plum, matches sakura pink/plum palette |
+
+  The tick should be noticeably dimmer than `density_label` in each theme.
+
 ### P1 — Should Have
 
 - [ ] **Document in help/README**: Users creating custom themes should use `#RRGGBB` format for terminal-independent colors
 
 ## Functional Requirements
 
-- Only the **default theme values** in `theme.rs` change — no new fields, no config format changes
+- Default theme values in `theme.rs` must use only RGB true colors (`Color::Rgb`)
 - User-defined themes (YAML) already support `#RRGGBB` — no changes needed there
 - `Color::Reset` stays as-is (it means "use terminal default", which is intentional)
+- All built-in themes (default, ocean, forest, solarized, sakura) must include `density_tick`
 
 ## Acceptance Criteria
 
 - [ ] No `Color::Black/Red/Green/Yellow/Blue/Magenta/Cyan/White/Gray/DarkGray` in default theme definition (except `Color::Reset`)
 - [ ] Visual appearance is equivalent to current defaults on a standard dark terminal
 - [ ] Users with Solarized/Dracula/Gruvbox terminal themes see consistent scouty colors
+- [ ] All built-in themes include `density_tick` with per-theme colors as specified above
 
 ## Out of Scope
 
 - Changing the theme config format
-- Adding new theme fields
 - Light theme variant (separate feature)
 
 ## Open Questions
 
 None
-
----
-
-## Addendum: New Theme Field — density_tick (2026-03-02)
-
-Added `density_tick` to the StatusBar theme section for density chart tick marks.
-
-| Field | Purpose |
-|-------|---------|---------|
-| `density_tick` | Subtle tick marks every 10 columns on the density chart X-axis |
-
-### Per-Theme Colors
-
-| Theme | `density_tick` | Rationale |
-|-------|---------------|-----------|
-| **Default** (dark blue) | `#3B4252` | Matches border color, subtle against #1B2838 bg |
-| **Ocean** | `#2A4A5A` | Muted teal, between ocean density_normal and bg |
-| **Forest** | `#2A4A2A` | Dark green, consistent with forest green palette |
-| **Solarized** | `#073642` | Solarized base02, standard subtle element color |
-| **Sakura** | `#4A2040` | Dark plum, matches sakura pink/plum palette |
-
-All built-in themes must include `density_tick`. The tick should be noticeably dimmer than `density_label` in each theme.
