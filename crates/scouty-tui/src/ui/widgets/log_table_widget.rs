@@ -75,7 +75,7 @@ impl LogTableWidget {
         let visible = app.visible_records();
         let cw = &app.col_widths;
         let vis_cols = app.column_config.visible_columns();
-        let wo = &app.column_config.width_overrides;
+        let _wo = &app.column_config.width_overrides;
 
         let sep_style = theme.table.separator.to_style_entry().to_style();
         let sep_char = theme.table.separator.separator_char();

@@ -265,33 +265,6 @@ impl ColumnConfig {
         }
     }
 
-    /// Get the effective width for a column: override if set, otherwise auto-computed.
-    #[allow(dead_code)]
-    pub fn effective_width(&self, col: Column, auto_width: u16) -> u16 {
-        if col == Column::Log {
-            return 0;
-        }
-        match self.width_overrides.get(&col) {
-            Some(&w) => w,
-            None => auto_width,
-        }
-    }
-
-    /// Set a manual width override for a column, clamped to min_width.
-    #[allow(dead_code)]
-    pub fn set_width(&mut self, col: Column, width: u16) {
-        if col == Column::Log {
-            return;
-        }
-        let w = width.max(col.min_width());
-        self.width_overrides.insert(col, w);
-    }
-
-    /// Reset a column's width override (back to auto-computed).
-    #[allow(dead_code)]
-    pub fn reset_width(&mut self, col: Column) {
-        self.width_overrides.remove(&col);
-    }
 }
 
 /// A single filter entry in the filter stack.
