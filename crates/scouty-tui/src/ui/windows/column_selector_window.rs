@@ -115,10 +115,7 @@ impl UiComponent for ColumnSelectorWindow {
         frame.render_widget(Clear, overlay);
 
         let mut lines = vec![
-            Line::styled(
-                " Toggle (Space) / Width (h/l)",
-                t.dialog.muted.to_style(),
-            ),
+            Line::styled(" Toggle (Space) / Width (h/l)", t.dialog.muted.to_style()),
             Line::from(""),
         ];
 
