@@ -150,6 +150,6 @@ mod tests {
         let app = test_app();
         let overlay = HelpOverlay::new(&app);
         let hints = overlay.shortcut_hints();
-        assert_eq!(hints, vec![("j/k", "Scroll"), ("Esc/q", "Close")]);
+        assert_eq!(hints, vec![("j/k/PgUp/PgDn", "Scroll"), ("Esc/q", "Close")]);
     }
 }

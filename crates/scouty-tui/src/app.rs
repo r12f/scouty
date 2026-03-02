@@ -93,6 +93,24 @@ impl Column {
             Column::Log => "Log",
         }
     }
+
+    /// Minimum width for this column (cannot shrink below this).
+    pub fn min_width(&self) -> u16 {
+        match self {
+            Column::Time => 19,
+            Column::Level => 3,
+            Column::Hostname => 4,
+            Column::Container => 4,
+            Column::ProcessName => 4,
+            Column::Pid => 3,
+            Column::Tid => 3,
+            Column::Component => 4,
+            Column::Function => 4,
+            Column::Context => 4,
+            Column::Source => 4,
+            Column::Log => 0, // fill — not applicable
+        }
+    }
 }
 
 /// Column visibility configuration.
