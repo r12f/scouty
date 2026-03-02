@@ -425,13 +425,27 @@ impl Theme {
             "light" => Some(Self::light()),
             "solarized" => Some(Self::solarized()),
             "landmine" => Some(Self::landmine()),
+            "mizuiro" => Some(Self::mizuiro()),
+            "amai" => Some(Self::amai()),
+            "maid" => Some(Self::maid()),
+            "gyaru" => Some(Self::gyaru()),
             _ => None,
         }
     }
 
     /// List all built-in theme names.
     pub fn builtin_names() -> &'static [&'static str] {
-        &["default", "dark", "light", "solarized", "landmine"]
+        &[
+            "default",
+            "dark",
+            "light",
+            "solarized",
+            "landmine",
+            "mizuiro",
+            "amai",
+            "maid",
+            "gyaru",
+        ]
     }
 
     /// Muted dark theme — lower contrast, softer colors.
@@ -455,7 +469,11 @@ impl Theme {
                 },
                 header_unfocused: StyleEntry::fg_bg(Rgb(85, 85, 85), Rgb(30, 30, 40)),
                 selected: StyleEntry::bg(Rgb(40, 40, 55)),
-                ..TableTheme::default()
+                selected_search: StyleEntry::bg(Rgb(80, 80, 30)),
+                selected_highlight: StyleEntry::bg(Rgb(35, 45, 60)),
+                search_match: StyleEntry::bg(Rgb(60, 60, 20)),
+                bookmark: StyleEntry::bg(Rgb(25, 35, 50)),
+                separator: SeparatorStyle::default(),
             },
             status_bar: StatusBarTheme {
                 line1_bg: StyleEntry::bg(Rgb(30, 30, 40)),
@@ -534,7 +552,11 @@ impl Theme {
                 },
                 header_unfocused: StyleEntry::fg_bg(Rgb(153, 153, 153), Rgb(220, 220, 230)),
                 selected: StyleEntry::fg_bg(Black, Rgb(200, 210, 230)),
-                ..TableTheme::default()
+                selected_search: StyleEntry::fg_bg(Black, Rgb(220, 220, 160)),
+                selected_highlight: StyleEntry::fg_bg(Black, Rgb(210, 218, 235)),
+                search_match: StyleEntry::bg(Rgb(240, 240, 180)),
+                bookmark: StyleEntry::bg(Rgb(200, 220, 240)),
+                separator: SeparatorStyle::default(),
             },
             status_bar: StatusBarTheme {
                 line1_bg: StyleEntry::bg(Rgb(220, 220, 230)),
@@ -625,7 +647,11 @@ impl Theme {
                 },
                 header_unfocused: StyleEntry::fg_bg(Rgb(101, 123, 131), base02), // #657B83
                 selected: StyleEntry::fg_bg(base1, base02),
-                ..TableTheme::default()
+                selected_search: StyleEntry::bg(Rgb(80, 80, 20)),
+                selected_highlight: StyleEntry::bg(Rgb(10, 50, 60)),
+                search_match: StyleEntry::bg(Rgb(60, 60, 10)),
+                bookmark: StyleEntry::bg(Rgb(0, 50, 70)),
+                separator: SeparatorStyle::default(),
             },
             status_bar: StatusBarTheme {
                 line1_bg: StyleEntry::bg(base02),
@@ -720,12 +746,15 @@ impl Theme {
                 },
                 header_unfocused: StyleEntry::fg_bg(Rgb(107, 74, 94), dark_wine), // #6B4A5E
                 selected: StyleEntry::bg(selected_bg),
+                selected_search: StyleEntry::bg(Rgb(90, 60, 30)),
+                selected_highlight: StyleEntry::bg(Rgb(50, 25, 40)),
+                search_match: StyleEntry::bg(Rgb(70, 50, 20)),
+                bookmark: StyleEntry::bg(Rgb(45, 20, 45)),
                 separator: SeparatorStyle {
                     fg: Some(ThemeColor(separator_fg)),
                     bg: None,
                     char: "♡".to_string(),
                 },
-                ..TableTheme::default()
             },
             status_bar: StatusBarTheme {
                 line1_bg: StyleEntry::fg_bg(dusty_rose, dark_wine),
@@ -793,6 +822,465 @@ impl Theme {
                     bold: None,
                 }, // #6B4A5E
                 bar_bg: StyleEntry::bg(deep_black),
+            },
+        }
+    }
+
+    /// Mizuiro (水色) — clear, transparent, aqua theme.
+    pub fn mizuiro() -> Self {
+        use Color::*;
+        let deep_navy = Rgb(10, 22, 40); // #0A1628
+        let dark_ocean = Rgb(15, 32, 56); // #0F2038
+        let water_blue = Rgb(91, 164, 207); // #5BA4CF
+        let sky_blue = Rgb(123, 200, 246); // #7BC8F6
+        let ice_blue = Rgb(168, 216, 234); // #A8D8EA
+        let pale_aqua = Rgb(212, 238, 246); // #D4EEF6
+        let deep_blue = Rgb(46, 107, 158); // #2E6B9E
+        let steel_blue = Rgb(74, 123, 157); // #4A7B9D
+        let muted_blue = Rgb(59, 90, 122); // #3B5A7A
+        let dark_slate = Rgb(30, 58, 80); // #1E3A50
+        let silver_mist = Rgb(139, 164, 184); // #8BA4B8
+        let light_text = Rgb(200, 214, 229); // #C8D6E5
+        let selected_bg = Rgb(22, 46, 72); // #162E48
+        let coral_accent = Rgb(232, 116, 97); // #E87461
+        let amber_warn = Rgb(232, 167, 78); // #E8A74E
+
+        Self {
+            log_levels: LogLevelTheme {
+                fatal: StyleEntry::fg_bold(coral_accent),
+                error: StyleEntry::fg(Rgb(207, 107, 94)), // #CF6B5E
+                warn: StyleEntry::fg(amber_warn),
+                notice: StyleEntry::fg(sky_blue),
+                info: StyleEntry::fg(light_text),
+                debug: StyleEntry::fg(steel_blue),
+                trace: StyleEntry::fg(muted_blue),
+            },
+            table: TableTheme {
+                header: StyleEntry {
+                    fg: Some(ThemeColor(deep_navy)),
+                    bg: Some(ThemeColor(water_blue)),
+                    bold: Some(true),
+                },
+                header_unfocused: StyleEntry::fg_bg(steel_blue, dark_ocean),
+                selected: StyleEntry::bg(selected_bg),
+                separator: SeparatorStyle {
+                    fg: Some(ThemeColor(dark_slate)),
+                    bg: None,
+                    char: "│".to_string(),
+                },
+                selected_search: StyleEntry::bg(Rgb(20, 50, 80)), // #143250 deep ocean search selection
+                selected_highlight: StyleEntry::bg(Rgb(18, 40, 68)), // #122844 dark blue highlight
+                search_match: StyleEntry::bg(Rgb(40, 70, 100)),   // #284664 steel blue search match
+                bookmark: StyleEntry::bg(Rgb(15, 45, 75)),        // #0F2D4B navy bookmark
+            },
+            status_bar: StatusBarTheme {
+                line1_bg: StyleEntry::fg_bg(silver_mist, dark_ocean),
+                line2_bg: StyleEntry::fg_bg(steel_blue, deep_navy),
+                mode_label: StyleEntry {
+                    fg: Some(ThemeColor(deep_navy)),
+                    bg: Some(ThemeColor(water_blue)),
+                    bold: Some(true),
+                },
+                mode_view: StyleEntry::fg_bg(deep_navy, steel_blue),
+                mode_follow: StyleEntry::fg_bg(deep_navy, sky_blue),
+                density_normal: StyleEntry::fg(water_blue),
+                density_hot: StyleEntry::fg(sky_blue),
+                density_label: StyleEntry::fg(muted_blue),
+                density_tick: StyleEntry::fg(dark_slate),
+                position: StyleEntry::fg(ice_blue),
+                cursor_marker: StyleEntry::fg(sky_blue),
+                ..StatusBarTheme::default()
+            },
+            search: SearchTheme {
+                match_highlight: StyleEntry::fg_bg(deep_navy, ice_blue),
+                current_match: StyleEntry::fg_bg(deep_navy, sky_blue),
+            },
+            dialog: DialogTheme {
+                border: StyleEntry::fg(water_blue),
+                title: StyleEntry::fg_bold(sky_blue),
+                selected: StyleEntry::fg_bg(Rgb(232, 240, 246), selected_bg), // #E8F0F6
+                text: StyleEntry::fg(silver_mist),
+                muted: StyleEntry::fg(muted_blue),
+                ..DialogTheme::default()
+            },
+            detail_panel: DetailPanelTheme {
+                border: StyleEntry::fg(dark_slate),
+                field_name: StyleEntry::fg(water_blue),
+                field_value: StyleEntry::fg(silver_mist),
+                section_header: StyleEntry::fg_bold(sky_blue),
+            },
+            input: InputTheme {
+                prompt: StyleEntry::fg(sky_blue),
+                error: StyleEntry::fg(coral_accent),
+                ..InputTheme::default()
+            },
+            highlight_palette: vec![
+                ThemeColor(sky_blue),   // #7BC8F6
+                ThemeColor(water_blue), // #5BA4CF
+                ThemeColor(ice_blue),   // #A8D8EA
+                ThemeColor(deep_blue),  // #2E6B9E
+                ThemeColor(pale_aqua),  // #D4EEF6
+                ThemeColor(steel_blue), // #4A7B9D
+            ],
+            general: GeneralTheme {
+                accent: StyleEntry::fg(water_blue),
+                muted: StyleEntry::fg(muted_blue),
+                border: StyleEntry::fg(dark_slate),
+            },
+            panel_tab: PanelTabTheme {
+                focused: StyleEntry {
+                    fg: Some(ThemeColor(deep_navy)),
+                    bg: Some(ThemeColor(water_blue)),
+                    bold: Some(true),
+                },
+                unfocused: StyleEntry {
+                    fg: Some(ThemeColor(steel_blue)),
+                    bg: Some(ThemeColor(dark_ocean)),
+                    bold: None,
+                },
+                bar_bg: StyleEntry::bg(deep_navy),
+            },
+        }
+    }
+
+    /// Amai (甜系) — Sweet Lolita, dreamy pastel pink theme.
+    pub fn amai() -> Self {
+        use Color::*;
+        let deep_rose = Rgb(30, 10, 20); // #1E0A14
+        let dark_berry = Rgb(45, 27, 46); // #2D1B2E
+        let baby_pink = Rgb(255, 183, 197); // #FFB7C5
+        let hot_pink = Rgb(255, 107, 138); // #FF6B8A
+        let lavender = Rgb(200, 162, 200); // #C8A2C8
+        let mint = Rgb(152, 216, 200); // #98D8C8
+        let dusty_pink = Rgb(212, 160, 176); // #D4A0B0
+        let muted_mauve = Rgb(138, 106, 126); // #8A6A7E
+        let deep_plum = Rgb(90, 58, 78); // #5A3A4E
+        let dark_mauve = Rgb(74, 46, 64); // #4A2E40
+        let selected_bg = Rgb(58, 24, 48); // #3A1830
+        let light_text = Rgb(232, 208, 218); // #E8D0DA
+        let pale_yellow = Rgb(255, 232, 160); // #FFE8A0
+
+        Self {
+            log_levels: LogLevelTheme {
+                fatal: StyleEntry::fg_bold(hot_pink),
+                error: StyleEntry::fg(Rgb(232, 90, 122)), // #E85A7A
+                warn: StyleEntry::fg(pale_yellow),
+                notice: StyleEntry::fg(lavender),
+                info: StyleEntry::fg(light_text),
+                debug: StyleEntry::fg(muted_mauve),
+                trace: StyleEntry::fg(deep_plum),
+            },
+            table: TableTheme {
+                header: StyleEntry {
+                    fg: Some(ThemeColor(deep_rose)),
+                    bg: Some(ThemeColor(baby_pink)),
+                    bold: Some(true),
+                },
+                header_unfocused: StyleEntry::fg_bg(muted_mauve, dark_berry),
+                selected: StyleEntry::bg(selected_bg),
+                separator: SeparatorStyle {
+                    fg: Some(ThemeColor(dark_mauve)),
+                    bg: None,
+                    char: "♡".to_string(),
+                },
+                selected_search: StyleEntry::bg(Rgb(70, 20, 50)), // #461432 deep rose search selection
+                selected_highlight: StyleEntry::bg(Rgb(55, 22, 44)), // #37162C dark berry highlight
+                search_match: StyleEntry::bg(Rgb(90, 30, 60)),    // #5A1E3C berry search match
+                bookmark: StyleEntry::bg(Rgb(60, 18, 48)),        // #3C1230 plum bookmark
+            },
+            status_bar: StatusBarTheme {
+                line1_bg: StyleEntry::fg_bg(dusty_pink, dark_berry),
+                line2_bg: StyleEntry::fg_bg(muted_mauve, deep_rose),
+                mode_label: StyleEntry {
+                    fg: Some(ThemeColor(deep_rose)),
+                    bg: Some(ThemeColor(baby_pink)),
+                    bold: Some(true),
+                },
+                mode_view: StyleEntry::fg_bg(deep_rose, muted_mauve),
+                mode_follow: StyleEntry::fg_bg(deep_rose, mint),
+                density_normal: StyleEntry::fg(baby_pink),
+                density_hot: StyleEntry::fg(hot_pink),
+                density_label: StyleEntry::fg(deep_plum),
+                density_tick: StyleEntry::fg(dark_mauve),
+                position: StyleEntry::fg(lavender),
+                cursor_marker: StyleEntry::fg(hot_pink),
+                ..StatusBarTheme::default()
+            },
+            search: SearchTheme {
+                match_highlight: StyleEntry::fg_bg(deep_rose, lavender),
+                current_match: StyleEntry::fg_bg(deep_rose, baby_pink),
+            },
+            dialog: DialogTheme {
+                border: StyleEntry::fg(baby_pink),
+                title: StyleEntry::fg_bold(hot_pink),
+                selected: StyleEntry::fg_bg(Rgb(255, 240, 232), selected_bg), // #FFF0E8
+                text: StyleEntry::fg(dusty_pink),
+                muted: StyleEntry::fg(deep_plum),
+                ..DialogTheme::default()
+            },
+            detail_panel: DetailPanelTheme {
+                border: StyleEntry::fg(dark_mauve),
+                field_name: StyleEntry::fg(baby_pink),
+                field_value: StyleEntry::fg(dusty_pink),
+                section_header: StyleEntry::fg_bold(mint),
+            },
+            input: InputTheme {
+                prompt: StyleEntry::fg(lavender),
+                error: StyleEntry::fg(hot_pink),
+                ..InputTheme::default()
+            },
+            highlight_palette: vec![
+                ThemeColor(hot_pink),           // #FF6B8A
+                ThemeColor(baby_pink),          // #FFB7C5
+                ThemeColor(lavender),           // #C8A2C8
+                ThemeColor(mint),               // #98D8C8
+                ThemeColor(Rgb(107, 142, 194)), // #6B8EC2 sax blue
+                ThemeColor(pale_yellow),        // #FFE8A0
+            ],
+            general: GeneralTheme {
+                accent: StyleEntry::fg(baby_pink),
+                muted: StyleEntry::fg(deep_plum),
+                border: StyleEntry::fg(dark_mauve),
+            },
+            panel_tab: PanelTabTheme {
+                focused: StyleEntry {
+                    fg: Some(ThemeColor(deep_rose)),
+                    bg: Some(ThemeColor(baby_pink)),
+                    bold: Some(true),
+                },
+                unfocused: StyleEntry {
+                    fg: Some(ThemeColor(muted_mauve)),
+                    bg: Some(ThemeColor(dark_berry)),
+                    bold: None,
+                },
+                bar_bg: StyleEntry::bg(deep_rose),
+            },
+        }
+    }
+
+    /// Maid (女仆) — classic maid, black & white high contrast with wine red accents.
+    pub fn maid() -> Self {
+        use Color::*;
+        let black_dress = Rgb(13, 13, 26); // #0D0D1A
+        let dark_fabric = Rgb(26, 26, 46); // #1A1A2E
+        let lace_white = Rgb(240, 237, 232); // #F0EDE8
+        let lace_shadow = Rgb(176, 168, 185); // #B0A8B9
+        let wine_red = Rgb(139, 34, 82); // #8B2252
+        let bright_red = Rgb(196, 48, 96); // #C43060
+        let steel_gray = Rgb(107, 107, 128); // #6B6B80
+        let dark_gray = Rgb(58, 58, 78); // #3A3A4E
+        let deep_gray = Rgb(42, 42, 62); // #2A2A3E
+        let selected_bg = Rgb(30, 30, 56); // #1E1E38
+        let amber_warn = Rgb(212, 160, 80); // #D4A050
+
+        Self {
+            log_levels: LogLevelTheme {
+                fatal: StyleEntry::fg_bold(bright_red),
+                error: StyleEntry::fg(wine_red),
+                warn: StyleEntry::fg(amber_warn),
+                notice: StyleEntry::fg(lace_shadow),
+                info: StyleEntry::fg(lace_white),
+                debug: StyleEntry::fg(steel_gray),
+                trace: StyleEntry::fg(dark_gray),
+            },
+            table: TableTheme {
+                header: StyleEntry {
+                    fg: Some(ThemeColor(black_dress)),
+                    bg: Some(ThemeColor(lace_white)),
+                    bold: Some(true),
+                },
+                header_unfocused: StyleEntry::fg_bg(steel_gray, dark_fabric),
+                selected: StyleEntry::bg(selected_bg),
+                separator: SeparatorStyle {
+                    fg: Some(ThemeColor(deep_gray)),
+                    bg: None,
+                    char: "│".to_string(),
+                },
+                selected_search: StyleEntry::bg(Rgb(50, 20, 42)), // #32142A wine-tinted search selection
+                selected_highlight: StyleEntry::bg(Rgb(35, 30, 55)), // #231E37 muted purple highlight
+                search_match: StyleEntry::bg(Rgb(80, 25, 50)), // #501932 wine-red search match
+                bookmark: StyleEntry::bg(Rgb(40, 20, 45)),     // #28142D deep plum bookmark
+            },
+            status_bar: StatusBarTheme {
+                line1_bg: StyleEntry::fg_bg(lace_shadow, dark_fabric),
+                line2_bg: StyleEntry::fg_bg(steel_gray, black_dress),
+                mode_label: StyleEntry {
+                    fg: Some(ThemeColor(black_dress)),
+                    bg: Some(ThemeColor(lace_white)),
+                    bold: Some(true),
+                },
+                mode_view: StyleEntry::fg_bg(black_dress, steel_gray),
+                mode_follow: StyleEntry::fg_bg(black_dress, lace_shadow),
+                density_normal: StyleEntry::fg(lace_shadow),
+                density_hot: StyleEntry::fg(lace_white),
+                density_label: StyleEntry::fg(dark_gray),
+                density_tick: StyleEntry::fg(deep_gray),
+                position: StyleEntry::fg(lace_white),
+                cursor_marker: StyleEntry::fg(bright_red),
+                ..StatusBarTheme::default()
+            },
+            search: SearchTheme {
+                match_highlight: StyleEntry::fg_bg(black_dress, lace_shadow),
+                current_match: StyleEntry::fg_bg(black_dress, lace_white),
+            },
+            dialog: DialogTheme {
+                border: StyleEntry::fg(steel_gray),
+                title: StyleEntry::fg_bold(lace_white),
+                selected: StyleEntry::fg_bg(Rgb(250, 250, 245), selected_bg), // #FAFAF5
+                text: StyleEntry::fg(lace_shadow),
+                muted: StyleEntry::fg(dark_gray),
+                ..DialogTheme::default()
+            },
+            detail_panel: DetailPanelTheme {
+                border: StyleEntry::fg(deep_gray),
+                field_name: StyleEntry::fg(lace_shadow),
+                field_value: StyleEntry::fg(steel_gray),
+                section_header: StyleEntry::fg_bold(lace_white),
+            },
+            input: InputTheme {
+                prompt: StyleEntry::fg(lace_white),
+                error: StyleEntry::fg(bright_red),
+                ..InputTheme::default()
+            },
+            highlight_palette: vec![
+                ThemeColor(lace_white),         // #F0EDE8
+                ThemeColor(lace_shadow),        // #B0A8B9
+                ThemeColor(bright_red),         // #C43060
+                ThemeColor(wine_red),           // #8B2252
+                ThemeColor(Rgb(104, 128, 160)), // #6880A0 cold blue
+                ThemeColor(steel_gray),         // #6B6B80
+            ],
+            general: GeneralTheme {
+                accent: StyleEntry::fg(wine_red),
+                muted: StyleEntry::fg(dark_gray),
+                border: StyleEntry::fg(deep_gray),
+            },
+            panel_tab: PanelTabTheme {
+                focused: StyleEntry {
+                    fg: Some(ThemeColor(black_dress)),
+                    bg: Some(ThemeColor(lace_white)),
+                    bold: Some(true),
+                },
+                unfocused: StyleEntry {
+                    fg: Some(ThemeColor(steel_gray)),
+                    bg: Some(ThemeColor(dark_fabric)),
+                    bold: None,
+                },
+                bar_bg: StyleEntry::bg(black_dress),
+            },
+        }
+    }
+
+    /// Gyaru (ギャル) — Shibuya bold, gold and hot pink glamour.
+    pub fn gyaru() -> Self {
+        use Color::*;
+        let dark_bronze = Rgb(26, 18, 8); // #1A1208
+        let warm_brown = Rgb(42, 31, 20); // #2A1F14
+        let hot_pink = Rgb(255, 36, 153); // #FF2499
+        let gold = Rgb(255, 215, 0); // #FFD700
+        let tan = Rgb(198, 134, 66); // #C68642
+        let cream_white = Rgb(255, 240, 212); // #FFF0D4
+        let leopard_dark = Rgb(139, 105, 20); // #8B6914
+        let bronze = Rgb(166, 124, 82); // #A67C52
+        let dark_gold = Rgb(107, 90, 40); // #6B5A28
+        let warm_gray = Rgb(90, 72, 48); // #5A4830
+        let deep_brown = Rgb(58, 42, 24); // #3A2A18
+        let selected_bg = Rgb(58, 40, 24); // #3A2818
+
+        Self {
+            log_levels: LogLevelTheme {
+                fatal: StyleEntry::fg_bold(hot_pink),
+                error: StyleEntry::fg(Rgb(255, 105, 180)), // #FF69B4
+                warn: StyleEntry::fg(Rgb(255, 224, 64)),   // #FFE040
+                notice: StyleEntry::fg(gold),
+                info: StyleEntry::fg(cream_white),
+                debug: StyleEntry::fg(bronze),
+                trace: StyleEntry::fg(warm_gray),
+            },
+            table: TableTheme {
+                header: StyleEntry {
+                    fg: Some(ThemeColor(dark_bronze)),
+                    bg: Some(ThemeColor(gold)),
+                    bold: Some(true),
+                },
+                header_unfocused: StyleEntry::fg_bg(bronze, warm_brown),
+                selected: StyleEntry::bg(selected_bg),
+                separator: SeparatorStyle {
+                    fg: Some(ThemeColor(deep_brown)),
+                    bg: None,
+                    char: "│".to_string(),
+                },
+                selected_search: StyleEntry::bg(Rgb(70, 50, 20)), // #463214 warm bronze search selection
+                selected_highlight: StyleEntry::bg(Rgb(55, 38, 18)), // #372612 dark bronze highlight
+                search_match: StyleEntry::bg(Rgb(90, 65, 25)),       // #5A4119 golden search match
+                bookmark: StyleEntry::bg(Rgb(60, 45, 15)),           // #3C2D0F deep gold bookmark
+            },
+            status_bar: StatusBarTheme {
+                line1_bg: StyleEntry::fg_bg(tan, warm_brown),
+                line2_bg: StyleEntry::fg_bg(bronze, dark_bronze),
+                mode_label: StyleEntry {
+                    fg: Some(ThemeColor(dark_bronze)),
+                    bg: Some(ThemeColor(gold)),
+                    bold: Some(true),
+                },
+                mode_view: StyleEntry::fg_bg(dark_bronze, bronze),
+                mode_follow: StyleEntry::fg_bg(dark_bronze, hot_pink),
+                density_normal: StyleEntry::fg(tan),
+                density_hot: StyleEntry::fg(gold),
+                density_label: StyleEntry::fg(dark_gold),
+                density_tick: StyleEntry::fg(deep_brown),
+                position: StyleEntry::fg(gold),
+                cursor_marker: StyleEntry::fg(hot_pink),
+                ..StatusBarTheme::default()
+            },
+            search: SearchTheme {
+                match_highlight: StyleEntry::fg_bg(dark_bronze, tan),
+                current_match: StyleEntry::fg_bg(dark_bronze, gold),
+            },
+            dialog: DialogTheme {
+                border: StyleEntry::fg(tan),
+                title: StyleEntry::fg_bold(gold),
+                selected: StyleEntry::fg_bg(cream_white, selected_bg),
+                text: StyleEntry::fg(bronze),
+                muted: StyleEntry::fg(warm_gray),
+                ..DialogTheme::default()
+            },
+            detail_panel: DetailPanelTheme {
+                border: StyleEntry::fg(deep_brown),
+                field_name: StyleEntry::fg(gold),
+                field_value: StyleEntry::fg(tan),
+                section_header: StyleEntry::fg_bold(hot_pink),
+            },
+            input: InputTheme {
+                prompt: StyleEntry::fg(gold),
+                error: StyleEntry::fg(hot_pink),
+                ..InputTheme::default()
+            },
+            highlight_palette: vec![
+                ThemeColor(hot_pink),           // #FF2499
+                ThemeColor(gold),               // #FFD700
+                ThemeColor(tan),                // #C68642
+                ThemeColor(Rgb(255, 105, 180)), // #FF69B4
+                ThemeColor(Rgb(255, 224, 64)),  // #FFE040
+                ThemeColor(leopard_dark),       // #8B6914
+            ],
+            general: GeneralTheme {
+                accent: StyleEntry::fg(gold),
+                muted: StyleEntry::fg(warm_gray),
+                border: StyleEntry::fg(deep_brown),
+            },
+            panel_tab: PanelTabTheme {
+                focused: StyleEntry {
+                    fg: Some(ThemeColor(dark_bronze)),
+                    bg: Some(ThemeColor(gold)),
+                    bold: Some(true),
+                },
+                unfocused: StyleEntry {
+                    fg: Some(ThemeColor(bronze)),
+                    bg: Some(ThemeColor(warm_brown)),
+                    bold: None,
+                },
+                bar_bg: StyleEntry::bg(dark_bronze),
             },
         }
     }

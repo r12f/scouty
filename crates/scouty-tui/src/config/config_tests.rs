@@ -222,8 +222,15 @@ mod tests {
     #[test]
     fn test_builtin_names() {
         let names = super::super::Theme::builtin_names();
+        assert_eq!(names.len(), 9);
         assert!(names.contains(&"default"));
+        assert!(names.contains(&"dark"));
+        assert!(names.contains(&"light"));
+        assert!(names.contains(&"solarized"));
         assert!(names.contains(&"landmine"));
-        assert_eq!(names.len(), 5);
+        assert!(names.contains(&"mizuiro"));
+        assert!(names.contains(&"amai"));
+        assert!(names.contains(&"maid"));
+        assert!(names.contains(&"gyaru"));
     }
 }
