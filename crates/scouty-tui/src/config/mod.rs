@@ -22,7 +22,7 @@ use tracing::{instrument, warn};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Config {
-    /// Theme name: "default" or a custom theme file name (without .yaml).
+    /// Theme name: "mizuiro" or a custom theme file name (without .yaml).
     pub theme: String,
     /// Keybinding overrides.
     #[serde(default)]
@@ -78,7 +78,7 @@ impl Default for SshConfig {
 impl Default for Config {
     fn default() -> Self {
         Self {
-            theme: "default".to_string(),
+            theme: "mizuiro".to_string(),
             keybindings: crate::keybinding::KeybindingConfig::default(),
             general: GeneralConfig::default(),
             default_paths: Vec::new(),
@@ -222,7 +222,7 @@ pub fn load_config() -> Config {
 pub fn resolve_theme(config: &Config, cli_theme: Option<&str>) -> Theme {
     let theme_name = cli_theme.unwrap_or(&config.theme);
 
-    if theme_name == "default" {
+    if theme_name == "mizuiro" {
         return Theme::default();
     }
 
@@ -264,8 +264,8 @@ pub fn generate_default_config() -> String {
 # Place at ~/.scouty/config.yaml (user) or ./scouty.yaml (project)
 # See: https://github.com/r12f/scouty
 
-# Theme selection (built-in: default, landmine, amai, maid, gyaru, dopamine)
-theme: default
+# Theme selection (built-in: mizuiro, landmine, amai, maid, gyaru, dopamine)
+theme: mizuiro
 
 # Default log paths when no files specified (glob patterns supported)
 default_paths: []
