@@ -1573,6 +1573,11 @@ impl App {
 
     /// Parse a relative duration string like "5m", "30s", "2h", "1d".
     /// Returns the duration in seconds, or None if invalid.
+    /// Parse a relative duration string and return the total in **milliseconds**.
+    ///
+    /// Supported suffixes: `ms` (milliseconds), `s` (seconds), `m` (minutes),
+    /// `h` (hours), `d` (days). Compound forms like `1h30m`, `2m30s`, `500ms`
+    /// are all valid.
     fn parse_relative_duration(input: &str) -> Option<i64> {
         let input = input.trim();
         if input.is_empty() {
@@ -1582,25 +1587,38 @@ impl App {
         let mut total: i64 = 0;
         let mut num_buf = String::new();
         let mut found_any = false;
+        let chars: Vec<char> = input.chars().collect();
+        let mut i = 0;
 
-        for ch in input.chars() {
+        while i < chars.len() {
+            let ch = chars[i];
             if ch.is_ascii_digit() {
                 num_buf.push(ch);
+                i += 1;
             } else {
                 if num_buf.is_empty() {
                     return None;
                 }
                 let value: i64 = num_buf.parse().ok()?;
                 num_buf.clear();
-                let secs = match ch {
-                    's' => value,
-                    'm' => value.checked_mul(60)?,
-                    'h' => value.checked_mul(3600)?,
-                    'd' => value.checked_mul(86400)?,
-                    _ => return None,
-                };
-                total = total.checked_add(secs)?;
-                found_any = true;
+
+                // Check for two-char suffix "ms"
+                if ch == 'm' && i + 1 < chars.len() && chars[i + 1] == 's' {
+                    total = total.checked_add(value)?;
+                    found_any = true;
+                    i += 2;
+                } else {
+                    let ms = match ch {
+                        's' => value.checked_mul(1_000)?,
+                        'm' => value.checked_mul(60_000)?,
+                        'h' => value.checked_mul(3_600_000)?,
+                        'd' => value.checked_mul(86_400_000)?,
+                        _ => return None,
+                    };
+                    total = total.checked_add(ms)?;
+                    found_any = true;
+                    i += 1;
+                }
             }
         }
 
@@ -1638,10 +1656,10 @@ impl App {
             return false;
         }
 
-        let secs = match Self::parse_relative_duration(&input) {
-            Some(s) => s,
+        let ms = match Self::parse_relative_duration(&input) {
+            Some(v) => v,
             None => {
-                self.set_status("Invalid duration (use Ns, Nm, Nh, Nd)".to_string());
+                self.set_status("Invalid duration (use Nms, Ns, Nm, Nh, Nd)".to_string());
                 return false;
             }
         };
@@ -1653,7 +1671,7 @@ impl App {
 
         let current_ri = self.filtered_indices[self.selected];
         let current_ts = self.records[current_ri].timestamp;
-        let delta = chrono::Duration::seconds(if forward { secs } else { -secs });
+        let delta = chrono::Duration::milliseconds(if forward { ms } else { -ms });
         let target_ts = current_ts + delta;
 
         // Binary search filtered_indices for the closest row to target_ts
@@ -3742,19 +3760,24 @@ mod time_jump_tests {
 
     #[test]
     fn test_parse_relative_duration() {
-        assert_eq!(App::parse_relative_duration("5s"), Some(5));
-        assert_eq!(App::parse_relative_duration("5m"), Some(300));
-        assert_eq!(App::parse_relative_duration("2h"), Some(7200));
-        assert_eq!(App::parse_relative_duration("1d"), Some(86400));
+        assert_eq!(App::parse_relative_duration("5s"), Some(5_000));
+        assert_eq!(App::parse_relative_duration("5m"), Some(300_000));
+        assert_eq!(App::parse_relative_duration("2h"), Some(7_200_000));
+        assert_eq!(App::parse_relative_duration("1d"), Some(86_400_000));
         assert_eq!(App::parse_relative_duration(""), None);
         assert_eq!(App::parse_relative_duration("abc"), None);
         assert_eq!(App::parse_relative_duration("5x"), None);
         assert_eq!(App::parse_relative_duration("0s"), None);
         // Combined formats
-        assert_eq!(App::parse_relative_duration("1h30m"), Some(5400));
-        assert_eq!(App::parse_relative_duration("2m30s"), Some(150));
-        assert_eq!(App::parse_relative_duration("1d2h30m"), Some(95400));
-        assert_eq!(App::parse_relative_duration("1h0m"), Some(3600));
+        assert_eq!(App::parse_relative_duration("1h30m"), Some(5_400_000));
+        assert_eq!(App::parse_relative_duration("2m30s"), Some(150_000));
+        assert_eq!(App::parse_relative_duration("1d2h30m"), Some(95_400_000));
+        assert_eq!(App::parse_relative_duration("1h0m"), Some(3_600_000));
+        // Millisecond formats
+        assert_eq!(App::parse_relative_duration("500ms"), Some(500));
+        assert_eq!(App::parse_relative_duration("100ms"), Some(100));
+        assert_eq!(App::parse_relative_duration("1s500ms"), Some(1_500));
+        assert_eq!(App::parse_relative_duration("0ms"), None);
         // Trailing number without suffix is invalid
         assert_eq!(App::parse_relative_duration("30"), None);
     }

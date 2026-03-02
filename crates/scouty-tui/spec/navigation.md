@@ -22,7 +22,7 @@ Advanced navigation features beyond basic j/k scrolling: bookmarks, relative tim
 
 - `]` — jump forward (time increases): `[JUMP+] 5m█`
 - `[` — jump backward (time decreases): `[JUMP-] 5m█`
-- Supported formats: `Ns` (seconds), `Nm` (minutes), `Nh` (hours), `Nd` (days)
+- Supported formats: `Nms` (milliseconds), `Ns` (seconds), `Nm` (minutes), `Nh` (hours), `Nd` (days)
 - Combined formats (P1): `1h30m`, `2m30s`
 - Enter confirms: binary search (O(log N)) for nearest row to target timestamp
 - Status bar feedback: `Jumped +5m to 2025-05-17 18:47:03`
