@@ -208,3 +208,58 @@ mod tests {
         assert_eq!(mw.app.input_mode, InputMode::Normal);
     }
 }
+
+#[cfg(test)]
+mod quit_from_panel_tests {
+    use crate::keybinding::Keymap;
+    use crate::panel::{PanelFocus, PanelId};
+    use crate::ui::framework::{Window, WindowAction};
+    use crate::ui::windows::main_window::MainWindow;
+    use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+
+    fn key(code: KeyCode) -> KeyEvent {
+        KeyEvent::new(code, KeyModifiers::NONE)
+    }
+
+    fn make_main_window() -> MainWindow {
+        let app = crate::app::App::load_stdin(Vec::new()).unwrap();
+        let keymap = Keymap::default_keymap();
+        MainWindow::new(app, keymap)
+    }
+
+    #[test]
+    fn test_quit_from_detail_panel_focus() {
+        let mut mw = make_main_window();
+        mw.app.panel_state.expanded = true;
+        mw.app.panel_state.active = PanelId::Detail;
+        mw.app.panel_state.focus = PanelFocus::PanelContent;
+        assert!(mw.app.panel_state.has_focus());
+
+        let result = mw.handle_key(key(KeyCode::Char('q')));
+        assert_eq!(result, WindowAction::Close, "q should quit even when detail panel is focused");
+    }
+
+    #[test]
+    fn test_quit_from_region_panel_focus() {
+        let mut mw = make_main_window();
+        mw.app.panel_state.expanded = true;
+        mw.app.panel_state.active = PanelId::Region;
+        mw.app.panel_state.focus = PanelFocus::PanelContent;
+        assert!(mw.app.panel_state.has_focus());
+
+        let result = mw.handle_key(key(KeyCode::Char('q')));
+        assert_eq!(result, WindowAction::Close, "q should quit even when region panel is focused");
+    }
+
+    #[test]
+    fn test_quit_from_category_panel_focus() {
+        let mut mw = make_main_window();
+        mw.app.panel_state.expanded = true;
+        mw.app.panel_state.active = PanelId::Category;
+        mw.app.panel_state.focus = PanelFocus::PanelContent;
+        assert!(mw.app.panel_state.has_focus());
+
+        let result = mw.handle_key(key(KeyCode::Char('q')));
+        assert_eq!(result, WindowAction::Close, "q should quit even when category panel is focused");
+    }
+}

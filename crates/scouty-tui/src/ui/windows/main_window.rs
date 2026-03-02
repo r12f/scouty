@@ -348,7 +348,12 @@ impl MainWindow {
             return WindowAction::Handled;
         }
 
-        // 3. If a panel has focus, do NOT fall through to log table keys
+        // 3. Global keys (quit) — must work regardless of panel focus
+        if self.keymap.action(&key) == Some(Action::Quit) {
+            return WindowAction::Close;
+        }
+
+        // 4. If a panel has focus, do NOT fall through to log table keys
         if self.app.panel_state.has_focus() {
             tracing::debug!(
                 panel = ?self.app.panel_state.active,
@@ -358,7 +363,7 @@ impl MainWindow {
             return WindowAction::Handled;
         }
 
-        // 4. Log table / global keys via keymap (only when log table has focus)
+        // 5. Log table / global keys via keymap (only when log table has focus)
         match self.handle_log_table_key(key) {
             Some(true) => WindowAction::Close,
             Some(false) => WindowAction::Handled,
