@@ -143,10 +143,11 @@ mod tests {
     fn test_stats_compute_top_components() {
         let app = make_test_app();
         let stats = StatsData::compute(&app);
-        // auth=2, db=2, api=1
+        // auth=2, db=2, api=1 — secondary sort by name ensures stable order
         assert_eq!(stats.top_components.len(), 3);
-        // Top should be auth or db (both 2)
-        assert!(stats.top_components[0].1 >= stats.top_components[1].1);
+        assert_eq!(stats.top_components[0], ("auth".to_string(), 2));
+        assert_eq!(stats.top_components[1], ("db".to_string(), 2));
+        assert_eq!(stats.top_components[2], ("api".to_string(), 1));
     }
 
     #[test]
