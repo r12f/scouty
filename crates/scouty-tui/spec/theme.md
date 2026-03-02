@@ -96,6 +96,48 @@ general:
   muted: { fg: "#6B7B8D" }          # Readable muted text
 ```
 
+### Theme Description Field
+
+Each built-in theme includes a `description` field for display in `--theme-list`. Descriptions are short (one line), mentioning style inspiration and primary colors.
+
+| Name | Description |
+|------|-------------|
+| default | Dark theme with blue accents and warm highlights |
+| dark | Low-contrast dark theme with muted, softer colors |
+| light | Light background with dark text for bright environments |
+| solarized | Ethan Schoonover's Solarized Dark palette |
+| landmine | Jirai Kei: black base with pink and red accents |
+| mizuiro | Clear aqua: deep navy base with water blue and sky blue |
+| amai | Sweet Lolita: dark rose base with candy pink and lavender |
+| maid | Classic maid: black and white high contrast with wine red |
+| gyaru | Shibuya bold: dark bronze base with gold and hot pink |
+
+### CLI: `--theme-list`
+
+Prints all available themes (built-in + user custom from `~/.scouty/themes/`) and exits.
+
+```
+$ scouty --theme-list
+Built-in themes:
+  default      Dark theme with blue accents and warm highlights
+  dark         Low-contrast dark theme with muted, softer colors
+  light        Light background with dark text for bright environments
+  solarized    Ethan Schoonover's Solarized Dark palette
+  landmine     Jirai Kei: black base with pink and red accents
+  mizuiro      Clear aqua: deep navy base with water blue and sky blue
+  amai         Sweet Lolita: dark rose base with candy pink and lavender
+  maid         Classic maid: black and white high contrast with wine red
+  gyaru        Shibuya bold: dark bronze base with gold and hot pink
+
+Custom themes (~/.scouty/themes/):
+  my-custom    (loaded from my-custom.yaml)
+```
+
+Implementation notes:
+- Add `description: &'static str` field to a new `ThemeInfo` struct or a `builtin_themes()` method returning `(name, description)` pairs
+- Scan `~/.scouty/themes/*.yaml` for user custom themes
+- Print to stdout, then `std::process::exit(0)`
+
 ### Color Value Formats
 
 - **Named colors**: `black`, `red`, `green`, `yellow`, `blue`, `magenta`, `cyan`, `white`, `gray`, `dark_gray`
@@ -205,3 +247,4 @@ general:
 | 2026-03-02 | Added `density_tick` field to StatusBarTheme for density chart tick marks |
 | 2026-03-02 | Added 4 new fashion-inspired themes: mizuiro, amai, maid, gyaru |
 | 2026-03-02 | Tuned amai theme: darker log bg (#140A10), brighter highlights (header #FFC8D6, status bar #3D2540) |
+| 2026-03-02 | Added `--theme-list` CLI command and per-theme `description` field |
