@@ -64,8 +64,18 @@ None
 
 Added `density_tick` to the StatusBar theme section for density chart tick marks.
 
-| Field | Default | Purpose |
+| Field | Purpose |
 |-------|---------|---------|
-| `density_tick` | `#3B4252` | Subtle tick marks every 10 columns on the density chart X-axis |
+| `density_tick` | Subtle tick marks every 10 columns on the density chart X-axis |
 
-All built-in themes (default, ocean, forest, sakura) must include this field.
+### Per-Theme Colors
+
+| Theme | `density_tick` | Rationale |
+|-------|---------------|-----------|
+| **Default** (dark blue) | `#3B4252` | Matches border color, subtle against #1B2838 bg |
+| **Ocean** | `#2A4A5A` | Muted teal, between ocean density_normal and bg |
+| **Forest** | `#2A4A2A` | Dark green, consistent with forest green palette |
+| **Solarized** | `#073642` | Solarized base02, standard subtle element color |
+| **Sakura** | `#4A2040` | Dark plum, matches sakura pink/plum palette |
+
+All built-in themes must include `density_tick`. The tick should be noticeably dimmer than `density_label` in each theme.
