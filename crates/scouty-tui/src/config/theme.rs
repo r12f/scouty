@@ -218,7 +218,10 @@ impl Default for StatusBarTheme {
                 bg: Some(ThemeColor(Color::Rgb(79, 195, 247))), // #4FC3F7
                 bold: Some(true),
             },
-            command_mode_label: StyleEntry::fg_bg(Color::Rgb(13, 17, 23), Color::Rgb(206, 147, 216)),
+            command_mode_label: StyleEntry::fg_bg(
+                Color::Rgb(13, 17, 23),
+                Color::Rgb(206, 147, 216),
+            ),
             search_mode_label: StyleEntry::fg_bg(Color::Rgb(13, 17, 23), Color::Rgb(206, 147, 216)),
             shortcut_key: StyleEntry::fg(Color::Rgb(255, 217, 61)),
             shortcut_sep: StyleEntry::fg(Color::Rgb(92, 92, 92)),
