@@ -339,6 +339,7 @@ impl DetailPanelWidget {
         frame.render_widget(table, chunks[1]);
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn render_tree(
         &self,
         frame: &mut Frame,

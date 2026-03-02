@@ -282,8 +282,8 @@ pub struct App {
     pub shortcut_hints_cache: Vec<(String, String)>,
     /// Timestamp when status_message was set (for auto-clear).
     pub status_message_at: Option<std::time::Instant>,
-    /// Column widths computed from data (Time, Level, ProcessName, Pid, Tid, Component).
-    pub col_widths: [u16; 6],
+    /// Column widths computed from data (Time, Level, ProcessName, Pid, Tid, Component, Context, Function).
+    pub col_widths: [u16; 8],
     /// Column visibility configuration.
     pub column_config: ColumnConfig,
     /// Follow mode: auto-scroll to bottom.
@@ -622,9 +622,9 @@ impl App {
     }
 
     /// Compute auto-fit column widths by sampling records.
-    fn compute_col_widths(records: &[Arc<LogRecord>], indices: &[usize]) -> [u16; 6] {
-        let mut widths: [u16; 6] = [4, 5, 11, 3, 3, 9];
-        let max_widths: [u16; 6] = [23, 5, 20, 8, 8, 20];
+    fn compute_col_widths(records: &[Arc<LogRecord>], indices: &[usize]) -> [u16; 8] {
+        let mut widths: [u16; 8] = [4, 5, 11, 3, 3, 9, 7, 8];
+        let max_widths: [u16; 8] = [23, 5, 20, 8, 8, 30, 40, 30];
 
         let sample_size = 1000.min(indices.len());
         let step = if sample_size == 0 {
@@ -652,9 +652,15 @@ impl App {
             if let Some(ref comp) = r.component_name {
                 widths[5] = widths[5].max((comp.len() as u16).min(max_widths[5]));
             }
+            if let Some(ref ctx) = r.context {
+                widths[6] = widths[6].max((ctx.len() as u16).min(max_widths[6]));
+            }
+            if let Some(ref func) = r.function {
+                widths[7] = widths[7].max((func.len() as u16).min(max_widths[7]));
+            }
         }
 
-        for i in 0..6 {
+        for i in 0..8 {
             widths[i] = widths[i].min(max_widths[i]);
         }
         widths
@@ -2121,7 +2127,7 @@ mod tests {
             status_message: None,
             shortcut_hints_cache: Vec::new(),
             status_message_at: None,
-            col_widths: [19, 5, 11, 3, 3, 9],
+            col_widths: [19, 5, 11, 3, 3, 9, 7, 8],
             column_config: ColumnConfig::default(),
             follow_mode: false,
             follow_new_count: 0,
@@ -2195,7 +2201,7 @@ mod tests {
             status_message: None,
             shortcut_hints_cache: Vec::new(),
             status_message_at: None,
-            col_widths: [19, 5, 11, 3, 3, 9],
+            col_widths: [19, 5, 11, 3, 3, 9, 7, 8],
             column_config: ColumnConfig::default(),
             follow_mode: false,
             follow_new_count: 0,
@@ -2266,7 +2272,7 @@ mod tests {
             status_message: None,
             shortcut_hints_cache: Vec::new(),
             status_message_at: None,
-            col_widths: [19, 5, 11, 3, 3, 9],
+            col_widths: [19, 5, 11, 3, 3, 9, 7, 8],
             column_config: ColumnConfig::default(),
             follow_mode: false,
             follow_new_count: 0,
@@ -2792,7 +2798,7 @@ mod field_filter_v2_tests {
             status_message: None,
             shortcut_hints_cache: Vec::new(),
             status_message_at: None,
-            col_widths: [19, 5, 11, 3, 3, 9],
+            col_widths: [19, 5, 11, 3, 3, 9, 7, 8],
             column_config: ColumnConfig::default(),
             follow_mode: false,
             follow_new_count: 0,
@@ -2989,7 +2995,7 @@ mod column_follow_tests {
             status_message: None,
             shortcut_hints_cache: Vec::new(),
             status_message_at: None,
-            col_widths: [19, 5, 11, 3, 3, 9],
+            col_widths: [19, 5, 11, 3, 3, 9, 7, 8],
             column_config: ColumnConfig::default(),
             follow_mode: false,
             follow_new_count: 0,
@@ -3343,7 +3349,7 @@ mod copy_tests {
             status_message: None,
             shortcut_hints_cache: Vec::new(),
             status_message_at: None,
-            col_widths: [19, 5, 11, 3, 3, 9],
+            col_widths: [19, 5, 11, 3, 3, 9, 7, 8],
             column_config: ColumnConfig::default(),
             follow_mode: false,
             follow_new_count: 0,
@@ -3525,7 +3531,7 @@ mod time_jump_tests {
             status_message: None,
             shortcut_hints_cache: Vec::new(),
             status_message_at: None,
-            col_widths: [0; 6],
+            col_widths: [0; 8],
             column_config: ColumnConfig::default(),
             follow_mode: false,
             follow_new_count: 0,
@@ -3670,7 +3676,7 @@ mod command_tests {
             status_message: None,
             shortcut_hints_cache: Vec::new(),
             status_message_at: None,
-            col_widths: [19, 5, 11, 3, 3, 9],
+            col_widths: [19, 5, 11, 3, 3, 9, 7, 8],
             column_config: ColumnConfig::default(),
             follow_mode: false,
             follow_new_count: 0,
