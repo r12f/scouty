@@ -127,6 +127,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 eprintln!(
                     "  --generate-theme <name>    Generate built-in theme to stdout (or 'list')"
                 );
+                eprintln!("  --theme-list               List all available themes and exit");
                 eprintln!();
                 eprintln!("Pipe mode (auto when stdout is not a TTY):");
                 eprintln!("  --no-tui                   Force pipe mode (no TUI)");
@@ -138,6 +139,61 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 eprintln!("  --fields <list>            Comma-separated fields (default: all)");
                 eprintln!();
                 eprintln!("  -h, --help        Show this help");
+                std::process::exit(0);
+            }
+            "--theme-list" => {
+                let builtins = config::Theme::builtin_descriptions();
+                let mut entries: Vec<(&str, String)> =
+                    builtins.iter().map(|(n, d)| (*n, d.to_string())).collect();
+
+                // Scan custom theme directories: system (/etc/scouty/themes/) and
+                // user (~/.scouty/themes/), matching the search order used by
+                // config::resolve_theme().
+                let mut custom_dirs: Vec<std::path::PathBuf> = Vec::new();
+                custom_dirs.push(config::system_config_dir().join("themes"));
+                if let Some(home) = dirs::home_dir() {
+                    custom_dirs.push(home.join(".scouty").join("themes"));
+                }
+                let mut seen_custom: std::collections::HashSet<String> =
+                    std::collections::HashSet::new();
+                for themes_dir in &custom_dirs {
+                    if themes_dir.is_dir() {
+                        if let Ok(read_dir) = std::fs::read_dir(themes_dir) {
+                            let mut user_files: Vec<_> = read_dir
+                                .filter_map(|e| e.ok())
+                                .filter(|e| {
+                                    let p = e.path();
+                                    matches!(
+                                        p.extension().and_then(|x| x.to_str()),
+                                        Some("yaml") | Some("yml")
+                                    )
+                                })
+                                .collect();
+                            user_files.sort_by_key(|e| e.file_name());
+                            for entry in user_files {
+                                let stem = entry
+                                    .path()
+                                    .file_stem()
+                                    .unwrap_or_default()
+                                    .to_string_lossy()
+                                    .to_string();
+                                if seen_custom.contains(&stem) {
+                                    continue;
+                                }
+                                seen_custom.insert(stem.clone());
+                                let leaked: &str = Box::leak(stem.into_boxed_str());
+                                entries.push((leaked, "(custom)".to_string()));
+                            }
+                        }
+                    }
+                }
+
+                let max_name = entries.iter().map(|(n, _)| n.len()).max().unwrap_or(0);
+                println!("Available themes:");
+                println!();
+                for (name, desc) in &entries {
+                    println!("  {:<width$}  {}", name, desc, width = max_name);
+                }
                 std::process::exit(0);
             }
             "--generate-config" => {

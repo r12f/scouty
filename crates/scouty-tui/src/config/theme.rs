@@ -433,19 +433,55 @@ impl Theme {
         }
     }
 
-    /// List all built-in theme names.
-    pub fn builtin_names() -> &'static [&'static str] {
+    /// Single source of truth for all built-in theme names and descriptions.
+    pub fn builtin_catalog() -> &'static [(&'static str, &'static str)] {
         &[
-            "default",
-            "dark",
-            "light",
-            "solarized",
-            "landmine",
-            "mizuiro",
-            "amai",
-            "maid",
-            "gyaru",
+            ("default", "Balanced dark theme with soft, modern colors"),
+            ("dark", "Muted dark theme — lower contrast, softer colors"),
+            (
+                "light",
+                "Light background with dark text for bright environments",
+            ),
+            (
+                "solarized",
+                "Ethan Schoonover’s solarized palette, warm and precise",
+            ),
+            (
+                "landmine",
+                "Jirai Kei aesthetic — black and pink with bold accents",
+            ),
+            (
+                "mizuiro",
+                "Clear, transparent aqua theme with cool blue tones",
+            ),
+            (
+                "amai",
+                "Sweet Lolita — dreamy pastel pink and soft lavender",
+            ),
+            (
+                "maid",
+                "Classic maid — black & white high contrast with wine red",
+            ),
+            ("gyaru", "Shibuya bold — gold and hot pink glamour"),
         ]
+    }
+
+    /// List all built-in theme names.
+    pub fn builtin_names() -> Vec<&'static str> {
+        Self::builtin_catalog().iter().map(|(n, _)| *n).collect()
+    }
+
+    /// Return (name, description) pairs for all built-in themes.
+    pub fn builtin_descriptions() -> &'static [(&'static str, &'static str)] {
+        Self::builtin_catalog()
+    }
+
+    /// Get the description for a built-in theme.
+    pub fn builtin_description(name: &str) -> Option<&'static str> {
+        Self::builtin_catalog()
+            .iter()
+            .find(|(n, _)| *n == name)
+            .map(|(_, d)| *d)
     }
 
     /// Muted dark theme — lower contrast, softer colors.
