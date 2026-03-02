@@ -167,25 +167,6 @@ impl StatusBarWidget {
         };
 
         let right_text = Self::build_right_text(&position, app.bookmarks.len());
-        let right_width = UnicodeWidthStr::width(right_text.as_str()) as u16;
-
-        // Account for follow indicator width in chart space
-        let follow_width: u16 = if app.follow_mode {
-            if app.follow_new_count > 0 {
-                (format!("[FOLLOW ↓{}] ", app.follow_new_count).len() + 2) as u16
-            } else {
-                "[FOLLOW] ".len() as u16
-            }
-        } else {
-            0
-        };
-
-        let raw_chart_width = area.width.saturating_sub(right_width + follow_width + 2) as usize;
-        // Reserve space for dim tick marks inserted every 10 braille chars.
-        let chart_width = crate::density::chart_width_for_available(
-            raw_chart_width,
-            crate::density::TICK_INTERVAL,
-        );
 
         let mut spans: Vec<Span> = Vec::new();
 
@@ -208,43 +189,52 @@ impl StatusBarWidget {
             }
         }
 
-        if chart_width >= 4 && app.total() > 0 {
+        if app.total() > 0 {
             if let Some(cache) = &app.density_cache {
-                // Show time-per-column label before chart
-                if let Some(label) = Self::time_per_column_label(cache) {
-                    let source_label = app.density_source_label();
-                    let full_label = if source_label == "All" {
-                        label
-                    } else {
-                        match label.strip_suffix(']') {
-                            Some(prefix) => format!("{prefix} {source_label}]"),
-                            None => format!("{label} {source_label}"),
-                        }
-                    };
-                    spans.push(Span::styled(
-                        full_label,
-                        theme.status_bar.density_label.to_style(),
-                    ));
-                }
-
-                let cursor_char_idx = app.cursor_char_in_density();
-
-                // Dim tick mark every 10 braille chars for visual counting
-                let tick_interval = crate::density::TICK_INTERVAL;
-                let tick_style = theme.status_bar.density_tick.to_style();
-
-                for (i, ch) in cache.braille_text.chars().enumerate() {
-                    if i > 0 && i % tick_interval == 0 {
-                        spans.push(Span::styled("\u{250a}", tick_style));
+                if cache.chart_width < 4 {
+                    // Chart too small to display; skip.
+                } else {
+                    // Show time-per-column label before chart
+                    if let Some(label) = Self::time_per_column_label(cache) {
+                        let source_label = app.density_source_label();
+                        let full_label = if source_label == "All" {
+                            label
+                        } else {
+                            match label.strip_suffix(']') {
+                                Some(prefix) => format!("{prefix} {source_label}]"),
+                                None => format!("{label} {source_label}"),
+                            }
+                        };
+                        spans.push(Span::styled(
+                            full_label,
+                            theme.status_bar.density_label.to_style(),
+                        ));
                     }
 
-                    let style = if Some(i) == cursor_char_idx {
-                        theme.status_bar.cursor_marker.to_style()
-                    } else {
-                        theme.status_bar.density_normal.to_style()
-                    };
-                    spans.push(Span::styled(ch.to_string(), style));
-                }
+                    let cursor_char_idx = app.cursor_char_in_density();
+
+                    // Dim tick mark every 10 braille chars for visual counting
+                    let tick_interval = crate::density::TICK_INTERVAL;
+                    let tick_style = theme.status_bar.density_tick.to_style();
+
+                    let braille_len = cache.braille_text.chars().count();
+                    for (i, ch) in cache.braille_text.chars().enumerate() {
+                        if i > 0 && i % tick_interval == 0 {
+                            spans.push(Span::styled("\u{250a}", tick_style));
+                        }
+
+                        let style = if Some(i) == cursor_char_idx {
+                            theme.status_bar.cursor_marker.to_style()
+                        } else {
+                            theme.status_bar.density_normal.to_style()
+                        };
+                        spans.push(Span::styled(ch.to_string(), style));
+                    }
+                    // Trailing tick after the last group if it ends on a boundary.
+                    if braille_len > 0 && braille_len % tick_interval == 0 {
+                        spans.push(Span::styled("\u{250a}", tick_style));
+                    }
+                } // cache.chart_width >= 4
             }
         }
 
