@@ -91,7 +91,7 @@ pub struct LogLevelTheme {
 impl Default for LogLevelTheme {
     fn default() -> Self {
         Self {
-            fatal: StyleEntry::fg_bold(Color::Red),
+            fatal: StyleEntry::fg_bold(Color::Rgb(255, 107, 107)),
             error: StyleEntry::fg(Color::Rgb(255, 107, 107)), // soft red #FF6B6B
             warn: StyleEntry::fg(Color::Rgb(255, 217, 61)),   // warm yellow #FFD93D
             notice: StyleEntry::fg(Color::Rgb(107, 203, 119)), // soft green #6BCB77
@@ -208,20 +208,23 @@ impl Default for StatusBarTheme {
         Self {
             line1_bg: StyleEntry::fg_bg(Color::Rgb(212, 212, 212), Color::Rgb(27, 40, 56)), // #D4D4D4 on #1B2838
             line2_bg: StyleEntry::fg_bg(Color::Rgb(160, 160, 160), Color::Rgb(13, 17, 23)), // #A0A0A0 on #0D1117
-            density_hot: StyleEntry::fg_bg(Color::Yellow, Color::Rgb(27, 40, 56)),
+            density_hot: StyleEntry::fg_bg(Color::Rgb(255, 217, 61), Color::Rgb(27, 40, 56)),
             density_normal: StyleEntry::fg(Color::Rgb(79, 195, 247)), // light blue #4FC3F7
-            position: StyleEntry::fg_bg(Color::White, Color::DarkGray),
-            mode_follow: StyleEntry::fg_bg(Color::Black, Color::Green),
-            mode_view: StyleEntry::fg_bg(Color::Black, Color::Cyan),
+            position: StyleEntry::fg_bg(Color::Rgb(212, 212, 212), Color::Rgb(92, 92, 92)),
+            mode_follow: StyleEntry::fg_bg(Color::Rgb(13, 17, 23), Color::Rgb(107, 203, 119)),
+            mode_view: StyleEntry::fg_bg(Color::Rgb(13, 17, 23), Color::Rgb(77, 208, 225)),
             mode_label: StyleEntry {
                 fg: Some(ThemeColor(Color::Rgb(27, 40, 56))), // #1B2838
                 bg: Some(ThemeColor(Color::Rgb(79, 195, 247))), // #4FC3F7
                 bold: Some(true),
             },
-            command_mode_label: StyleEntry::fg_bg(Color::Black, Color::Magenta),
-            search_mode_label: StyleEntry::fg_bg(Color::Black, Color::Magenta),
-            shortcut_key: StyleEntry::fg(Color::Yellow),
-            shortcut_sep: StyleEntry::fg(Color::DarkGray),
+            command_mode_label: StyleEntry::fg_bg(
+                Color::Rgb(13, 17, 23),
+                Color::Rgb(206, 147, 216),
+            ),
+            search_mode_label: StyleEntry::fg_bg(Color::Rgb(13, 17, 23), Color::Rgb(206, 147, 216)),
+            shortcut_key: StyleEntry::fg(Color::Rgb(255, 217, 61)),
+            shortcut_sep: StyleEntry::fg(Color::Rgb(92, 92, 92)),
             density_label: StyleEntry::fg(Color::Rgb(107, 123, 141)), // dimmer #6B7B8D
             cursor_marker: StyleEntry::fg(Color::Rgb(255, 217, 61)),  // yellow #FFD93D
         }
@@ -239,8 +242,8 @@ pub struct SearchTheme {
 impl Default for SearchTheme {
     fn default() -> Self {
         Self {
-            match_highlight: StyleEntry::fg_bg(Color::Black, Color::Yellow),
-            current_match: StyleEntry::fg_bg(Color::Black, Color::Rgb(255, 102, 0)),
+            match_highlight: StyleEntry::fg_bg(Color::Rgb(13, 17, 23), Color::Rgb(255, 217, 61)),
+            current_match: StyleEntry::fg_bg(Color::Rgb(13, 17, 23), Color::Rgb(255, 102, 0)),
         }
     }
 }
@@ -261,13 +264,13 @@ pub struct DialogTheme {
 impl Default for DialogTheme {
     fn default() -> Self {
         Self {
-            border: StyleEntry::fg(Color::Cyan),
-            title: StyleEntry::fg(Color::Cyan),
-            selected: StyleEntry::fg_bg(Color::White, Color::DarkGray),
-            text: StyleEntry::fg(Color::White),
-            muted: StyleEntry::fg(Color::DarkGray),
-            background: StyleEntry::bg(Color::Black),
-            accent: StyleEntry::fg(Color::Yellow),
+            border: StyleEntry::fg(Color::Rgb(77, 208, 225)),
+            title: StyleEntry::fg(Color::Rgb(77, 208, 225)),
+            selected: StyleEntry::fg_bg(Color::Rgb(212, 212, 212), Color::Rgb(92, 92, 92)),
+            text: StyleEntry::fg(Color::Rgb(212, 212, 212)),
+            muted: StyleEntry::fg(Color::Rgb(92, 92, 92)),
+            background: StyleEntry::bg(Color::Rgb(13, 17, 23)),
+            accent: StyleEntry::fg(Color::Rgb(255, 217, 61)),
         }
     }
 }
@@ -285,10 +288,10 @@ pub struct DetailPanelTheme {
 impl Default for DetailPanelTheme {
     fn default() -> Self {
         Self {
-            field_name: StyleEntry::fg(Color::Cyan),
-            field_value: StyleEntry::fg(Color::White),
-            border: StyleEntry::fg(Color::DarkGray),
-            section_header: StyleEntry::fg(Color::Cyan),
+            field_name: StyleEntry::fg(Color::Rgb(77, 208, 225)),
+            field_value: StyleEntry::fg(Color::Rgb(212, 212, 212)),
+            border: StyleEntry::fg(Color::Rgb(92, 92, 92)),
+            section_header: StyleEntry::fg(Color::Rgb(77, 208, 225)),
         }
     }
 }
@@ -307,11 +310,11 @@ pub struct InputTheme {
 impl Default for InputTheme {
     fn default() -> Self {
         Self {
-            prompt: StyleEntry::fg(Color::Yellow),
-            cursor: StyleEntry::fg(Color::White),
-            text: StyleEntry::fg(Color::White),
-            error: StyleEntry::fg(Color::Red),
-            background: StyleEntry::bg(Color::DarkGray),
+            prompt: StyleEntry::fg(Color::Rgb(255, 217, 61)),
+            cursor: StyleEntry::fg(Color::Rgb(212, 212, 212)),
+            text: StyleEntry::fg(Color::Rgb(212, 212, 212)),
+            error: StyleEntry::fg(Color::Rgb(255, 107, 107)),
+            background: StyleEntry::bg(Color::Rgb(92, 92, 92)),
         }
     }
 }
