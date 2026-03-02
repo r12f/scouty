@@ -5,7 +5,7 @@ mod tests {
     #[test]
     fn default_config() {
         let cfg = Config::default();
-        assert_eq!(cfg.theme, "default");
+        assert_eq!(cfg.theme, "mizuiro");
     }
 
     #[test]
@@ -18,7 +18,7 @@ mod tests {
     #[test]
     fn config_from_empty_yaml() {
         let cfg: Config = serde_yaml::from_str("{}").unwrap();
-        assert_eq!(cfg.theme, "default");
+        assert_eq!(cfg.theme, "mizuiro");
     }
 
     #[test]
@@ -131,7 +131,7 @@ mod tests {
         let merged = super::super::deep_merge(base, overlay);
         // theme key removed → deserialization uses default
         let cfg: Config = serde_yaml::from_value(merged).unwrap();
-        assert_eq!(cfg.theme, "default");
+        assert_eq!(cfg.theme, "mizuiro");
     }
 
     #[test]
@@ -174,7 +174,7 @@ mod tests {
         let cfg: Config = serde_yaml::from_value(merged).unwrap();
         assert!((cfg.general.detail_panel_ratio - 0.5).abs() < f64::EPSILON);
         assert!(cfg.general.follow_on_pipe); // default preserved
-        assert_eq!(cfg.theme, "default"); // default preserved
+        assert_eq!(cfg.theme, "mizuiro"); // default preserved
     }
 
     #[test]
@@ -192,7 +192,7 @@ mod tests {
     fn test_generate_default_config_is_valid_yaml() {
         let yaml = super::super::generate_default_config();
         let cfg: super::super::Config = serde_yaml::from_str(&yaml).unwrap();
-        assert_eq!(cfg.theme, "default");
+        assert_eq!(cfg.theme, "mizuiro");
         assert_eq!(cfg.ssh.connect_timeout, 10);
     }
 
@@ -223,7 +223,7 @@ mod tests {
     fn test_builtin_names() {
         let names = super::super::Theme::builtin_names();
         assert_eq!(names.len(), 6);
-        assert!(names.contains(&"default"));
+        assert!(names.contains(&"mizuiro"));
         assert!(names.contains(&"landmine"));
         assert!(names.contains(&"amai"));
         assert!(names.contains(&"maid"));

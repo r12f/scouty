@@ -392,6 +392,13 @@ pub struct Theme {
 
 impl Default for Theme {
     fn default() -> Self {
+        Self::mizuiro()
+    }
+}
+
+impl Theme {
+    /// Mizuiro theme — Clear, transparent aqua theme with cool blue tones (default).
+    pub fn mizuiro() -> Self {
         use Color::*;
         let deep_navy = Rgb(10, 22, 40); // #0A1628
         let dark_ocean = Rgb(15, 32, 56); // #0F2038
@@ -410,7 +417,9 @@ impl Default for Theme {
         let amber_warn = Rgb(232, 167, 78); // #E8A74E
 
         Self {
-            description: Some("Clear, transparent aqua theme with cool blue tones".to_string()),
+            description: Some(
+                "Mizuiro — Clear, transparent aqua theme with cool blue tones".to_string(),
+            ),
             log_levels: LogLevelTheme {
                 fatal: StyleEntry::fg_bold(coral_accent),
                 error: StyleEntry::fg(Rgb(207, 107, 94)), // #CF6B5E
@@ -507,9 +516,7 @@ impl Default for Theme {
             },
         }
     }
-}
 
-impl Theme {
     /// Load a theme from YAML string, merging over defaults.
     pub fn from_yaml(yaml: &str) -> Result<Self, String> {
         serde_yaml::from_str(yaml).map_err(|e| format!("invalid theme YAML: {e}"))
@@ -518,7 +525,7 @@ impl Theme {
     /// Built-in preset: look up by name. Returns None for unknown names.
     pub fn builtin(name: &str) -> Option<Self> {
         match name {
-            "default" => Some(Self::default()),
+            "mizuiro" => Some(Self::mizuiro()),
             "landmine" => Some(Self::landmine()),
             "amai" => Some(Self::amai()),
             "maid" => Some(Self::maid()),
@@ -530,7 +537,7 @@ impl Theme {
 
     /// All built-in theme names in display order.
     const BUILTIN_NAMES: &'static [&'static str] =
-        &["default", "landmine", "amai", "maid", "gyaru", "dopamine"];
+        &["mizuiro", "landmine", "amai", "maid", "gyaru", "dopamine"];
 
     /// List all built-in theme names.
     pub fn builtin_names() -> Vec<&'static str> {
