@@ -1049,8 +1049,8 @@ impl Theme {
                     .to_string(),
             ),
             log_levels: LogLevelTheme {
-                fatal: StyleEntry::fg_bold(neon_pink),
-                error: StyleEntry::fg(tangerine),
+                fatal: StyleEntry::fg_bold(Rgb(255, 0, 0)), // #FF0000 pure red — most urgent
+                error: StyleEntry::fg(neon_pink),
                 warn: StyleEntry::fg(sunflower),
                 notice: StyleEntry::fg(electric_blue),
                 info: StyleEntry::fg(cream_white),
@@ -1060,7 +1060,7 @@ impl Theme {
             table: TableTheme {
                 header: StyleEntry {
                     fg: Some(ThemeColor(deep_warm)),
-                    bg: Some(ThemeColor(sunflower)),
+                    bg: Some(ThemeColor(lavender)),  // #B388FF bright lavender purple
                     bold: Some(true),
                 },
                 header_unfocused: StyleEntry::fg_bg(warm_gray, dark_plum),
@@ -1080,7 +1080,7 @@ impl Theme {
                 line2_bg: StyleEntry::fg_bg(muted_rose, deep_warm),
                 mode_label: StyleEntry {
                     fg: Some(ThemeColor(deep_warm)),
-                    bg: Some(ThemeColor(sunflower)),
+                    bg: Some(ThemeColor(lavender)),  // #B388FF bright lavender purple
                     bold: Some(true),
                 },
                 mode_view: StyleEntry::fg_bg(deep_warm, warm_gray),
@@ -1132,7 +1132,7 @@ impl Theme {
             panel_tab: PanelTabTheme {
                 focused: StyleEntry {
                     fg: Some(ThemeColor(deep_warm)),
-                    bg: Some(ThemeColor(sunflower)),
+                    bg: Some(ThemeColor(lavender)),  // #B388FF bright lavender purple
                     bold: Some(true),
                 },
                 unfocused: StyleEntry {
