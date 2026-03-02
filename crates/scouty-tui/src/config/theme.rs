@@ -435,7 +435,17 @@ impl Theme {
 
     /// List all built-in theme names.
     pub fn builtin_names() -> &'static [&'static str] {
-        &["default", "dark", "light", "solarized", "landmine", "mizuiro", "amai", "maid", "gyaru"]
+        &[
+            "default",
+            "dark",
+            "light",
+            "solarized",
+            "landmine",
+            "mizuiro",
+            "amai",
+            "maid",
+            "gyaru",
+        ]
     }
 
     /// Muted dark theme — lower contrast, softer colors.
@@ -887,12 +897,12 @@ impl Theme {
                 ..InputTheme::default()
             },
             highlight_palette: vec![
-                ThemeColor(sky_blue),    // #7BC8F6
-                ThemeColor(water_blue),  // #5BA4CF
-                ThemeColor(ice_blue),    // #A8D8EA
-                ThemeColor(deep_blue),   // #2E6B9E
-                ThemeColor(pale_aqua),   // #D4EEF6
-                ThemeColor(steel_blue),  // #4A7B9D
+                ThemeColor(sky_blue),   // #7BC8F6
+                ThemeColor(water_blue), // #5BA4CF
+                ThemeColor(ice_blue),   // #A8D8EA
+                ThemeColor(deep_blue),  // #2E6B9E
+                ThemeColor(pale_aqua),  // #D4EEF6
+                ThemeColor(steel_blue), // #4A7B9D
             ],
             general: GeneralTheme {
                 accent: StyleEntry::fg(water_blue),
@@ -999,12 +1009,12 @@ impl Theme {
                 ..InputTheme::default()
             },
             highlight_palette: vec![
-                ThemeColor(hot_pink),    // #FF6B8A
-                ThemeColor(baby_pink),   // #FFB7C5
-                ThemeColor(lavender),    // #C8A2C8
-                ThemeColor(mint),        // #98D8C8
+                ThemeColor(hot_pink),           // #FF6B8A
+                ThemeColor(baby_pink),          // #FFB7C5
+                ThemeColor(lavender),           // #C8A2C8
+                ThemeColor(mint),               // #98D8C8
                 ThemeColor(Rgb(107, 142, 194)), // #6B8EC2 sax blue
-                ThemeColor(pale_yellow), // #FFE8A0
+                ThemeColor(pale_yellow),        // #FFE8A0
             ],
             general: GeneralTheme {
                 accent: StyleEntry::fg(baby_pink),
@@ -1109,12 +1119,12 @@ impl Theme {
                 ..InputTheme::default()
             },
             highlight_palette: vec![
-                ThemeColor(lace_white),  // #F0EDE8
-                ThemeColor(lace_shadow), // #B0A8B9
-                ThemeColor(bright_red),  // #C43060
-                ThemeColor(wine_red),    // #8B2252
+                ThemeColor(lace_white),         // #F0EDE8
+                ThemeColor(lace_shadow),        // #B0A8B9
+                ThemeColor(bright_red),         // #C43060
+                ThemeColor(wine_red),           // #8B2252
                 ThemeColor(Rgb(104, 128, 160)), // #6880A0 cold blue
-                ThemeColor(steel_gray),  // #6B6B80
+                ThemeColor(steel_gray),         // #6B6B80
             ],
             general: GeneralTheme {
                 accent: StyleEntry::fg(wine_red),
@@ -1220,12 +1230,12 @@ impl Theme {
                 ..InputTheme::default()
             },
             highlight_palette: vec![
-                ThemeColor(hot_pink),     // #FF2499
-                ThemeColor(gold),         // #FFD700
-                ThemeColor(tan),          // #C68642
+                ThemeColor(hot_pink),           // #FF2499
+                ThemeColor(gold),               // #FFD700
+                ThemeColor(tan),                // #C68642
                 ThemeColor(Rgb(255, 105, 180)), // #FF69B4
                 ThemeColor(Rgb(255, 224, 64)),  // #FFE040
-                ThemeColor(leopard_dark), // #8B6914
+                ThemeColor(leopard_dark),       // #8B6914
             ],
             general: GeneralTheme {
                 accent: StyleEntry::fg(gold),
