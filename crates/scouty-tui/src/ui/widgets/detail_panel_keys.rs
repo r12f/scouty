@@ -31,6 +31,14 @@ pub fn handle_key(app: &mut App, key: KeyEvent) -> KeyAction {
             app.detail_tree_collapse_or_parent();
             true
         }
+        KeyCode::Char('h') => {
+            app.detail_scroll_left();
+            true
+        }
+        KeyCode::Char('l') => {
+            app.detail_scroll_right();
+            true
+        }
         KeyCode::Char('H') => {
             app.detail_tree_collapse_all();
             true
