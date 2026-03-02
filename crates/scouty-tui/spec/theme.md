@@ -197,7 +197,7 @@ general:
 | 2026-02-22 | Moved theme file format and color details from config spec |
 | 2026-02-23 | Redesign default theme: distinct status bar lines, softer colors, clear visual hierarchy |
 | 2026-02-23 | Replace text descriptions with color swatch tables for all 4 built-in presets |
-| 2026-02-24 | Added `landmine` theme (地雷系 Jirai Kei: black + pink); separator char now themeable |
+| 2026-02-24 | Added `landmine` theme (Jirai Kei: black + pink); separator char now themeable |
 | 2026-02-28 | Added `panel_tab` theme section: focused (accent), unfocused (gray) styles for all 5 presets |
 | 2026-02-28 | Added `table.header_unfocused`: table header goes gray when focus moves to panel |
 | 2026-02-28 | Table header focused color now matches `panel_tab.focused` (accent bg) for consistent focus visual language |

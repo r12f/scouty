@@ -709,7 +709,7 @@ impl Theme {
         }
     }
 
-    /// Landmine theme — Jirai Kei (地雷系) black and pink aesthetic.
+    /// Landmine theme — Jirai Kei black and pink aesthetic.
     pub fn landmine() -> Self {
         use Color::*;
         let deep_black = Rgb(13, 6, 11); // #0D060B
@@ -826,7 +826,7 @@ impl Theme {
         }
     }
 
-    /// Mizuiro (水色) — clear, transparent, aqua theme.
+    /// Mizuiro — clear, transparent, aqua theme.
     pub fn mizuiro() -> Self {
         use Color::*;
         let deep_navy = Rgb(10, 22, 40); // #0A1628
@@ -943,22 +943,25 @@ impl Theme {
         }
     }
 
-    /// Amai (甜系) — Sweet Lolita, dreamy pastel pink theme.
+    /// Amai — Sweet Lolita, dreamy pastel pink theme.
     pub fn amai() -> Self {
         use Color::*;
-        let deep_rose = Rgb(30, 10, 20); // #1E0A14
-        let dark_berry = Rgb(45, 27, 46); // #2D1B2E
-        let baby_pink = Rgb(255, 183, 197); // #FFB7C5
+        let deep_rose = Rgb(20, 10, 16); // #140A10 (darker, sweeter bg)
+        let dark_berry = Rgb(61, 37, 64); // #3D2540 (richer berry midtone)
+        let baby_pink = Rgb(255, 200, 214); // #FFC8D6 (brighter candy pink)
         let hot_pink = Rgb(255, 107, 138); // #FF6B8A
         let lavender = Rgb(200, 162, 200); // #C8A2C8
         let mint = Rgb(152, 216, 200); // #98D8C8
-        let dusty_pink = Rgb(212, 160, 176); // #D4A0B0
-        let muted_mauve = Rgb(138, 106, 126); // #8A6A7E
+        let dusty_pink = Rgb(232, 184, 200); // #E8B8C8 (warmer pink text)
+        let soft_mauve = Rgb(176, 138, 158); // #B08A9E (brighter unfocused)
+        let muted_mauve = Rgb(138, 106, 126); // #8A6A7E (debug level)
+        let muted_plum = Rgb(122, 90, 110); // #7A5A6E (muted/density label)
         let deep_plum = Rgb(90, 58, 78); // #5A3A4E
         let dark_mauve = Rgb(74, 46, 64); // #4A2E40
         let selected_bg = Rgb(58, 24, 48); // #3A1830
         let light_text = Rgb(232, 208, 218); // #E8D0DA
         let pale_yellow = Rgb(255, 232, 160); // #FFE8A0
+        let position_fg = Rgb(212, 178, 212); // #D4B2D4
 
         Self {
             log_levels: LogLevelTheme {
@@ -976,7 +979,7 @@ impl Theme {
                     bg: Some(ThemeColor(baby_pink)),
                     bold: Some(true),
                 },
-                header_unfocused: StyleEntry::fg_bg(muted_mauve, dark_berry),
+                header_unfocused: StyleEntry::fg_bg(soft_mauve, dark_berry),
                 selected: StyleEntry::bg(selected_bg),
                 separator: SeparatorStyle {
                     fg: Some(ThemeColor(dark_mauve)),
@@ -990,19 +993,19 @@ impl Theme {
             },
             status_bar: StatusBarTheme {
                 line1_bg: StyleEntry::fg_bg(dusty_pink, dark_berry),
-                line2_bg: StyleEntry::fg_bg(muted_mauve, deep_rose),
+                line2_bg: StyleEntry::fg_bg(soft_mauve, deep_rose),
                 mode_label: StyleEntry {
                     fg: Some(ThemeColor(deep_rose)),
                     bg: Some(ThemeColor(baby_pink)),
                     bold: Some(true),
                 },
-                mode_view: StyleEntry::fg_bg(deep_rose, muted_mauve),
+                mode_view: StyleEntry::fg_bg(deep_rose, soft_mauve),
                 mode_follow: StyleEntry::fg_bg(deep_rose, mint),
                 density_normal: StyleEntry::fg(baby_pink),
                 density_hot: StyleEntry::fg(hot_pink),
-                density_label: StyleEntry::fg(deep_plum),
+                density_label: StyleEntry::fg(muted_plum),
                 density_tick: StyleEntry::fg(dark_mauve),
-                position: StyleEntry::fg(lavender),
+                position: StyleEntry::fg(position_fg),
                 cursor_marker: StyleEntry::fg(hot_pink),
                 ..StatusBarTheme::default()
             },
@@ -1015,7 +1018,7 @@ impl Theme {
                 title: StyleEntry::fg_bold(hot_pink),
                 selected: StyleEntry::fg_bg(Rgb(255, 240, 232), selected_bg), // #FFF0E8
                 text: StyleEntry::fg(dusty_pink),
-                muted: StyleEntry::fg(deep_plum),
+                muted: StyleEntry::fg(muted_plum),
                 ..DialogTheme::default()
             },
             detail_panel: DetailPanelTheme {
@@ -1031,7 +1034,7 @@ impl Theme {
             },
             highlight_palette: vec![
                 ThemeColor(hot_pink),           // #FF6B8A
-                ThemeColor(baby_pink),          // #FFB7C5
+                ThemeColor(baby_pink),          // #FFC8D6
                 ThemeColor(lavender),           // #C8A2C8
                 ThemeColor(mint),               // #98D8C8
                 ThemeColor(Rgb(107, 142, 194)), // #6B8EC2 sax blue
@@ -1039,7 +1042,7 @@ impl Theme {
             ],
             general: GeneralTheme {
                 accent: StyleEntry::fg(baby_pink),
-                muted: StyleEntry::fg(deep_plum),
+                muted: StyleEntry::fg(muted_plum),
                 border: StyleEntry::fg(dark_mauve),
             },
             panel_tab: PanelTabTheme {
@@ -1049,7 +1052,7 @@ impl Theme {
                     bold: Some(true),
                 },
                 unfocused: StyleEntry {
-                    fg: Some(ThemeColor(muted_mauve)),
+                    fg: Some(ThemeColor(soft_mauve)),
                     bg: Some(ThemeColor(dark_berry)),
                     bold: None,
                 },
@@ -1058,7 +1061,7 @@ impl Theme {
         }
     }
 
-    /// Maid (女仆) — classic maid, black & white high contrast with wine red accents.
+    /// Maid — classic maid, black & white high contrast with wine red accents.
     pub fn maid() -> Self {
         use Color::*;
         let black_dress = Rgb(13, 13, 26); // #0D0D1A
@@ -1171,7 +1174,7 @@ impl Theme {
         }
     }
 
-    /// Gyaru (ギャル) — Shibuya bold, gold and hot pink glamour.
+    /// Gyaru — Shibuya bold, gold and hot pink glamour.
     pub fn gyaru() -> Self {
         use Color::*;
         let dark_bronze = Rgb(26, 18, 8); // #1A1208
