@@ -2932,6 +2932,49 @@ mod tests {
         app.detail_scroll_left();
         assert_eq!(app.detail_horizontal_offset, 0);
     }
+
+    #[test]
+    fn test_highlight_color_no_duplicate_after_delete() {
+        let mut app = make_app(0);
+        // Add two highlight rules — they should get different colors.
+        app.add_highlight_rule("aaa").unwrap();
+        app.add_highlight_rule("bbb").unwrap();
+        let color0 = app.highlight_rules[0].color;
+        let color1 = app.highlight_rules[1].color;
+        assert_ne!(color0, color1, "initial rules should have different colors");
+
+        // Remove the first rule, then add a new one.
+        app.remove_highlight_rule(0);
+        assert_eq!(app.highlight_rules.len(), 1);
+        app.add_highlight_rule("ccc").unwrap();
+
+        // The new rule must NOT collide with the remaining rule.
+        let remaining_color = app.highlight_rules[0].color;
+        let new_color = app.highlight_rules[1].color;
+        assert_ne!(
+            remaining_color, new_color,
+            "new highlight should not reuse the color of the remaining rule"
+        );
+    }
+
+    #[test]
+    fn test_highlight_color_reuses_freed_slot() {
+        let mut app = make_app(0);
+        app.add_highlight_rule("aaa").unwrap();
+        let first_color = app.highlight_rules[0].color;
+
+        app.add_highlight_rule("bbb").unwrap();
+        // Remove the first rule to free its palette slot.
+        app.remove_highlight_rule(0);
+        app.add_highlight_rule("ccc").unwrap();
+
+        // The freed color (first_color) should be reused since it's the lowest free index.
+        let reused_color = app.highlight_rules[1].color;
+        assert_eq!(
+            first_color, reused_color,
+            "should reuse the freed palette slot"
+        );
+    }
 }
 
 #[cfg(test)]
