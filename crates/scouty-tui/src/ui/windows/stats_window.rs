@@ -62,7 +62,7 @@ impl StatsData {
 
         // Top 10 components by count
         let mut top_components: Vec<(String, usize)> = component_map.into_iter().collect();
-        top_components.sort_by(|a, b| b.1.cmp(&a.1));
+        top_components.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(&b.0)));
         top_components.truncate(10);
 
         let fmt_ts = |ts: chrono::DateTime<chrono::Utc>| -> String {

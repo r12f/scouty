@@ -145,8 +145,14 @@ mod tests {
         let stats = StatsData::compute(&app);
         // auth=2, db=2, api=1
         assert_eq!(stats.top_components.len(), 3);
-        // Top should be auth or db (both 2)
-        assert!(stats.top_components[0].1 >= stats.top_components[1].1);
+        // With stable sort: same count sorted alphabetically by name
+        // auth=2, db=2 (alphabetical), then api=1
+        assert_eq!(stats.top_components[0].0, "auth");
+        assert_eq!(stats.top_components[1].0, "db");
+        assert_eq!(stats.top_components[2].0, "api");
+        assert_eq!(stats.top_components[0].1, 2);
+        assert_eq!(stats.top_components[1].1, 2);
+        assert_eq!(stats.top_components[2].1, 1);
     }
 
     #[test]
