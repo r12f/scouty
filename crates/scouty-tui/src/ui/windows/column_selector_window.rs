@@ -95,7 +95,7 @@ impl ColumnSelectorWindow {
         }
         let current = self.effective_width(cur);
         let min = col.min_width();
-        let new_width = (current as i16 + delta).max(min as i16) as u16;
+        let new_width = ((current as i32) + (delta as i32)).max(min as i32).min(u16::MAX as i32) as u16;
         if new_width != current {
             self.width_overrides[cur] = Some(new_width);
         }

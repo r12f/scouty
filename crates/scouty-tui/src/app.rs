@@ -110,14 +110,17 @@ impl Column {
         }
     }
 
-    /// Default width for columns not in col_widths.
+    /// Default fixed width for columns not tracked by `col_widths`.
+    /// Returns 0 for `Log` (fill column) and columns that belong in `col_widths`.
     #[allow(dead_code)]
     pub fn default_fixed_width(&self) -> u16 {
         match self {
             Column::Hostname => 20,
             Column::Container => 15,
             Column::Source => 15,
-            _ => 10,
+            Column::Log => 0,
+            // Columns tracked by col_widths should use col_widths_index() instead.
+            _ => 0,
         }
     }
 
@@ -154,23 +157,25 @@ pub struct ColumnConfig {
 
 impl Default for ColumnConfig {
     fn default() -> Self {
+        let columns = vec![
+            (Column::Time, true),
+            (Column::Level, false),
+            (Column::Hostname, false),
+            (Column::Container, false),
+            (Column::ProcessName, false),
+            (Column::Pid, false),
+            (Column::Tid, false),
+            (Column::Component, false),
+            (Column::Function, false),
+            (Column::Context, false),
+            (Column::Source, false),
+            (Column::Log, true),
+        ];
+        let width_overrides = vec![None; columns.len()];
         Self {
-            columns: vec![
-                (Column::Time, true),
-                (Column::Level, false),
-                (Column::Hostname, false),
-                (Column::Container, false),
-                (Column::ProcessName, false),
-                (Column::Pid, false),
-                (Column::Tid, false),
-                (Column::Component, false),
-                (Column::Function, false),
-                (Column::Context, false),
-                (Column::Source, false),
-                (Column::Log, true),
-            ],
+            columns,
             cursor: 0,
-            width_overrides: vec![None; 12],
+            width_overrides,
         }
     }
 }
@@ -200,7 +205,7 @@ impl ColumnConfig {
         }
         let current = self.effective_width(index, auto_width);
         let min = col.min_width();
-        let new_width = (current as i16 + delta).max(min as i16) as u16;
+        let new_width = ((current as i32) + (delta as i32)).max(min as i32).min(u16::MAX as i32) as u16;
         if new_width != current {
             self.width_overrides[index] = Some(new_width);
             true
@@ -3912,5 +3917,137 @@ mod command_tests {
         app.execute_command();
         // No status change for empty command
         assert!(!app.should_quit);
+    }
+}
+
+#[cfg(test)]
+mod column_config_tests {
+    use super::*;
+
+    #[test]
+    fn test_default_width_overrides_matches_columns_len() {
+        let cfg = ColumnConfig::default();
+        assert_eq!(cfg.width_overrides.len(), cfg.columns.len());
+    }
+
+    #[test]
+    fn test_effective_width_returns_auto_when_no_override() {
+        let cfg = ColumnConfig::default();
+        assert_eq!(cfg.effective_width(0, 19), 19);
+    }
+
+    #[test]
+    fn test_effective_width_returns_override_when_set() {
+        let mut cfg = ColumnConfig::default();
+        cfg.width_overrides[0] = Some(25);
+        assert_eq!(cfg.effective_width(0, 19), 25);
+    }
+
+    #[test]
+    fn test_effective_width_out_of_bounds_returns_auto() {
+        let cfg = ColumnConfig::default();
+        assert_eq!(cfg.effective_width(999, 42), 42);
+    }
+
+    #[test]
+    fn test_adjust_width_increases() {
+        let mut cfg = ColumnConfig::default();
+        // Column::Time at index 0, auto_width=19
+        let changed = cfg.adjust_width(0, 5, 19);
+        assert!(changed);
+        assert_eq!(cfg.width_overrides[0], Some(24));
+    }
+
+    #[test]
+    fn test_adjust_width_respects_min() {
+        let mut cfg = ColumnConfig::default();
+        // Column::Time min_width=19, try to shrink below
+        let changed = cfg.adjust_width(0, -100, 19);
+        assert!(!changed); // 19 is already min, can't go lower
+    }
+
+    #[test]
+    fn test_adjust_width_no_overflow_large_values() {
+        let mut cfg = ColumnConfig::default();
+        cfg.width_overrides[0] = Some(u16::MAX);
+        // Should not panic or overflow
+        let changed = cfg.adjust_width(0, 100, u16::MAX);
+        assert!(!changed); // already at max
+        assert_eq!(cfg.width_overrides[0], Some(u16::MAX));
+    }
+
+    #[test]
+    fn test_adjust_width_skips_log_column() {
+        let mut cfg = ColumnConfig::default();
+        // Log is last column (index 11)
+        let changed = cfg.adjust_width(11, 5, 0);
+        assert!(!changed);
+    }
+
+    #[test]
+    fn test_adjust_width_skips_hidden_column() {
+        let mut cfg = ColumnConfig::default();
+        // Level at index 1 is hidden by default
+        let changed = cfg.adjust_width(1, 5, 10);
+        assert!(!changed);
+    }
+
+    #[test]
+    fn test_reset_width() {
+        let mut cfg = ColumnConfig::default();
+        cfg.width_overrides[0] = Some(30);
+        cfg.reset_width(0);
+        assert_eq!(cfg.width_overrides[0], None);
+    }
+
+    #[test]
+    fn test_reset_width_out_of_bounds_no_panic() {
+        let mut cfg = ColumnConfig::default();
+        cfg.reset_width(999); // should not panic
+    }
+
+    #[test]
+    fn test_auto_width_for_col_widths_column() {
+        let cfg = ColumnConfig::default();
+        let cw = [19, 5, 10, 6, 6, 12, 8, 15];
+        // Time is index 0 in columns, col_widths_index() = Some(0) -> cw[0] = 19
+        assert_eq!(cfg.auto_width_for(0, &cw), 19);
+    }
+
+    #[test]
+    fn test_auto_width_for_fixed_column() {
+        let cfg = ColumnConfig::default();
+        let cw = [19, 5, 10, 6, 6, 12, 8, 15];
+        // Hostname is index 2, default_fixed_width() = 20
+        assert_eq!(cfg.auto_width_for(2, &cw), 20);
+    }
+
+    #[test]
+    fn test_auto_width_for_log_returns_zero() {
+        let cfg = ColumnConfig::default();
+        let cw = [19, 5, 10, 6, 6, 12, 8, 15];
+        // Log is index 11
+        assert_eq!(cfg.auto_width_for(11, &cw), 0);
+    }
+
+    #[test]
+    fn test_default_fixed_width_log_is_zero() {
+        assert_eq!(Column::Log.default_fixed_width(), 0);
+    }
+
+    #[test]
+    fn test_default_fixed_width_hostname() {
+        assert_eq!(Column::Hostname.default_fixed_width(), 20);
+    }
+
+    #[test]
+    fn test_display_width() {
+        let mut cfg = ColumnConfig::default();
+        let cw = [19, 5, 10, 6, 6, 12, 8, 15];
+        // No override: auto
+        assert_eq!(cfg.display_width(0, &cw), 19);
+        // With override
+        cfg.width_overrides[0] = Some(30);
+        assert_eq!(cfg.display_width(0, &cw), 30);
     }
 }

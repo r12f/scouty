@@ -49,7 +49,7 @@ impl OverlayWindow for ColumnSelectorOverlay {
     }
 
     fn shortcut_hints(&self) -> Vec<(&str, &str)> {
-        vec![("Space", "Toggle"), ("h/l", "Width"), ("r", "Reset"), ("Esc", "Close")]
+        vec![("Space", "Toggle"), ("h/l/←/→", "Width"), ("r", "Reset"), ("Esc", "Close")]
     }
 }
 

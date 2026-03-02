@@ -75,7 +75,6 @@ impl LogTableWidget {
         let visible = app.visible_records();
         let cw = &app.col_widths;
         let vis_cols = app.column_config.visible_columns();
-        let _wo = &app.column_config.width_overrides;
 
         let sep_style = theme.table.separator.to_style_entry().to_style();
         let sep_char = theme.table.separator.separator_char();
@@ -95,21 +94,11 @@ impl LogTableWidget {
                     let w = if *col == Column::Log {
                         Constraint::Fill(1)
                     } else {
-                        // Find the index of this column in column_config to check overrides
                         let cfg_idx = app.column_config.columns.iter().position(|(c, _)| c == col);
-                        let auto_w = match col {
-                            Column::Time => cw[0],
-                            Column::Level => cw[1],
-                            Column::Hostname => 20,
-                            Column::Container => 15,
-                            Column::Context => cw[6],
-                            Column::Function => cw[7],
-                            Column::ProcessName => cw[2],
-                            Column::Pid => cw[3],
-                            Column::Tid => cw[4],
-                            Column::Component => cw[5],
-                            Column::Source => 15,
-                            Column::Log => 0,
+                        let auto_w = if let Some(cw_idx) = col.col_widths_index() {
+                            cw[cw_idx]
+                        } else {
+                            col.default_fixed_width()
                         };
                         let effective = if let Some(idx) = cfg_idx {
                             app.column_config.effective_width(idx, auto_w)

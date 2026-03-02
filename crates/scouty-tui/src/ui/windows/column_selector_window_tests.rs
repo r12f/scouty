@@ -20,8 +20,6 @@ mod tests {
             width_overrides: vec![None; 3],
             col_widths: [19, 5, 11, 3, 3, 9, 7, 8],
             theme: crate::config::Theme::default(),
-            auto_widths: std::collections::HashMap::new(),
-            width_overrides: std::collections::HashMap::new(),
         }
     }
 
