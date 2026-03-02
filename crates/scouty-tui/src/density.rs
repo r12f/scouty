@@ -181,10 +181,38 @@ pub fn render_braille(
 
     (result, cursor_char_idx)
 }
+/// Default tick-mark interval for density charts (one tick every N braille chars).
+pub const TICK_INTERVAL: usize = 10;
+
+/// Compute the effective chart width (braille chars) that fits within
+/// `available` display columns, accounting for tick marks every `interval`.
+pub fn chart_width_for_available(available: usize, interval: usize) -> usize {
+    if interval == 0 || available <= interval {
+        return available;
+    }
+    // Exact: find largest n where n + floor((n-1)/interval) <= available.
+    let mut n = (available * interval + 1) / (interval + 1);
+    // Try to increase n while the total (braille + ticks) still fits.
+    while n + (n.saturating_sub(1)) / interval < available {
+        n += 1;
+    }
+    // Back off if we overshot.
+    while n > 0 && n + (n.saturating_sub(1)) / interval > available {
+        n -= 1;
+    }
+    n
+}
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn tick_count(braille_len: usize, interval: usize) -> usize {
+        if interval == 0 || braille_len <= interval {
+            return 0;
+        }
+        (braille_len - 1) / interval
+    }
     use chrono::Duration;
 
     #[test]
@@ -273,5 +301,30 @@ mod tests {
             chars[0] != chars[1] || chars[1] != chars[2] || chars[2] != chars[3],
             "Expected varying braille chars, got all same"
         );
+    }
+    #[test]
+    fn test_tick_count() {
+        assert_eq!(tick_count(0, 10), 0);
+        assert_eq!(tick_count(5, 10), 0);
+        assert_eq!(tick_count(10, 10), 0);
+        assert_eq!(tick_count(11, 10), 1);
+        assert_eq!(tick_count(20, 10), 1);
+        assert_eq!(tick_count(21, 10), 2);
+        assert_eq!(tick_count(30, 10), 2);
+        assert_eq!(tick_count(31, 10), 3);
+    }
+
+    #[test]
+    fn test_chart_width_for_available() {
+        use super::chart_width_for_available;
+        // 10 columns available, interval 10 => fits 10 braille (0 ticks)
+        assert_eq!(chart_width_for_available(10, 10), 10);
+        // 11 columns: 10 braille + 1 tick = 11, or 11 braille + 1 tick = 12 > 11
+        let w = chart_width_for_available(11, 10);
+        assert!(w + tick_count(w, 10) <= 11);
+        // 22 columns: 20 braille + 1 tick = 21 <= 22
+        let w = chart_width_for_available(22, 10);
+        assert!(w + tick_count(w, 10) <= 22);
+        assert!(w >= 20);
     }
 }
