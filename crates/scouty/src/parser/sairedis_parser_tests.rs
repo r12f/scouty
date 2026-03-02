@@ -745,7 +745,11 @@ mod tests {
         let p = SairedisParser::new();
 
         // No prior 'g' — component should be None
-        let gr = parse(&p, "2025-05-17.18:49:14.282097|G|SAI_STATUS_SUCCESS|attr=val").unwrap();
+        let gr = parse(
+            &p,
+            "2025-05-17.18:49:14.282097|G|SAI_STATUS_SUCCESS|attr=val",
+        )
+        .unwrap();
         assert!(gr.component_name.is_none());
     }
 
