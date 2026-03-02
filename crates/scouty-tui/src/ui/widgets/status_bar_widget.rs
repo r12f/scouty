@@ -228,7 +228,7 @@ impl StatusBarWidget {
 
                 // Dim tick mark every 10 braille chars for visual counting
                 const TICK_INTERVAL: usize = 10;
-                let tick_style = Style::default().fg(Color::DarkGray);
+                let tick_style = theme.status_bar.density_tick.to_style();
 
                 for (i, ch) in cache.braille_text.chars().enumerate() {
                     if i > 0 && i % TICK_INTERVAL == 0 {
