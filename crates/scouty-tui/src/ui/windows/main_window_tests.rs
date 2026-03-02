@@ -275,3 +275,118 @@ mod quit_from_panel_tests {
         );
     }
 }
+
+#[cfg(test)]
+mod tab_navigation_tests {
+    use crate::keybinding::Keymap;
+    use crate::panel::{PanelFocus, PanelId};
+    use crate::ui::windows::main_window::MainWindow;
+    use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+
+    fn key(code: KeyCode) -> KeyEvent {
+        KeyEvent::new(code, KeyModifiers::NONE)
+    }
+
+    fn backtab() -> KeyEvent {
+        KeyEvent::new(KeyCode::BackTab, KeyModifiers::SHIFT)
+    }
+
+    /// Simulate Shift+Tab as Tab with SHIFT modifier (some terminals).
+    fn shift_tab() -> KeyEvent {
+        KeyEvent::new(KeyCode::Tab, KeyModifiers::SHIFT)
+    }
+
+    fn make_main_window() -> MainWindow {
+        let app = crate::app::App::load_stdin(Vec::new()).unwrap();
+        let keymap = Keymap::default_keymap();
+        MainWindow::new(app, keymap)
+    }
+
+    #[test]
+    fn test_tab_forward_full_cycle() {
+        let mut mw = make_main_window();
+        assert_eq!(mw.app.panel_state.focus, PanelFocus::LogTable);
+
+        // Tab: LogTable → Detail → Region → Stats → Category → LogTable
+        mw.handle_normal_key(key(KeyCode::Tab));
+        assert_eq!(mw.app.panel_state.active, PanelId::Detail);
+        assert_eq!(mw.app.panel_state.focus, PanelFocus::PanelContent);
+
+        mw.handle_normal_key(key(KeyCode::Tab));
+        assert_eq!(mw.app.panel_state.active, PanelId::Region);
+
+        mw.handle_normal_key(key(KeyCode::Tab));
+        assert_eq!(mw.app.panel_state.active, PanelId::Stats);
+
+        mw.handle_normal_key(key(KeyCode::Tab));
+        assert_eq!(mw.app.panel_state.active, PanelId::Category);
+
+        mw.handle_normal_key(key(KeyCode::Tab));
+        assert_eq!(mw.app.panel_state.focus, PanelFocus::LogTable);
+    }
+
+    #[test]
+    fn test_backtab_backward_full_cycle() {
+        let mut mw = make_main_window();
+
+        // BackTab: LogTable → Category → Stats → Region → Detail → LogTable
+        mw.handle_normal_key(backtab());
+        assert_eq!(mw.app.panel_state.active, PanelId::Category);
+        assert_eq!(mw.app.panel_state.focus, PanelFocus::PanelContent);
+
+        mw.handle_normal_key(backtab());
+        assert_eq!(mw.app.panel_state.active, PanelId::Stats);
+
+        mw.handle_normal_key(backtab());
+        assert_eq!(mw.app.panel_state.active, PanelId::Region);
+
+        mw.handle_normal_key(backtab());
+        assert_eq!(mw.app.panel_state.active, PanelId::Detail);
+
+        mw.handle_normal_key(backtab());
+        assert_eq!(mw.app.panel_state.focus, PanelFocus::LogTable);
+    }
+
+    /// Some terminals send Tab with SHIFT modifier instead of BackTab.
+    /// Verify both produce the same backward navigation.
+    #[test]
+    fn test_shift_tab_as_tab_with_shift_modifier() {
+        let mut mw = make_main_window();
+
+        // Shift+Tab (as Tab+SHIFT): LogTable → Category
+        mw.handle_normal_key(shift_tab());
+        assert_eq!(mw.app.panel_state.active, PanelId::Category);
+        assert_eq!(mw.app.panel_state.focus, PanelFocus::PanelContent);
+
+        // Continue backward
+        mw.handle_normal_key(shift_tab());
+        assert_eq!(mw.app.panel_state.active, PanelId::Stats);
+
+        mw.handle_normal_key(shift_tab());
+        assert_eq!(mw.app.panel_state.active, PanelId::Region);
+
+        mw.handle_normal_key(shift_tab());
+        assert_eq!(mw.app.panel_state.active, PanelId::Detail);
+
+        mw.handle_normal_key(shift_tab());
+        assert_eq!(mw.app.panel_state.focus, PanelFocus::LogTable);
+    }
+
+    #[test]
+    fn test_tab_and_backtab_are_opposite() {
+        let mut mw = make_main_window();
+
+        // Tab forward to Region
+        mw.handle_normal_key(key(KeyCode::Tab)); // → Detail
+        mw.handle_normal_key(key(KeyCode::Tab)); // → Region
+        assert_eq!(mw.app.panel_state.active, PanelId::Region);
+
+        // BackTab should go back to Detail
+        mw.handle_normal_key(backtab());
+        assert_eq!(mw.app.panel_state.active, PanelId::Detail);
+
+        // Tab forward again to Region
+        mw.handle_normal_key(key(KeyCode::Tab));
+        assert_eq!(mw.app.panel_state.active, PanelId::Region);
+    }
+}
