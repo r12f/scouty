@@ -236,7 +236,11 @@ mod quit_from_panel_tests {
         assert!(mw.app.panel_state.has_focus());
 
         let result = mw.handle_key(key(KeyCode::Char('q')));
-        assert_eq!(result, WindowAction::Close, "q should quit even when detail panel is focused");
+        assert_eq!(
+            result,
+            WindowAction::Close,
+            "q should quit even when detail panel is focused"
+        );
     }
 
     #[test]
@@ -248,7 +252,11 @@ mod quit_from_panel_tests {
         assert!(mw.app.panel_state.has_focus());
 
         let result = mw.handle_key(key(KeyCode::Char('q')));
-        assert_eq!(result, WindowAction::Close, "q should quit even when region panel is focused");
+        assert_eq!(
+            result,
+            WindowAction::Close,
+            "q should quit even when region panel is focused"
+        );
     }
 
     #[test]
@@ -260,6 +268,10 @@ mod quit_from_panel_tests {
         assert!(mw.app.panel_state.has_focus());
 
         let result = mw.handle_key(key(KeyCode::Char('q')));
-        assert_eq!(result, WindowAction::Close, "q should quit even when category panel is focused");
+        assert_eq!(
+            result,
+            WindowAction::Close,
+            "q should quit even when category panel is focused"
+        );
     }
 }
