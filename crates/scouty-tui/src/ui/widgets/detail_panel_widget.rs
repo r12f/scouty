@@ -420,7 +420,10 @@ impl DetailPanelWidget {
                 let sliced = safe_char_slice(&line_text, h_offset, None);
                 let sliced_char_len = char_len(&sliced);
                 if sliced_char_len > width {
-                    format!("{}…", safe_char_slice(&sliced, 0, Some(width.saturating_sub(1))))
+                    format!(
+                        "{}…",
+                        safe_char_slice(&sliced, 0, Some(width.saturating_sub(1)))
+                    )
                 } else {
                     sliced
                 }
