@@ -465,6 +465,7 @@ impl Theme {
                 mode_follow: StyleEntry::fg_bg(Black, Rgb(120, 180, 120)),
                 density_normal: StyleEntry::fg(Rgb(100, 160, 180)),
                 density_hot: StyleEntry::fg(Rgb(210, 180, 100)),
+                density_tick: StyleEntry::fg(Rgb(42, 74, 90)), // Ocean #2A4A5A
                 ..StatusBarTheme::default()
             },
             search: SearchTheme {
@@ -543,6 +544,7 @@ impl Theme {
                 mode_follow: StyleEntry::fg_bg(White, Rgb(0, 130, 60)),
                 density_normal: StyleEntry::fg(Rgb(0, 120, 150)),
                 density_hot: StyleEntry::fg(Rgb(180, 120, 0)),
+                density_tick: StyleEntry::fg(Rgb(42, 74, 42)), // Forest #2A4A2A
                 ..StatusBarTheme::default()
             },
             search: SearchTheme {
@@ -633,6 +635,7 @@ impl Theme {
                 mode_follow: StyleEntry::fg_bg(base03, green),
                 density_normal: StyleEntry::fg(blue),
                 density_hot: StyleEntry::fg(orange),
+                density_tick: StyleEntry::fg(Rgb(7, 54, 66)), // Solarized #073642
                 ..StatusBarTheme::default()
             },
             search: SearchTheme {
@@ -739,7 +742,7 @@ impl Theme {
                 density_label: StyleEntry::fg(dark_plum),
                 position: StyleEntry::fg(pale_pink),
                 cursor_marker: StyleEntry::fg(bright_pink),
-                density_tick: StyleEntry::fg(dark_plum),
+                density_tick: StyleEntry::fg(separator_fg), // Sakura #4A2040
                 ..StatusBarTheme::default()
             },
             search: SearchTheme {
