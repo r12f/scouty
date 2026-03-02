@@ -76,11 +76,12 @@ By defining **pre-built region definitions** for common SONiC port operations, s
 
 ### Delivery Format
 
-These region definitions are delivered as a **built-in preset YAML configuration file** that ships with scouty. The file is installed to the system config directory and loaded automatically.
+These region definitions are delivered as an **external YAML configuration file** stored in the scouty source tree under `src/scouty-config/sonic/`. They are **not compiled into the binary** and do not modify any Rust code.
 
-- File path: installed as part of scouty's default region configs (e.g., `/etc/scouty/regions/sonic-port-operations.yaml` or bundled in the binary's embedded defaults)
+- Source location: `src/scouty-config/sonic/port-operations.yaml`
 - All 6 region definitions are in a single YAML file
-- Users can override or disable individual regions by creating a same-named region in their user/project config (higher precedence)
+- Users deploy the file by copying it to one of scouty's standard region config directories (`/etc/scouty/regions/`, `~/.scouty/regions/`, or `./scouty-regions/`)
+- No code changes to `region/config.rs` or any other Rust source are required
 
 ### Region Definition Format
 
@@ -110,7 +111,7 @@ Multiple regions can be active simultaneously for the same port:
 
 - **Performance**: Region matching adds negligible overhead — each region definition requires one `contains` check per log record (short-circuit on filter mismatch)
 - **Compatibility**: Log patterns are based on `sonic-swss` orchagent/portsyncd source code (portsorch.cpp, portsyncd.cpp). Patterns should be compatible with current and recent SONiC releases. Future swss log format changes may require updating the region definitions.
-- **No code changes required**: This feature is purely a configuration addition — the existing region system handles all matching, correlation, and display
+- **No code changes required**: This is purely a YAML configuration file — no modifications to Rust code (`region/config.rs` etc.). The existing region config loading system (`load_all()` / `load_from_dir()`) handles discovery automatically when the file is placed in a standard region config directory
 
 ## Acceptance Criteria
 
