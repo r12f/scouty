@@ -187,20 +187,18 @@ pub const TICK_INTERVAL: usize = 10;
 /// Compute the effective chart width (braille chars) that fits within
 /// `available` display columns, accounting for tick marks every `interval`.
 pub fn chart_width_for_available(available: usize, interval: usize) -> usize {
-    if interval == 0 || available <= interval {
+    if interval == 0 {
         return available;
     }
-    // Exact: find largest n where n + floor((n-1)/interval) <= available.
-    let mut n = (available * interval + 1) / (interval + 1);
-    // Try to increase n while the total (braille + ticks) still fits.
-    while n + (n.saturating_sub(1)) / interval < available {
-        n += 1;
+    // Find the largest n where n + floor(n / interval) <= available.
+    // Closed-form lower bound: n <= available * interval / (interval + 1).
+    let n = (available * interval) / (interval + 1);
+    // Check if n+1 also fits.
+    if (n + 1) + (n + 1) / interval <= available {
+        n + 1
+    } else {
+        n
     }
-    // Back off if we overshot.
-    while n > 0 && n + (n.saturating_sub(1)) / interval > available {
-        n -= 1;
-    }
-    n
 }
 
 #[cfg(test)]
@@ -208,10 +206,10 @@ mod tests {
     use super::*;
 
     fn tick_count(braille_len: usize, interval: usize) -> usize {
-        if interval == 0 || braille_len <= interval {
+        if interval == 0 {
             return 0;
         }
-        (braille_len - 1) / interval
+        braille_len / interval
     }
     use chrono::Duration;
 
@@ -306,25 +304,31 @@ mod tests {
     fn test_tick_count() {
         assert_eq!(tick_count(0, 10), 0);
         assert_eq!(tick_count(5, 10), 0);
-        assert_eq!(tick_count(10, 10), 0);
+        assert_eq!(tick_count(9, 10), 0);
+        assert_eq!(tick_count(10, 10), 1);
         assert_eq!(tick_count(11, 10), 1);
-        assert_eq!(tick_count(20, 10), 1);
+        assert_eq!(tick_count(20, 10), 2);
         assert_eq!(tick_count(21, 10), 2);
-        assert_eq!(tick_count(30, 10), 2);
-        assert_eq!(tick_count(31, 10), 3);
+        assert_eq!(tick_count(30, 10), 3);
     }
 
     #[test]
     fn test_chart_width_for_available() {
         use super::chart_width_for_available;
-        // 10 columns available, interval 10 => fits 10 braille (0 ticks)
-        assert_eq!(chart_width_for_available(10, 10), 10);
-        // 11 columns: 10 braille + 1 tick = 11, or 11 braille + 1 tick = 12 > 11
-        let w = chart_width_for_available(11, 10);
-        assert!(w + tick_count(w, 10) <= 11);
-        // 22 columns: 20 braille + 1 tick = 21 <= 22
+        // 10 columns available, interval 10 => fits 10 braille (1 tick: 10+1=11 > 10), so 9
+        let w = chart_width_for_available(10, 10);
+        assert!(w + tick_count(w, 10) <= 10);
+        // 11 columns: 10 braille + 1 tick = 11 fits
+        assert_eq!(chart_width_for_available(11, 10), 10);
+        // 22 columns: 20 braille + 2 ticks = 22 fits exactly
         let w = chart_width_for_available(22, 10);
-        assert!(w + tick_count(w, 10) <= 22);
-        assert!(w >= 20);
+        assert_eq!(w + tick_count(w, 10), 22);
+        assert_eq!(w, 20);
+        // Verify no waste: w+1 wouldn't fit
+        assert!((w + 1) + tick_count(w + 1, 10) > 22);
+        // Edge: available=0
+        assert_eq!(chart_width_for_available(0, 10), 0);
+        // Edge: interval=0
+        assert_eq!(chart_width_for_available(20, 0), 20);
     }
 }
