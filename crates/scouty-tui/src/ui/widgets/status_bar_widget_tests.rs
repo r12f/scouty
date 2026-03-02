@@ -74,7 +74,7 @@ mod tests {
             density_source: crate::app::DensitySource::All,
         };
         let label = StatusBarWidget::time_per_column_label(&cache).unwrap();
-        assert_eq!(label, "[█=5m]");
+        assert_eq!(label, "[█=2m]");
     }
 
     #[test]
@@ -120,7 +120,7 @@ mod tests {
             density_source: crate::app::DensitySource::All,
         };
         let label = StatusBarWidget::time_per_column_label(&cache).unwrap();
-        assert_eq!(label, "[█=15s]");
+        assert_eq!(label, "[█=10s]");
     }
 
     #[test]
@@ -156,27 +156,59 @@ mod tests {
     }
 
     #[test]
-    fn test_snap_to_standard_intervals() {
-        // Below 5s: no snap
-        assert_eq!(StatusBarWidget::snap_to_standard(500.0), 500.0);
-        assert_eq!(StatusBarWidget::snap_to_standard(3000.0), 3000.0);
-        // Seconds
-        assert_eq!(StatusBarWidget::snap_to_standard(5_000.0), 5_000.0);
-        assert_eq!(StatusBarWidget::snap_to_standard(8_000.0), 15_000.0);
-        assert_eq!(StatusBarWidget::snap_to_standard(20_000.0), 30_000.0);
-        // Minutes
-        assert_eq!(StatusBarWidget::snap_to_standard(40_000.0), 60_000.0); // 40s → 1m
+    fn test_snap_to_standard_sub_second() {
+        // Sub-second snapping to human-friendly intervals
+        assert_eq!(StatusBarWidget::snap_to_standard(0.5), 1.0); // 0.5ms -> 1ms
+        assert_eq!(StatusBarWidget::snap_to_standard(1.0), 1.0); // 1ms exact
+        assert_eq!(StatusBarWidget::snap_to_standard(1.5), 2.0); // 1.5ms -> 2ms
+        assert_eq!(StatusBarWidget::snap_to_standard(3.0), 5.0); // 3ms -> 5ms
+        assert_eq!(StatusBarWidget::snap_to_standard(7.0), 10.0); // 7ms -> 10ms
+        assert_eq!(StatusBarWidget::snap_to_standard(15.0), 20.0); // 15ms -> 20ms
+        assert_eq!(StatusBarWidget::snap_to_standard(30.0), 50.0); // 30ms -> 50ms
+        assert_eq!(StatusBarWidget::snap_to_standard(80.0), 100.0); // 80ms -> 100ms
+        assert_eq!(StatusBarWidget::snap_to_standard(150.0), 200.0); // 150ms -> 200ms
+        assert_eq!(StatusBarWidget::snap_to_standard(327.0), 500.0); // 327ms -> 500ms (the reported bug case)
+        assert_eq!(StatusBarWidget::snap_to_standard(500.0), 500.0); // 500ms exact
+        assert_eq!(StatusBarWidget::snap_to_standard(800.0), 1_000.0); // 800ms -> 1s
+    }
+
+    #[test]
+    fn test_snap_to_standard_seconds() {
+        assert_eq!(StatusBarWidget::snap_to_standard(1_000.0), 1_000.0); // 1s exact
+        assert_eq!(StatusBarWidget::snap_to_standard(1_500.0), 2_000.0); // 1.5s -> 2s
+        assert_eq!(StatusBarWidget::snap_to_standard(3_000.0), 5_000.0); // 3s -> 5s
+        assert_eq!(StatusBarWidget::snap_to_standard(5_000.0), 5_000.0); // 5s exact
+        assert_eq!(StatusBarWidget::snap_to_standard(8_000.0), 10_000.0); // 8s -> 10s
+        assert_eq!(StatusBarWidget::snap_to_standard(12_000.0), 15_000.0); // 12s -> 15s
+        assert_eq!(StatusBarWidget::snap_to_standard(20_000.0), 30_000.0); // 20s -> 30s
+    }
+
+    #[test]
+    fn test_snap_to_standard_minutes() {
+        assert_eq!(StatusBarWidget::snap_to_standard(40_000.0), 60_000.0); // 40s -> 1m
         assert_eq!(StatusBarWidget::snap_to_standard(60_000.0), 60_000.0); // 1m exact
-        assert_eq!(StatusBarWidget::snap_to_standard(120_000.0), 300_000.0); // 2m → 5m
-        assert_eq!(StatusBarWidget::snap_to_standard(480_000.0), 900_000.0); // 8m → 15m
-        assert_eq!(StatusBarWidget::snap_to_standard(2_700_000.0), 3_600_000.0); // 45m → 1h
-                                                                                 // Hours
-        assert_eq!(StatusBarWidget::snap_to_standard(3_600_000.0), 3_600_000.0); // 1h
-        assert_eq!(StatusBarWidget::snap_to_standard(5_000_000.0), 7_200_000.0); // → 2h
+        assert_eq!(StatusBarWidget::snap_to_standard(90_000.0), 120_000.0); // 1.5m -> 2m
+        assert_eq!(StatusBarWidget::snap_to_standard(180_000.0), 300_000.0); // 3m -> 5m
+        assert_eq!(StatusBarWidget::snap_to_standard(480_000.0), 600_000.0); // 8m -> 10m
+        assert_eq!(StatusBarWidget::snap_to_standard(700_000.0), 900_000.0); // ~11.7m -> 15m
+        assert_eq!(StatusBarWidget::snap_to_standard(2_700_000.0), 3_600_000.0);
+        // 45m -> 1h
+    }
+
+    #[test]
+    fn test_snap_to_standard_hours() {
+        assert_eq!(StatusBarWidget::snap_to_standard(3_600_000.0), 3_600_000.0); // 1h exact
+        assert_eq!(StatusBarWidget::snap_to_standard(5_000_000.0), 7_200_000.0); // -> 2h
         assert_eq!(
             StatusBarWidget::snap_to_standard(10_000_000.0),
             21_600_000.0
-        ); // → 6h
+        ); // -> 6h
+    }
+
+    #[test]
+    fn test_snap_to_standard_beyond_24h() {
+        let big = 100_000_000.0; // ~27.8h
+        assert_eq!(StatusBarWidget::snap_to_standard(big), big); // returned as-is
     }
 
     /// Helper: return the shortcut hints via the production method.
