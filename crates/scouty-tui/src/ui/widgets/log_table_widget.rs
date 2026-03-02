@@ -75,7 +75,6 @@ impl LogTableWidget {
         let visible = app.visible_records();
         let cw = &app.col_widths;
         let vis_cols = app.column_config.visible_columns();
-        let wo = &app.column_config.width_overrides;
 
         let sep_style = theme.table.separator.to_style_entry().to_style();
         let sep_char = theme.table.separator.separator_char();
@@ -94,23 +93,19 @@ impl LogTableWidget {
                 .flat_map(|(i, col)| {
                     let w = if *col == Column::Log {
                         Constraint::Fill(1)
-                    } else if let Some(&ow) = wo.get(col) {
-                        Constraint::Length(ow)
                     } else {
-                        match col {
-                            Column::Time => Constraint::Length(cw[0]),
-                            Column::Level => Constraint::Length(cw[1]),
-                            Column::Hostname => Constraint::Length(20),
-                            Column::Container => Constraint::Length(15),
-                            Column::Context => Constraint::Length(cw[6]),
-                            Column::Function => Constraint::Length(cw[7]),
-                            Column::ProcessName => Constraint::Length(cw[2]),
-                            Column::Pid => Constraint::Length(cw[3]),
-                            Column::Tid => Constraint::Length(cw[4]),
-                            Column::Component => Constraint::Length(cw[5]),
-                            Column::Source => Constraint::Length(15),
-                            Column::Log => unreachable!(),
-                        }
+                        let cfg_idx = app.column_config.columns.iter().position(|(c, _)| c == col);
+                        let auto_w = if let Some(cw_idx) = col.col_widths_index() {
+                            cw[cw_idx]
+                        } else {
+                            col.default_fixed_width()
+                        };
+                        let effective = if let Some(idx) = cfg_idx {
+                            app.column_config.effective_width(idx, auto_w)
+                        } else {
+                            auto_w
+                        };
+                        Constraint::Length(effective)
                     };
                     if i < vis_cols.len() - 1 {
                         vec![w, Constraint::Length(1)]
