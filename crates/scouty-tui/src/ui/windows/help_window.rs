@@ -106,7 +106,7 @@ impl<'a> HelpWindow<'a> {
             Line::from("  Esc              Cancel / close"),
             Line::from(""),
             Line::styled(
-                " j/k to scroll • Esc/q to close ",
+                " j/k/PgUp/PgDn to scroll • Esc/q to close ",
                 t.dialog.muted.to_style(),
             ),
         ]
@@ -156,6 +156,19 @@ impl UiComponent for HelpWindow<'_> {
         if self.scroll < max_scroll {
             self.scroll += 1;
         }
+        ComponentResult::Consumed
+    }
+
+    fn on_page_up(&mut self) -> ComponentResult {
+        let page = self.visible_height.max(1);
+        self.scroll = self.scroll.saturating_sub(page);
+        ComponentResult::Consumed
+    }
+
+    fn on_page_down(&mut self) -> ComponentResult {
+        let page = self.visible_height.max(1);
+        let max_scroll = self.total_lines().saturating_sub(self.visible_height);
+        self.scroll = (self.scroll + page).min(max_scroll);
         ComponentResult::Consumed
     }
 
@@ -223,6 +236,6 @@ impl OverlayWindow for HelpOverlay {
     }
 
     fn shortcut_hints(&self) -> Vec<(&str, &str)> {
-        vec![("j/k", "Scroll"), ("Esc/q", "Close")]
+        vec![("j/k/PgUp/PgDn", "Scroll"), ("Esc/q", "Close")]
     }
 }
