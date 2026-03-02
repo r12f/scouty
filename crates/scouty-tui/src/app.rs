@@ -2747,6 +2747,42 @@ mod tests {
             max_char
         );
     }
+
+    #[test]
+    fn test_detail_scroll_right_increases_offset() {
+        let mut app = make_app(5);
+        assert_eq!(app.detail_horizontal_offset, 0);
+        app.detail_scroll_right();
+        assert_eq!(app.detail_horizontal_offset, 4);
+        app.detail_scroll_right();
+        assert_eq!(app.detail_horizontal_offset, 8);
+    }
+
+    #[test]
+    fn test_detail_scroll_left_decreases_offset() {
+        let mut app = make_app(5);
+        app.detail_horizontal_offset = 8;
+        app.detail_scroll_left();
+        assert_eq!(app.detail_horizontal_offset, 4);
+        app.detail_scroll_left();
+        assert_eq!(app.detail_horizontal_offset, 0);
+    }
+
+    #[test]
+    fn test_detail_scroll_left_does_not_underflow() {
+        let mut app = make_app(5);
+        assert_eq!(app.detail_horizontal_offset, 0);
+        app.detail_scroll_left();
+        assert_eq!(app.detail_horizontal_offset, 0);
+    }
+
+    #[test]
+    fn test_detail_scroll_left_partial_saturate() {
+        let mut app = make_app(5);
+        app.detail_horizontal_offset = 2;
+        app.detail_scroll_left();
+        assert_eq!(app.detail_horizontal_offset, 0);
+    }
 }
 
 #[cfg(test)]

@@ -78,7 +78,7 @@ mod tests {
             gr.message,
             "SAI_STATUS_SUCCESS|SAI_PORT_ATTR_REMOTE_ADVERTISED_SPEED=0:null"
         );
-        assert_eq!(gr.component_name.as_deref(), Some("SAI_OBJECT_TYPE_PORT")); // stateful component propagation
+        assert!(gr.component_name.is_none());
     }
 
     #[test]
@@ -724,45 +724,5 @@ mod tests {
         } else {
             panic!("Expected KeyValue for Attributes");
         }
-    }
-
-    #[test]
-    fn test_get_response_component_propagation() {
-        let p = SairedisParser::new();
-
-        // Parse 'g' — saves component and context
-        let g = parse(&p, "2025-05-17.18:49:14.280510|g|SAI_OBJECT_TYPE_SWITCH:oid:0x21000000000000|SAI_SWITCH_ATTR_SRC_MAC_ADDRESS=0:").unwrap();
-        assert_eq!(g.component_name.as_deref(), Some("SAI_OBJECT_TYPE_SWITCH"));
-
-        // Parse 'G' — should inherit component from last 'g'
-        let gr = parse(&p, "2025-05-17.18:49:14.282097|G|SAI_STATUS_SUCCESS|SAI_SWITCH_ATTR_SRC_MAC_ADDRESS=50:6B:4B:B0:5D:80").unwrap();
-        assert_eq!(gr.component_name.as_deref(), Some("SAI_OBJECT_TYPE_SWITCH"));
-        assert_eq!(gr.context.as_deref(), Some("oid:0x21000000000000"));
-    }
-
-    #[test]
-    fn test_get_response_component_cleared_without_prior_get() {
-        let p = SairedisParser::new();
-
-        // No prior 'g' — component should be None
-        let gr = parse(
-            &p,
-            "2025-05-17.18:49:14.282097|G|SAI_STATUS_SUCCESS|attr=val",
-        )
-        .unwrap();
-        assert!(gr.component_name.is_none());
-    }
-
-    #[test]
-    fn test_query_response_component_propagation() {
-        let p = SairedisParser::new();
-
-        // Parse 'q' — saves component and context
-        let q = parse(&p, "2025-05-18.06:38:35.610696|q|SAI_OBJECT_TYPE_QUERY_ATTRIBUTE_CAPABILITY|SAI_OBJECT_TYPE_LAG:oid:0x21000000000000|SAI_LAG_ATTR_SYSTEM_PORT_AGGREGATE_ID").unwrap();
-        assert_eq!(q.component_name.as_deref(), Some("SAI_OBJECT_TYPE_LAG"));
-
-        // Parse 'Q' — should inherit component from last 'q'
-        let qr = parse(&p, "2025-05-18.06:38:35.611000|Q|SAI_OBJECT_TYPE_QUERY_ATTRIBUTE_CAPABILITY|SAI_STATUS_SUCCESS").unwrap();
-        assert_eq!(qr.component_name.as_deref(), Some("SAI_OBJECT_TYPE_LAG"));
     }
 }

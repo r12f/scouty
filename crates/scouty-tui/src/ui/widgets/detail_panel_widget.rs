@@ -13,6 +13,20 @@ use scouty::record::{ExpandedField, ExpandedValue};
 use crate::ui::widgets::log_table_widget::level_style;
 use ratatui::style::Modifier;
 use ratatui::text::{Line, Span};
+
+/// Return the substring starting at char index `start`, taking up to `max_chars` characters.
+fn safe_char_slice(s: &str, start: usize, max_chars: Option<usize>) -> String {
+    let iter = s.chars().skip(start);
+    match max_chars {
+        Some(n) => iter.take(n).collect(),
+        None => iter.collect(),
+    }
+}
+
+/// Return the number of characters (not bytes) in the string.
+fn char_len(s: &str) -> usize {
+    s.chars().count()
+}
 use ratatui::widgets::{Block, Borders, Cell, Paragraph, Row, Table, Wrap};
 use ratatui::Frame;
 use std::collections::HashSet;
@@ -322,9 +336,10 @@ impl DetailPanelWidget {
         let rows: Vec<Row> = pairs
             .into_iter()
             .map(|(key, val)| {
-                let display_val = if h_offset > 0 && h_offset < val.len() {
-                    val[h_offset..].to_string()
-                } else if h_offset >= val.len() && !val.is_empty() && h_offset > 0 {
+                let val_char_len = char_len(&val);
+                let display_val = if h_offset > 0 && h_offset < val_char_len {
+                    safe_char_slice(&val, h_offset, None)
+                } else if h_offset >= val_char_len && !val.is_empty() && h_offset > 0 {
                     String::new()
                 } else {
                     val.clone()
@@ -398,14 +413,16 @@ impl DetailPanelWidget {
             };
 
             // Apply horizontal scroll offset
-            let display = if h_offset >= line_text.len() {
+            let line_char_len = char_len(&line_text);
+            let display = if h_offset >= line_char_len {
                 String::new()
             } else {
-                let sliced = &line_text[h_offset..];
-                if sliced.len() > width {
-                    format!("{}…", &sliced[..width.saturating_sub(1)])
+                let sliced = safe_char_slice(&line_text, h_offset, None);
+                let sliced_char_len = char_len(&sliced);
+                if sliced_char_len > width {
+                    format!("{}…", safe_char_slice(&sliced, 0, Some(width.saturating_sub(1))))
                 } else {
-                    sliced.to_string()
+                    sliced
                 }
             };
 
