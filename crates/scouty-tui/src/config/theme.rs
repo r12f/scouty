@@ -448,6 +448,54 @@ impl Theme {
         ]
     }
 
+    /// Return (name, description) pairs for all built-in themes.
+    pub fn builtin_descriptions() -> &'static [(&'static str, &'static str)] {
+        &[
+            ("default", "Balanced dark theme with soft, modern colors"),
+            ("dark", "Muted dark theme — lower contrast, softer colors"),
+            (
+                "light",
+                "Light background with dark text for bright environments",
+            ),
+            (
+                "solarized",
+                "Ethan Schoonover's solarized palette, warm and precise",
+            ),
+            (
+                "landmine",
+                "Jirai Kei aesthetic — black and pink with bold accents",
+            ),
+            (
+                "mizuiro",
+                "Clear, transparent aqua theme with cool blue tones",
+            ),
+            (
+                "amai",
+                "Sweet Lolita — dreamy pastel pink and soft lavender",
+            ),
+            (
+                "maid",
+                "Classic maid — black & white high contrast with wine red",
+            ),
+            ("gyaru", "Shibuya bold — gold and hot pink glamour"),
+        ]
+    }
+    /// Get the description for a built-in theme.
+    pub fn builtin_description(name: &str) -> Option<&'static str> {
+        match name {
+            "default" => Some("Dark theme with blue accents and warm highlights"),
+            "dark" => Some("Low-contrast dark theme with muted, softer colors"),
+            "light" => Some("Light background with dark text for bright environments"),
+            "solarized" => Some("Ethan Schoonover's Solarized Dark palette"),
+            "landmine" => Some("Jirai Kei: black base with pink and red accents"),
+            "mizuiro" => Some("Clear aqua: deep navy base with water blue and sky blue"),
+            "amai" => Some("Sweet Lolita: dark rose base with candy pink and lavender"),
+            "maid" => Some("Classic maid: black and white high contrast with wine red"),
+            "gyaru" => Some("Shibuya bold: dark bronze base with gold and hot pink"),
+            _ => None,
+        }
+    }
+
     /// Muted dark theme — lower contrast, softer colors.
     pub fn dark() -> Self {
         use Color::*;
