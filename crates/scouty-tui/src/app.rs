@@ -2139,7 +2139,15 @@ impl App {
         match Regex::new(pattern) {
             Ok(regex) => {
                 let palette = &self.theme.highlight_palette;
-                let color_idx = self.highlight_rules.len() % palette.len().max(1);
+                let palette_len = palette.len().max(1);
+                let used_colors: std::collections::HashSet<usize> = self
+                    .highlight_rules
+                    .iter()
+                    .filter_map(|r| palette.iter().position(|c| c.0 == r.color))
+                    .collect();
+                let color_idx = (0..palette_len)
+                    .find(|i| !used_colors.contains(i))
+                    .unwrap_or(self.highlight_rules.len() % palette_len);
                 let color = palette.get(color_idx).map(|c| c.0).unwrap_or(Color::Red);
                 self.highlight_rules.push(HighlightRule {
                     pattern: pattern.to_string(),
