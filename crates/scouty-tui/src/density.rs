@@ -182,16 +182,6 @@ pub fn render_braille(
     (result, cursor_char_idx)
 }
 
-/// Compute the number of tick-mark columns that would be inserted for a
-/// density chart of `braille_len` characters, given one tick every
-/// `interval` characters.
-pub fn tick_count(braille_len: usize, interval: usize) -> usize {
-    if interval == 0 || braille_len <= interval {
-        return 0;
-    }
-    (braille_len - 1) / interval
-}
-
 /// Compute the effective chart width (braille chars) that fits within
 /// `available` display columns, accounting for tick marks every `interval`.
 pub fn chart_width_for_available(available: usize, interval: usize) -> usize {
@@ -206,6 +196,13 @@ pub fn chart_width_for_available(available: usize, interval: usize) -> usize {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn tick_count(braille_len: usize, interval: usize) -> usize {
+        if interval == 0 || braille_len <= interval {
+            return 0;
+        }
+        (braille_len - 1) / interval
+    }
     use chrono::Duration;
 
     #[test]
@@ -297,7 +294,6 @@ mod tests {
     }
     #[test]
     fn test_tick_count() {
-        use super::tick_count;
         assert_eq!(tick_count(0, 10), 0);
         assert_eq!(tick_count(5, 10), 0);
         assert_eq!(tick_count(10, 10), 0);
@@ -321,5 +317,4 @@ mod tests {
         assert!(w + tick_count(w, 10) <= 22);
         assert!(w >= 20);
     }
-
 }

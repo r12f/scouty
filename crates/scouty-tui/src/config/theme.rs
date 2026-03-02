@@ -229,7 +229,7 @@ impl Default for StatusBarTheme {
             shortcut_sep: StyleEntry::fg(Color::Rgb(92, 92, 92)),
             density_label: StyleEntry::fg(Color::Rgb(107, 123, 141)), // dimmer #6B7B8D
             cursor_marker: StyleEntry::fg(Color::Rgb(255, 217, 61)),  // yellow #FFD93D
-            density_tick: StyleEntry::fg(Color::Rgb(59, 66, 82)),    // dim #3B4252
+            density_tick: StyleEntry::fg(Color::Rgb(59, 66, 82)),     // dim #3B4252
         }
     }
 }
