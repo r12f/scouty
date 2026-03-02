@@ -226,15 +226,7 @@ pub fn resolve_theme(config: &Config, cli_theme: Option<&str>) -> Theme {
         return Theme::default();
     }
 
-    // Built-in theme presets
-    match theme_name {
-        "dark" => return Theme::dark(),
-        "light" => return Theme::light(),
-        "solarized" => return Theme::solarized(),
-        _ => {}
-    }
-
-    // Check built-in presets first
+    // Check built-in presets
     if let Some(theme) = Theme::builtin(theme_name) {
         return theme;
     }
@@ -272,7 +264,7 @@ pub fn generate_default_config() -> String {
 # Place at ~/.scouty/config.yaml (user) or ./scouty.yaml (project)
 # See: https://github.com/r12f/scouty
 
-# Theme selection (built-in: default, dark, light, solarized, landmine)
+# Theme selection (built-in: default, landmine, amai, maid, gyaru)
 theme: default
 
 # Default log paths when no files specified (glob patterns supported)
