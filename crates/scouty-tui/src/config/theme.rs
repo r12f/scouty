@@ -1061,7 +1061,6 @@ impl Theme {
         }
     }
 
-
     /// Maid — classic maid, black & white high contrast with wine red accents.
     pub fn maid() -> Self {
         use Color::*;
