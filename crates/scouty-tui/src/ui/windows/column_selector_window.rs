@@ -19,9 +19,8 @@ use ratatui::Frame;
 pub struct ColumnSelectorWindow {
     pub cursor: usize,
     pub columns: Vec<(Column, bool)>,
-    pub width_overrides: std::collections::HashMap<Column, u16>,
-    /// Auto-computed widths from App.
-    pub auto_widths: std::collections::HashMap<Column, u16>,
+    pub width_overrides: Vec<Option<u16>>,
+    pub col_widths: [u16; 8],
     pub theme: Theme,
 }
 
@@ -46,7 +45,7 @@ impl ColumnSelectorWindow {
             cursor: app.column_config.cursor,
             columns: app.column_config.columns.clone(),
             width_overrides: app.column_config.width_overrides.clone(),
-            auto_widths,
+            col_widths: app.col_widths,
             theme: app.theme.clone(),
         }
     }
@@ -64,41 +63,64 @@ impl ColumnSelectorWindow {
         }
     }
 
-    /// Get the current effective width for a column.
-    fn current_width(&self, col: Column) -> u16 {
-        if let Some(&w) = self.width_overrides.get(&col) {
-            w
+    fn auto_width_for(&self, index: usize) -> u16 {
+        if index >= self.columns.len() {
+            return 0;
+        }
+        let col = &self.columns[index].0;
+        if let Some(cw_idx) = col.col_widths_index() {
+            self.col_widths[cw_idx]
         } else {
-            *self.auto_widths.get(&col).unwrap_or(&0)
+            col.default_fixed_width()
         }
     }
 
-    /// Adjust width of the currently selected column by delta.
+    fn effective_width(&self, index: usize) -> u16 {
+        let auto = self.auto_width_for(index);
+        if index < self.width_overrides.len() {
+            self.width_overrides[index].unwrap_or(auto)
+        } else {
+            auto
+        }
+    }
+
     fn adjust_width(&mut self, delta: i16) {
         let cur = self.cursor;
         if cur >= self.columns.len() {
             return;
         }
-        let (col, visible) = self.columns[cur];
-        if col == Column::Log || !visible {
+        let (col, visible) = &self.columns[cur];
+        if *col == Column::Log || !visible {
             return;
         }
-        let current = self.current_width(col);
-        let new_width = (current as i16 + delta).max(col.min_width() as i16) as u16;
-        self.width_overrides.insert(col, new_width);
+        let current = self.effective_width(cur);
+        let min = col.min_width();
+        let new_width = (current as i16 + delta).max(min as i16) as u16;
+        if new_width != current {
+            self.width_overrides[cur] = Some(new_width);
+        }
     }
 
-    /// Reset the currently selected column's width to auto-computed.
-    fn reset_current_width(&mut self) {
+    fn reset_width(&mut self) {
         let cur = self.cursor;
-        if cur >= self.columns.len() {
-            return;
+        if cur < self.width_overrides.len() {
+            self.width_overrides[cur] = None;
         }
-        let (col, _) = self.columns[cur];
-        if col == Column::Log {
-            return;
+    }
+
+    /// Format the width display for a column.
+    fn width_display(&self, index: usize) -> String {
+        if index >= self.columns.len() {
+            return String::new();
         }
-        self.width_overrides.remove(&col);
+        let (col, visible) = &self.columns[index];
+        if *col == Column::Log {
+            "fill".to_string()
+        } else if !visible {
+            "-".to_string()
+        } else {
+            format!("{}", self.effective_width(index))
+        }
     }
 }
 
@@ -106,7 +128,7 @@ impl ColumnSelectorWindow {
 impl UiComponent for ColumnSelectorWindow {
     fn render(&self, frame: &mut Frame, area: Rect) {
         let t = &self.theme;
-        let width = 42u16.min(area.width.saturating_sub(4));
+        let width = 40u16.min(area.width.saturating_sub(4));
         let height = (self.columns.len() as u16 + 6).min(area.height.saturating_sub(4));
         let x = (area.width.saturating_sub(width)) / 2;
         let y = (area.height.saturating_sub(height)) / 2;
@@ -122,13 +144,7 @@ impl UiComponent for ColumnSelectorWindow {
         for (i, (col, visible)) in self.columns.iter().enumerate() {
             let checkbox = if *visible { "[x]" } else { "[ ]" };
             let is_cursor = i == self.cursor;
-            let width_str = if *col == Column::Log {
-                "fill".to_string()
-            } else if !*visible {
-                "-".to_string()
-            } else {
-                format!("{}", self.current_width(*col))
-            };
+            let width_str = self.width_display(i);
             let style = if is_cursor {
                 t.dialog.selected.to_style()
             } else {
@@ -198,7 +214,7 @@ impl UiComponent for ColumnSelectorWindow {
                 ComponentResult::Consumed
             }
             'r' => {
-                self.reset_current_width();
+                self.reset_width();
                 ComponentResult::Consumed
             }
             _ => ComponentResult::Ignored,

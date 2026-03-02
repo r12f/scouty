@@ -79,6 +79,8 @@ impl<'a> HelpWindow<'a> {
             Line::from(""),
             section("Log Table View — Display & Analysis"),
             Line::from("  c                Column selector"),
+            Line::from("    h/l / ←/→        Adjust column width"),
+            Line::from("    r                Reset to auto width"),
             Line::from("  d / D            Cycle / select density chart source"),
             Line::from("  h / H            Add highlight / highlight manager"),
             Line::from("  r / R            Region manager / next region"),

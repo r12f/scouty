@@ -94,6 +94,33 @@ impl Column {
         }
     }
 
+    /// Index into the col_widths array, if applicable.
+    #[allow(dead_code)]
+    pub fn col_widths_index(&self) -> Option<usize> {
+        match self {
+            Column::Time => Some(0),
+            Column::Level => Some(1),
+            Column::ProcessName => Some(2),
+            Column::Pid => Some(3),
+            Column::Tid => Some(4),
+            Column::Component => Some(5),
+            Column::Context => Some(6),
+            Column::Function => Some(7),
+            _ => None,
+        }
+    }
+
+    /// Default width for columns not in col_widths.
+    #[allow(dead_code)]
+    pub fn default_fixed_width(&self) -> u16 {
+        match self {
+            Column::Hostname => 20,
+            Column::Container => 15,
+            Column::Source => 15,
+            _ => 10,
+        }
+    }
+
     /// Minimum width for this column (cannot shrink below this).
     #[allow(dead_code)]
     pub fn min_width(&self) -> u16 {
@@ -121,8 +148,8 @@ pub struct ColumnConfig {
     pub columns: Vec<(Column, bool)>,
     /// Cursor in the column selector dialog.
     pub cursor: usize,
-    /// Manual width overrides set by the user.
-    pub width_overrides: std::collections::HashMap<Column, u16>,
+    /// Manual width overrides (parallel to `columns`). `None` = auto-computed.
+    pub width_overrides: Vec<Option<u16>>,
 }
 
 impl Default for ColumnConfig {
@@ -143,12 +170,73 @@ impl Default for ColumnConfig {
                 (Column::Log, true),
             ],
             cursor: 0,
-            width_overrides: std::collections::HashMap::new(),
+            width_overrides: vec![None; 12],
         }
     }
 }
 
 impl ColumnConfig {
+    /// Get the effective width for a column at the given index.
+    /// Returns the manual override if set, otherwise the auto-computed width.
+    #[allow(dead_code)]
+    pub fn effective_width(&self, index: usize, auto_width: u16) -> u16 {
+        if index < self.width_overrides.len() {
+            self.width_overrides[index].unwrap_or(auto_width)
+        } else {
+            auto_width
+        }
+    }
+
+    /// Adjust width for column at index by delta. Respects min_width.
+    /// Returns true if width changed.
+    #[allow(dead_code)]
+    pub fn adjust_width(&mut self, index: usize, delta: i16, auto_width: u16) -> bool {
+        if index >= self.columns.len() {
+            return false;
+        }
+        let (col, visible) = &self.columns[index];
+        if *col == Column::Log || !visible {
+            return false;
+        }
+        let current = self.effective_width(index, auto_width);
+        let min = col.min_width();
+        let new_width = (current as i16 + delta).max(min as i16) as u16;
+        if new_width != current {
+            self.width_overrides[index] = Some(new_width);
+            true
+        } else {
+            false
+        }
+    }
+
+    /// Reset width override for column at index (back to auto-computed).
+    #[allow(dead_code)]
+    pub fn reset_width(&mut self, index: usize) {
+        if index < self.width_overrides.len() {
+            self.width_overrides[index] = None;
+        }
+    }
+
+    /// Get the auto-computed width for a column, given col_widths array.
+    #[allow(dead_code)]
+    pub fn auto_width_for(&self, index: usize, col_widths: &[u16; 8]) -> u16 {
+        if index >= self.columns.len() {
+            return 0;
+        }
+        let col = &self.columns[index].0;
+        if let Some(cw_idx) = col.col_widths_index() {
+            col_widths[cw_idx]
+        } else {
+            col.default_fixed_width()
+        }
+    }
+
+    /// Get the display width for a column (effective = override or auto).
+    #[allow(dead_code)]
+    pub fn display_width(&self, index: usize, col_widths: &[u16; 8]) -> u16 {
+        let auto = self.auto_width_for(index, col_widths);
+        self.effective_width(index, auto)
+    }
     #[allow(dead_code)]
     pub fn is_visible(&self, col: Column) -> bool {
         self.columns
