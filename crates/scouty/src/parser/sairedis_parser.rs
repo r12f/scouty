@@ -25,8 +25,12 @@ const KNOWN_OPS: &[u8] = b"crsgGpCRSBqQnaA";
 pub struct SairedisParser {
     /// Last context from a `g` (Get) operation.
     last_get_context: RefCell<Option<String>>,
+    /// Last component from a `g` (Get) operation.
+    last_get_component: RefCell<Option<String>>,
     /// Last context from a `q` (Query) operation.
     last_query_context: RefCell<Option<String>>,
+    /// Last component from a `q` (Query) operation.
+    last_query_component: RefCell<Option<String>>,
 }
 
 impl Default for SairedisParser {
@@ -39,7 +43,9 @@ impl SairedisParser {
     pub fn new() -> Self {
         Self {
             last_get_context: RefCell::new(None),
+            last_get_component: RefCell::new(None),
             last_query_context: RefCell::new(None),
+            last_query_component: RefCell::new(None),
         }
     }
 
@@ -130,8 +136,9 @@ impl SairedisParser {
             }
             b'g' => {
                 let (comp, ctx, msg) = self.parse_single_op(detail);
-                // Save context for G response
+                // Save context and component for G response
                 *self.last_get_context.borrow_mut() = ctx.clone();
+                *self.last_get_component.borrow_mut() = comp.clone();
                 ("Get".to_string(), comp, ctx, msg)
             }
             b'p' => {
@@ -146,8 +153,9 @@ impl SairedisParser {
             // GetResponse: G (stateful)
             b'G' => {
                 let ctx = self.last_get_context.borrow().clone();
+                let comp = self.last_get_component.borrow().clone();
                 let msg = str_from_bytes(detail);
-                ("GetResponse".to_string(), None, ctx, msg)
+                ("GetResponse".to_string(), comp, ctx, msg)
             }
             // Bulk ops: C/R/S/B
             b'C' => {
@@ -168,16 +176,18 @@ impl SairedisParser {
             }
             // Query: q
             b'q' => {
-                let (name, ctx, msg) = self.parse_query(detail);
-                // Save context for Q response
+                let (name, comp, ctx, msg) = self.parse_query(detail);
+                // Save context and component for Q response
                 *self.last_query_context.borrow_mut() = ctx.clone();
-                (format!("Query: {}", name), None, ctx, msg)
+                *self.last_query_component.borrow_mut() = comp.clone();
+                (format!("Query: {}", name), comp, ctx, msg)
             }
             // QueryResponse: Q (stateful)
             b'Q' => {
                 let (name, msg) = Self::parse_query_response(detail);
                 let ctx = self.last_query_context.borrow().clone();
-                (format!("QueryResponse: {}", name), None, ctx, msg)
+                let comp = self.last_query_component.borrow().clone();
+                (format!("QueryResponse: {}", name), comp, ctx, msg)
             }
             // Notification: n
             b'n' => {
@@ -306,28 +316,28 @@ impl SairedisParser {
     }
 
     /// Parse query detail: `query_name|context|attrs...`
-    /// Returns (query_name, context, message=rest)
-    fn parse_query(&self, detail: &[u8]) -> (String, Option<String>, String) {
+    /// Returns (query_name, component, context, message=rest)
+    fn parse_query(&self, detail: &[u8]) -> (String, Option<String>, Option<String>, String) {
         if detail.is_empty() {
-            return (String::new(), None, String::new());
+            return (String::new(), None, None, String::new());
         }
 
         // First '|' separates query_name
         let pipe1 = memchr::memchr(b'|', detail);
         let name = match pipe1 {
             Some(pos) => str_from_bytes(&detail[..pos]),
-            None => return (str_from_bytes(detail), None, String::new()),
+            None => return (str_from_bytes(detail), None, None, String::new()),
         };
 
         let rest = &detail[pipe1.unwrap() + 1..];
 
         // Second segment is context (SAI_OBJECT_TYPE:oid)
         let pipe2 = memchr::memchr(b'|', rest);
-        let (ctx, msg) = match pipe2 {
+        let (comp, ctx, msg) = match pipe2 {
             Some(pos) => {
                 let ctx_str = str_from_bytes(&rest[..pos]);
                 // Parse context to get the actual context part (after ':')
-                let (_, ctx) = Self::parse_type_context(rest[..pos].as_ref());
+                let (comp, ctx) = Self::parse_type_context(rest[..pos].as_ref());
                 let msg = if pos + 1 < rest.len() {
                     str_from_bytes(&rest[pos + 1..])
                 } else {
@@ -336,15 +346,15 @@ impl SairedisParser {
                 // Use full context string if parse_type_context found a context,
                 // otherwise use the whole segment
                 let final_ctx = ctx.or(Some(ctx_str));
-                (final_ctx, msg)
+                (comp, final_ctx, msg)
             }
             None => {
-                let (_, ctx) = Self::parse_type_context(rest);
-                (ctx, String::new())
+                let (comp, ctx) = Self::parse_type_context(rest);
+                (comp, ctx, String::new())
             }
         };
 
-        (name, ctx, msg)
+        (name, comp, ctx, msg)
     }
 
     /// Parse query response detail: `query_name|status|attrs...`
