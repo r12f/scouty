@@ -10,9 +10,9 @@ mod tests {
 
     #[test]
     fn config_from_yaml_partial() {
-        let yaml = r#"theme: "solarized""#;
+        let yaml = r#"theme: "landmine""#;
         let cfg: Config = serde_yaml::from_str(yaml).unwrap();
-        assert_eq!(cfg.theme, "solarized");
+        assert_eq!(cfg.theme, "landmine");
     }
 
     #[test]
@@ -92,10 +92,10 @@ mod tests {
     #[test]
     fn test_deep_merge_scalars() {
         let base: serde_yaml::Value = serde_yaml::from_str("theme: default").unwrap();
-        let overlay: serde_yaml::Value = serde_yaml::from_str("theme: dark").unwrap();
+        let overlay: serde_yaml::Value = serde_yaml::from_str("theme: amai").unwrap();
         let merged = super::super::deep_merge(base, overlay);
         let cfg: Config = serde_yaml::from_value(merged).unwrap();
-        assert_eq!(cfg.theme, "dark");
+        assert_eq!(cfg.theme, "amai");
     }
 
     #[test]
@@ -126,7 +126,7 @@ mod tests {
 
     #[test]
     fn test_deep_merge_null_resets() {
-        let base: serde_yaml::Value = serde_yaml::from_str("theme: dark").unwrap();
+        let base: serde_yaml::Value = serde_yaml::from_str("theme: amai").unwrap();
         let overlay: serde_yaml::Value = serde_yaml::from_str("theme: null").unwrap();
         let merged = super::super::deep_merge(base, overlay);
         // theme key removed → deserialization uses default
@@ -145,23 +145,23 @@ mod tests {
     fn test_local_config_deep_merge_priority() {
         // Simulate local config overriding user config via deep_merge
         let user_yaml: serde_yaml::Value =
-            serde_yaml::from_str("theme: dark\ndefault_paths:\n  - /var/log/syslog").unwrap();
+            serde_yaml::from_str("theme: amai\ndefault_paths:\n  - /var/log/syslog").unwrap();
         let local_yaml: serde_yaml::Value =
-            serde_yaml::from_str("theme: solarized\ndefault_paths:\n  - ./logs/*.log").unwrap();
+            serde_yaml::from_str("theme: landmine\ndefault_paths:\n  - ./logs/*.log").unwrap();
         let merged = super::super::deep_merge(user_yaml, local_yaml);
         let cfg: Config = serde_yaml::from_value(merged).unwrap();
-        assert_eq!(cfg.theme, "solarized"); // local overrides user
+        assert_eq!(cfg.theme, "landmine"); // local overrides user
         assert_eq!(cfg.default_paths, vec!["./logs/*.log"]); // list replaced
     }
 
     #[test]
     fn test_local_config_overridden_by_cli_merge() {
         // CLI config layer should override local config layer
-        let local_yaml: serde_yaml::Value = serde_yaml::from_str("theme: solarized").unwrap();
-        let cli_yaml: serde_yaml::Value = serde_yaml::from_str("theme: dark").unwrap();
+        let local_yaml: serde_yaml::Value = serde_yaml::from_str("theme: landmine").unwrap();
+        let cli_yaml: serde_yaml::Value = serde_yaml::from_str("theme: amai").unwrap();
         let merged = super::super::deep_merge(local_yaml, cli_yaml);
         let cfg: Config = serde_yaml::from_value(merged).unwrap();
-        assert_eq!(cfg.theme, "dark"); // CLI wins
+        assert_eq!(cfg.theme, "amai"); // CLI wins
     }
 
     #[test]
@@ -182,9 +182,9 @@ mod tests {
         let dir = std::env::temp_dir().join("scouty_test_layered");
         let _ = std::fs::create_dir_all(&dir);
         let config_path = dir.join("override.yaml");
-        std::fs::write(&config_path, "theme: solarized\n").unwrap();
+        std::fs::write(&config_path, "theme: landmine\n").unwrap();
         let cfg = super::super::load_config_layered(Some(config_path.to_str().unwrap()));
-        assert_eq!(cfg.theme, "solarized");
+        assert_eq!(cfg.theme, "landmine");
         let _ = std::fs::remove_dir_all(&dir);
     }
 
@@ -222,13 +222,9 @@ mod tests {
     #[test]
     fn test_builtin_names() {
         let names = super::super::Theme::builtin_names();
-        assert_eq!(names.len(), 9);
+        assert_eq!(names.len(), 5);
         assert!(names.contains(&"default"));
-        assert!(names.contains(&"dark"));
-        assert!(names.contains(&"light"));
-        assert!(names.contains(&"solarized"));
         assert!(names.contains(&"landmine"));
-        assert!(names.contains(&"mizuiro"));
         assert!(names.contains(&"amai"));
         assert!(names.contains(&"maid"));
         assert!(names.contains(&"gyaru"));

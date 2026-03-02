@@ -392,25 +392,119 @@ pub struct Theme {
 
 impl Default for Theme {
     fn default() -> Self {
+        use Color::*;
+        let deep_navy = Rgb(10, 22, 40); // #0A1628
+        let dark_ocean = Rgb(15, 32, 56); // #0F2038
+        let water_blue = Rgb(91, 164, 207); // #5BA4CF
+        let sky_blue = Rgb(123, 200, 246); // #7BC8F6
+        let ice_blue = Rgb(168, 216, 234); // #A8D8EA
+        let pale_aqua = Rgb(212, 238, 246); // #D4EEF6
+        let deep_blue = Rgb(46, 107, 158); // #2E6B9E
+        let steel_blue = Rgb(74, 123, 157); // #4A7B9D
+        let muted_blue = Rgb(59, 90, 122); // #3B5A7A
+        let dark_slate = Rgb(30, 58, 80); // #1E3A50
+        let silver_mist = Rgb(139, 164, 184); // #8BA4B8
+        let light_text = Rgb(200, 214, 229); // #C8D6E5
+        let selected_bg = Rgb(22, 46, 72); // #162E48
+        let coral_accent = Rgb(232, 116, 97); // #E87461
+        let amber_warn = Rgb(232, 167, 78); // #E8A74E
+
         Self {
-            description: Some("Balanced dark theme with soft, modern colors".to_string()),
-            log_levels: LogLevelTheme::default(),
-            table: TableTheme::default(),
-            status_bar: StatusBarTheme::default(),
-            search: SearchTheme::default(),
-            dialog: DialogTheme::default(),
-            detail_panel: DetailPanelTheme::default(),
-            input: InputTheme::default(),
+            description: Some("Clear, transparent aqua theme with cool blue tones".to_string()),
+            log_levels: LogLevelTheme {
+                fatal: StyleEntry::fg_bold(coral_accent),
+                error: StyleEntry::fg(Rgb(207, 107, 94)), // #CF6B5E
+                warn: StyleEntry::fg(amber_warn),
+                notice: StyleEntry::fg(sky_blue),
+                info: StyleEntry::fg(light_text),
+                debug: StyleEntry::fg(steel_blue),
+                trace: StyleEntry::fg(muted_blue),
+            },
+            table: TableTheme {
+                header: StyleEntry {
+                    fg: Some(ThemeColor(deep_navy)),
+                    bg: Some(ThemeColor(water_blue)),
+                    bold: Some(true),
+                },
+                header_unfocused: StyleEntry::fg_bg(steel_blue, dark_ocean),
+                selected: StyleEntry::bg(selected_bg),
+                separator: SeparatorStyle {
+                    fg: Some(ThemeColor(dark_slate)),
+                    bg: None,
+                    char: "\u{2502}".to_string(),
+                },
+                selected_search: StyleEntry::bg(Rgb(20, 50, 80)),
+                selected_highlight: StyleEntry::bg(Rgb(18, 40, 68)),
+                search_match: StyleEntry::bg(Rgb(40, 70, 100)),
+                bookmark: StyleEntry::bg(Rgb(15, 45, 75)),
+            },
+            status_bar: StatusBarTheme {
+                line1_bg: StyleEntry::fg_bg(silver_mist, dark_ocean),
+                line2_bg: StyleEntry::fg_bg(steel_blue, deep_navy),
+                mode_label: StyleEntry {
+                    fg: Some(ThemeColor(deep_navy)),
+                    bg: Some(ThemeColor(water_blue)),
+                    bold: Some(true),
+                },
+                mode_view: StyleEntry::fg_bg(deep_navy, steel_blue),
+                mode_follow: StyleEntry::fg_bg(deep_navy, sky_blue),
+                density_normal: StyleEntry::fg(water_blue),
+                density_hot: StyleEntry::fg(sky_blue),
+                density_label: StyleEntry::fg(muted_blue),
+                density_tick: StyleEntry::fg(dark_slate),
+                position: StyleEntry::fg(ice_blue),
+                cursor_marker: StyleEntry::fg(sky_blue),
+                ..StatusBarTheme::default()
+            },
+            search: SearchTheme {
+                match_highlight: StyleEntry::fg_bg(deep_navy, ice_blue),
+                current_match: StyleEntry::fg_bg(deep_navy, sky_blue),
+            },
+            dialog: DialogTheme {
+                border: StyleEntry::fg(water_blue),
+                title: StyleEntry::fg_bold(sky_blue),
+                selected: StyleEntry::fg_bg(Rgb(232, 240, 246), selected_bg),
+                text: StyleEntry::fg(silver_mist),
+                muted: StyleEntry::fg(muted_blue),
+                ..DialogTheme::default()
+            },
+            detail_panel: DetailPanelTheme {
+                border: StyleEntry::fg(dark_slate),
+                field_name: StyleEntry::fg(water_blue),
+                field_value: StyleEntry::fg(silver_mist),
+                section_header: StyleEntry::fg_bold(sky_blue),
+            },
+            input: InputTheme {
+                prompt: StyleEntry::fg(sky_blue),
+                error: StyleEntry::fg(coral_accent),
+                ..InputTheme::default()
+            },
             highlight_palette: vec![
-                ThemeColor(Color::Rgb(255, 107, 107)), // soft red
-                ThemeColor(Color::Rgb(107, 203, 119)), // soft green
-                ThemeColor(Color::Rgb(79, 195, 247)),  // light blue
-                ThemeColor(Color::Rgb(255, 217, 61)),  // yellow
-                ThemeColor(Color::Rgb(186, 147, 230)), // lavender
-                ThemeColor(Color::Rgb(77, 208, 225)),  // teal
+                ThemeColor(sky_blue),   // #7BC8F6
+                ThemeColor(water_blue), // #5BA4CF
+                ThemeColor(ice_blue),   // #A8D8EA
+                ThemeColor(deep_blue),  // #2E6B9E
+                ThemeColor(pale_aqua),  // #D4EEF6
+                ThemeColor(steel_blue), // #4A7B9D
             ],
-            general: GeneralTheme::default(),
-            panel_tab: PanelTabTheme::default(),
+            general: GeneralTheme {
+                accent: StyleEntry::fg(water_blue),
+                muted: StyleEntry::fg(muted_blue),
+                border: StyleEntry::fg(dark_slate),
+            },
+            panel_tab: PanelTabTheme {
+                focused: StyleEntry {
+                    fg: Some(ThemeColor(deep_navy)),
+                    bg: Some(ThemeColor(water_blue)),
+                    bold: Some(true),
+                },
+                unfocused: StyleEntry {
+                    fg: Some(ThemeColor(steel_blue)),
+                    bg: Some(ThemeColor(dark_ocean)),
+                    bold: None,
+                },
+                bar_bg: StyleEntry::bg(deep_navy),
+            },
         }
     }
 }
@@ -425,11 +519,7 @@ impl Theme {
     pub fn builtin(name: &str) -> Option<Self> {
         match name {
             "default" => Some(Self::default()),
-            "dark" => Some(Self::dark()),
-            "light" => Some(Self::light()),
-            "solarized" => Some(Self::solarized()),
             "landmine" => Some(Self::landmine()),
-            "mizuiro" => Some(Self::mizuiro()),
             "amai" => Some(Self::amai()),
             "maid" => Some(Self::maid()),
             "gyaru" => Some(Self::gyaru()),
@@ -438,17 +528,8 @@ impl Theme {
     }
 
     /// All built-in theme names in display order.
-    const BUILTIN_NAMES: &'static [&'static str] = &[
-        "default",
-        "dark",
-        "light",
-        "solarized",
-        "landmine",
-        "mizuiro",
-        "amai",
-        "maid",
-        "gyaru",
-    ];
+    const BUILTIN_NAMES: &'static [&'static str] =
+        &["default", "landmine", "amai", "maid", "gyaru"];
 
     /// List all built-in theme names.
     pub fn builtin_names() -> Vec<&'static str> {
@@ -466,272 +547,6 @@ impl Theme {
                 Some((name.to_string(), desc))
             })
             .collect()
-    }
-
-    /// Muted dark theme — lower contrast, softer colors.
-    pub fn dark() -> Self {
-        use Color::*;
-        Self {
-            description: Some("Muted dark theme — lower contrast, softer colors".to_string()),
-            log_levels: LogLevelTheme {
-                fatal: StyleEntry::fg_bold(Red),
-                error: StyleEntry::fg(Rgb(205, 92, 92)),
-                warn: StyleEntry::fg(Rgb(210, 180, 100)),
-                notice: StyleEntry::fg(Rgb(100, 160, 180)),
-                info: StyleEntry::fg(Rgb(120, 180, 120)),
-                debug: StyleEntry::fg(Rgb(140, 140, 140)),
-                trace: StyleEntry::fg(DarkGray),
-            },
-            table: TableTheme {
-                header: StyleEntry {
-                    fg: Some(ThemeColor(Black)),
-                    bg: Some(ThemeColor(Rgb(100, 160, 180))),
-                    bold: None,
-                },
-                header_unfocused: StyleEntry::fg_bg(Rgb(85, 85, 85), Rgb(30, 30, 40)),
-                selected: StyleEntry::bg(Rgb(40, 40, 55)),
-                selected_search: StyleEntry::bg(Rgb(80, 80, 30)),
-                selected_highlight: StyleEntry::bg(Rgb(35, 45, 60)),
-                search_match: StyleEntry::bg(Rgb(60, 60, 20)),
-                bookmark: StyleEntry::bg(Rgb(25, 35, 50)),
-                separator: SeparatorStyle::default(),
-            },
-            status_bar: StatusBarTheme {
-                line1_bg: StyleEntry::bg(Rgb(30, 30, 40)),
-                line2_bg: StyleEntry::bg(Rgb(35, 35, 50)),
-                mode_label: StyleEntry::fg_bg(Black, Rgb(100, 160, 180)),
-                mode_view: StyleEntry::fg_bg(Black, Rgb(140, 140, 140)),
-                mode_follow: StyleEntry::fg_bg(Black, Rgb(120, 180, 120)),
-                density_normal: StyleEntry::fg(Rgb(100, 160, 180)),
-                density_hot: StyleEntry::fg(Rgb(210, 180, 100)),
-                density_tick: StyleEntry::fg(Rgb(42, 74, 90)), // Ocean #2A4A5A
-                ..StatusBarTheme::default()
-            },
-            search: SearchTheme {
-                match_highlight: StyleEntry::fg_bg(Black, Rgb(210, 180, 100)),
-                current_match: StyleEntry::fg_bg(Black, Rgb(200, 120, 50)),
-            },
-            dialog: DialogTheme {
-                border: StyleEntry::fg(Rgb(100, 160, 180)),
-                title: StyleEntry::fg_bold(Rgb(180, 180, 180)),
-                selected: StyleEntry::fg_bg(White, Rgb(40, 40, 55)),
-                text: StyleEntry::fg(Rgb(180, 180, 180)),
-                muted: StyleEntry::fg(DarkGray),
-                ..DialogTheme::default()
-            },
-            detail_panel: DetailPanelTheme {
-                border: StyleEntry::fg(Rgb(60, 60, 80)),
-                field_name: StyleEntry::fg(Rgb(100, 160, 180)),
-                field_value: StyleEntry::fg(Rgb(180, 180, 180)),
-                section_header: StyleEntry::fg_bold(Rgb(180, 180, 180)),
-            },
-            input: InputTheme {
-                prompt: StyleEntry::fg(Rgb(210, 180, 100)),
-                error: StyleEntry::fg(Rgb(205, 92, 92)),
-                ..InputTheme::default()
-            },
-            general: GeneralTheme {
-                accent: StyleEntry::fg(Rgb(100, 160, 180)),
-                muted: StyleEntry::fg(DarkGray),
-                border: StyleEntry::fg(Rgb(60, 60, 80)),
-            },
-            panel_tab: PanelTabTheme {
-                focused: StyleEntry {
-                    fg: Some(ThemeColor(Black)),
-                    bg: Some(ThemeColor(Rgb(100, 160, 180))),
-                    bold: Some(true),
-                },
-                unfocused: StyleEntry {
-                    fg: Some(ThemeColor(Rgb(85, 85, 85))),
-                    bg: Some(ThemeColor(Rgb(30, 30, 40))),
-                    bold: None,
-                },
-                bar_bg: StyleEntry::bg(Rgb(20, 20, 30)),
-            },
-            ..Self::default()
-        }
-    }
-
-    /// Light theme — light background, dark text.
-    pub fn light() -> Self {
-        use Color::*;
-        Self {
-            description: Some(
-                "Light background with dark text for bright environments".to_string(),
-            ),
-            log_levels: LogLevelTheme {
-                fatal: StyleEntry::fg_bold(Rgb(180, 0, 0)),
-                error: StyleEntry::fg(Rgb(180, 0, 0)),
-                warn: StyleEntry::fg(Rgb(180, 120, 0)),
-                notice: StyleEntry::fg(Rgb(0, 120, 150)),
-                info: StyleEntry::fg(Rgb(0, 130, 60)),
-                debug: StyleEntry::fg(Rgb(100, 100, 100)),
-                trace: StyleEntry::fg(Rgb(150, 150, 150)),
-            },
-            table: TableTheme {
-                header: StyleEntry {
-                    fg: Some(ThemeColor(White)),
-                    bg: Some(ThemeColor(Rgb(0, 120, 150))),
-                    bold: None,
-                },
-                header_unfocused: StyleEntry::fg_bg(Rgb(153, 153, 153), Rgb(220, 220, 230)),
-                selected: StyleEntry::fg_bg(Black, Rgb(200, 210, 230)),
-                selected_search: StyleEntry::fg_bg(Black, Rgb(220, 220, 160)),
-                selected_highlight: StyleEntry::fg_bg(Black, Rgb(210, 218, 235)),
-                search_match: StyleEntry::bg(Rgb(240, 240, 180)),
-                bookmark: StyleEntry::bg(Rgb(200, 220, 240)),
-                separator: SeparatorStyle::default(),
-            },
-            status_bar: StatusBarTheme {
-                line1_bg: StyleEntry::bg(Rgb(220, 220, 230)),
-                line2_bg: StyleEntry::bg(Rgb(210, 210, 220)),
-                mode_label: StyleEntry::fg_bg(White, Rgb(0, 120, 150)),
-                mode_view: StyleEntry::fg_bg(White, Rgb(100, 100, 100)),
-                mode_follow: StyleEntry::fg_bg(White, Rgb(0, 130, 60)),
-                density_normal: StyleEntry::fg(Rgb(0, 120, 150)),
-                density_hot: StyleEntry::fg(Rgb(180, 120, 0)),
-                density_tick: StyleEntry::fg(Rgb(42, 74, 42)), // Forest #2A4A2A
-                ..StatusBarTheme::default()
-            },
-            search: SearchTheme {
-                match_highlight: StyleEntry::fg_bg(Black, Rgb(255, 230, 100)),
-                current_match: StyleEntry::fg_bg(Black, Rgb(255, 180, 50)),
-            },
-            dialog: DialogTheme {
-                border: StyleEntry::fg(Rgb(0, 120, 150)),
-                title: StyleEntry::fg_bold(Rgb(30, 30, 40)),
-                selected: StyleEntry::fg_bg(Black, Rgb(200, 210, 230)),
-                text: StyleEntry::fg(Rgb(30, 30, 40)),
-                muted: StyleEntry::fg(Rgb(150, 150, 150)),
-                ..DialogTheme::default()
-            },
-            detail_panel: DetailPanelTheme {
-                border: StyleEntry::fg(Rgb(180, 180, 190)),
-                field_name: StyleEntry::fg(Rgb(0, 120, 150)),
-                field_value: StyleEntry::fg(Rgb(30, 30, 40)),
-                section_header: StyleEntry::fg_bold(Rgb(30, 30, 40)),
-            },
-            input: InputTheme {
-                prompt: StyleEntry::fg(Rgb(180, 120, 0)),
-                error: StyleEntry::fg(Rgb(180, 0, 0)),
-                ..InputTheme::default()
-            },
-            general: GeneralTheme {
-                accent: StyleEntry::fg(Rgb(0, 120, 150)),
-                muted: StyleEntry::fg(Rgb(150, 150, 150)),
-                border: StyleEntry::fg(Rgb(180, 180, 190)),
-            },
-            panel_tab: PanelTabTheme {
-                focused: StyleEntry {
-                    fg: Some(ThemeColor(White)),
-                    bg: Some(ThemeColor(Rgb(0, 120, 150))),
-                    bold: Some(true),
-                },
-                unfocused: StyleEntry {
-                    fg: Some(ThemeColor(Rgb(153, 153, 153))),
-                    bg: Some(ThemeColor(Rgb(230, 230, 235))),
-                    bold: None,
-                },
-                bar_bg: StyleEntry::bg(Rgb(240, 240, 245)),
-            },
-            ..Self::default()
-        }
-    }
-
-    /// Solarized theme — based on Ethan Schoonover's solarized palette.
-    pub fn solarized() -> Self {
-        use Color::*;
-        let base03 = Rgb(0, 43, 54);
-        let base02 = Rgb(7, 54, 66);
-        let base01 = Rgb(88, 110, 117);
-        let base0 = Rgb(131, 148, 150);
-        let base1 = Rgb(147, 161, 161);
-        let yellow = Rgb(181, 137, 0);
-        let orange = Rgb(203, 75, 22);
-        let red = Rgb(220, 50, 47);
-        let blue = Rgb(38, 139, 210);
-        let cyan = Rgb(42, 161, 152);
-        let green = Rgb(133, 153, 0);
-
-        Self {
-            description: Some("Ethan Schoonover's solarized palette, warm and precise".to_string()),
-            log_levels: LogLevelTheme {
-                fatal: StyleEntry::fg_bold(red),
-                error: StyleEntry::fg(red),
-                warn: StyleEntry::fg(yellow),
-                notice: StyleEntry::fg(cyan),
-                info: StyleEntry::fg(green),
-                debug: StyleEntry::fg(base01),
-                trace: StyleEntry::fg(base01),
-            },
-            table: TableTheme {
-                header: StyleEntry {
-                    fg: Some(ThemeColor(base03)),
-                    bg: Some(ThemeColor(blue)),
-                    bold: None,
-                },
-                header_unfocused: StyleEntry::fg_bg(Rgb(101, 123, 131), base02), // #657B83
-                selected: StyleEntry::fg_bg(base1, base02),
-                selected_search: StyleEntry::bg(Rgb(80, 80, 20)),
-                selected_highlight: StyleEntry::bg(Rgb(10, 50, 60)),
-                search_match: StyleEntry::bg(Rgb(60, 60, 10)),
-                bookmark: StyleEntry::bg(Rgb(0, 50, 70)),
-                separator: SeparatorStyle::default(),
-            },
-            status_bar: StatusBarTheme {
-                line1_bg: StyleEntry::bg(base02),
-                line2_bg: StyleEntry::bg(base02),
-                mode_label: StyleEntry::fg_bg(base03, cyan),
-                mode_view: StyleEntry::fg_bg(base03, base01),
-                mode_follow: StyleEntry::fg_bg(base03, green),
-                density_normal: StyleEntry::fg(blue),
-                density_hot: StyleEntry::fg(orange),
-                density_tick: StyleEntry::fg(Rgb(7, 54, 66)), // Solarized #073642
-                ..StatusBarTheme::default()
-            },
-            search: SearchTheme {
-                match_highlight: StyleEntry::fg_bg(base03, yellow),
-                current_match: StyleEntry::fg_bg(base03, orange),
-            },
-            dialog: DialogTheme {
-                border: StyleEntry::fg(blue),
-                title: StyleEntry::fg_bold(base1),
-                selected: StyleEntry::fg_bg(base1, base02),
-                text: StyleEntry::fg(base0),
-                muted: StyleEntry::fg(base01),
-                ..DialogTheme::default()
-            },
-            detail_panel: DetailPanelTheme {
-                border: StyleEntry::fg(base01),
-                field_name: StyleEntry::fg(cyan),
-                field_value: StyleEntry::fg(base0),
-                section_header: StyleEntry::fg_bold(base1),
-            },
-            input: InputTheme {
-                prompt: StyleEntry::fg(yellow),
-                error: StyleEntry::fg(red),
-                ..InputTheme::default()
-            },
-            general: GeneralTheme {
-                accent: StyleEntry::fg(blue),
-                muted: StyleEntry::fg(base01),
-                border: StyleEntry::fg(base01),
-            },
-            panel_tab: PanelTabTheme {
-                focused: StyleEntry {
-                    fg: Some(ThemeColor(base03)),
-                    bg: Some(ThemeColor(blue)),
-                    bold: Some(true),
-                },
-                unfocused: StyleEntry {
-                    fg: Some(ThemeColor(Rgb(101, 123, 131))),
-                    bg: Some(ThemeColor(base02)),
-                    bold: None,
-                }, // #657B83
-                bar_bg: StyleEntry::bg(base03),
-            },
-            ..Self::default()
-        }
     }
 
     /// Landmine theme — Jirai Kei black and pink aesthetic.
@@ -848,124 +663,6 @@ impl Theme {
                     bold: None,
                 }, // #6B4A5E
                 bar_bg: StyleEntry::bg(deep_black),
-            },
-        }
-    }
-
-    /// Mizuiro — clear, transparent, aqua theme.
-    pub fn mizuiro() -> Self {
-        use Color::*;
-        let deep_navy = Rgb(10, 22, 40); // #0A1628
-        let dark_ocean = Rgb(15, 32, 56); // #0F2038
-        let water_blue = Rgb(91, 164, 207); // #5BA4CF
-        let sky_blue = Rgb(123, 200, 246); // #7BC8F6
-        let ice_blue = Rgb(168, 216, 234); // #A8D8EA
-        let pale_aqua = Rgb(212, 238, 246); // #D4EEF6
-        let deep_blue = Rgb(46, 107, 158); // #2E6B9E
-        let steel_blue = Rgb(74, 123, 157); // #4A7B9D
-        let muted_blue = Rgb(59, 90, 122); // #3B5A7A
-        let dark_slate = Rgb(30, 58, 80); // #1E3A50
-        let silver_mist = Rgb(139, 164, 184); // #8BA4B8
-        let light_text = Rgb(200, 214, 229); // #C8D6E5
-        let selected_bg = Rgb(22, 46, 72); // #162E48
-        let coral_accent = Rgb(232, 116, 97); // #E87461
-        let amber_warn = Rgb(232, 167, 78); // #E8A74E
-
-        Self {
-            description: Some("Clear, transparent aqua theme with cool blue tones".to_string()),
-            log_levels: LogLevelTheme {
-                fatal: StyleEntry::fg_bold(coral_accent),
-                error: StyleEntry::fg(Rgb(207, 107, 94)), // #CF6B5E
-                warn: StyleEntry::fg(amber_warn),
-                notice: StyleEntry::fg(sky_blue),
-                info: StyleEntry::fg(light_text),
-                debug: StyleEntry::fg(steel_blue),
-                trace: StyleEntry::fg(muted_blue),
-            },
-            table: TableTheme {
-                header: StyleEntry {
-                    fg: Some(ThemeColor(deep_navy)),
-                    bg: Some(ThemeColor(water_blue)),
-                    bold: Some(true),
-                },
-                header_unfocused: StyleEntry::fg_bg(steel_blue, dark_ocean),
-                selected: StyleEntry::bg(selected_bg),
-                separator: SeparatorStyle {
-                    fg: Some(ThemeColor(dark_slate)),
-                    bg: None,
-                    char: "│".to_string(),
-                },
-                selected_search: StyleEntry::bg(Rgb(20, 50, 80)), // #143250 deep ocean search selection
-                selected_highlight: StyleEntry::bg(Rgb(18, 40, 68)), // #122844 dark blue highlight
-                search_match: StyleEntry::bg(Rgb(40, 70, 100)),   // #284664 steel blue search match
-                bookmark: StyleEntry::bg(Rgb(15, 45, 75)),        // #0F2D4B navy bookmark
-            },
-            status_bar: StatusBarTheme {
-                line1_bg: StyleEntry::fg_bg(silver_mist, dark_ocean),
-                line2_bg: StyleEntry::fg_bg(steel_blue, deep_navy),
-                mode_label: StyleEntry {
-                    fg: Some(ThemeColor(deep_navy)),
-                    bg: Some(ThemeColor(water_blue)),
-                    bold: Some(true),
-                },
-                mode_view: StyleEntry::fg_bg(deep_navy, steel_blue),
-                mode_follow: StyleEntry::fg_bg(deep_navy, sky_blue),
-                density_normal: StyleEntry::fg(water_blue),
-                density_hot: StyleEntry::fg(sky_blue),
-                density_label: StyleEntry::fg(muted_blue),
-                density_tick: StyleEntry::fg(dark_slate),
-                position: StyleEntry::fg(ice_blue),
-                cursor_marker: StyleEntry::fg(sky_blue),
-                ..StatusBarTheme::default()
-            },
-            search: SearchTheme {
-                match_highlight: StyleEntry::fg_bg(deep_navy, ice_blue),
-                current_match: StyleEntry::fg_bg(deep_navy, sky_blue),
-            },
-            dialog: DialogTheme {
-                border: StyleEntry::fg(water_blue),
-                title: StyleEntry::fg_bold(sky_blue),
-                selected: StyleEntry::fg_bg(Rgb(232, 240, 246), selected_bg), // #E8F0F6
-                text: StyleEntry::fg(silver_mist),
-                muted: StyleEntry::fg(muted_blue),
-                ..DialogTheme::default()
-            },
-            detail_panel: DetailPanelTheme {
-                border: StyleEntry::fg(dark_slate),
-                field_name: StyleEntry::fg(water_blue),
-                field_value: StyleEntry::fg(silver_mist),
-                section_header: StyleEntry::fg_bold(sky_blue),
-            },
-            input: InputTheme {
-                prompt: StyleEntry::fg(sky_blue),
-                error: StyleEntry::fg(coral_accent),
-                ..InputTheme::default()
-            },
-            highlight_palette: vec![
-                ThemeColor(sky_blue),   // #7BC8F6
-                ThemeColor(water_blue), // #5BA4CF
-                ThemeColor(ice_blue),   // #A8D8EA
-                ThemeColor(deep_blue),  // #2E6B9E
-                ThemeColor(pale_aqua),  // #D4EEF6
-                ThemeColor(steel_blue), // #4A7B9D
-            ],
-            general: GeneralTheme {
-                accent: StyleEntry::fg(water_blue),
-                muted: StyleEntry::fg(muted_blue),
-                border: StyleEntry::fg(dark_slate),
-            },
-            panel_tab: PanelTabTheme {
-                focused: StyleEntry {
-                    fg: Some(ThemeColor(deep_navy)),
-                    bg: Some(ThemeColor(water_blue)),
-                    bold: Some(true),
-                },
-                unfocused: StyleEntry {
-                    fg: Some(ThemeColor(steel_blue)),
-                    bg: Some(ThemeColor(dark_ocean)),
-                    bold: None,
-                },
-                bar_bg: StyleEntry::bg(deep_navy),
             },
         }
     }
