@@ -108,78 +108,78 @@ general:
 
 #### Log Levels
 
-| Area | default | dark | light | solarized | landmine |
-|------|---------|------|-------|-----------|----------|
-| FATAL fg | ![](https://placehold.co/16x16/FF0000/FF0000.png) `red` bold | ![](https://placehold.co/16x16/CC0000/CC0000.png) `#CC0000` bold | ![](https://placehold.co/16x16/CC0000/CC0000.png) `#CC0000` bold | ![](https://placehold.co/16x16/DC322F/DC322F.png) `#DC322F` bold | ![](https://placehold.co/16x16/FF3366/FF3366.png) `#FF3366` bold |
-| ERROR fg | ![](https://placehold.co/16x16/FF6B6B/FF6B6B.png) `#FF6B6B` | ![](https://placehold.co/16x16/CC6666/CC6666.png) `#CC6666` | ![](https://placehold.co/16x16/CC0000/CC0000.png) `#CC0000` | ![](https://placehold.co/16x16/DC322F/DC322F.png) `#DC322F` | ![](https://placehold.co/16x16/E8577E/E8577E.png) `#E8577E` |
-| WARN fg | ![](https://placehold.co/16x16/FFD93D/FFD93D.png) `#FFD93D` | ![](https://placehold.co/16x16/CCAA33/CCAA33.png) `#CCAA33` | ![](https://placehold.co/16x16/B58900/B58900.png) `#B58900` | ![](https://placehold.co/16x16/B58900/B58900.png) `#B58900` | ![](https://placehold.co/16x16/F5A0C0/F5A0C0.png) `#F5A0C0` |
-| NOTICE fg | ![](https://placehold.co/16x16/6BCB77/6BCB77.png) `#6BCB77` | ![](https://placehold.co/16x16/5A9A65/5A9A65.png) `#5A9A65` | ![](https://placehold.co/16x16/2AA198/2AA198.png) `#2AA198` | ![](https://placehold.co/16x16/2AA198/2AA198.png) `#2AA198` | ![](https://placehold.co/16x16/D4A0B9/D4A0B9.png) `#D4A0B9` |
-| INFO fg | ![](https://placehold.co/16x16/4FC3F7/4FC3F7.png) `#4FC3F7` | ![](https://placehold.co/16x16/6699CC/6699CC.png) `#6699CC` | ![](https://placehold.co/16x16/268BD2/268BD2.png) `#268BD2` | ![](https://placehold.co/16x16/268BD2/268BD2.png) `#268BD2` | ![](https://placehold.co/16x16/C8C8C8/C8C8C8.png) `#C8C8C8` |
-| DEBUG fg | ![](https://placehold.co/16x16/8B8B8B/8B8B8B.png) `#8B8B8B` | ![](https://placehold.co/16x16/666666/666666.png) `#666666` | ![](https://placehold.co/16x16/888888/888888.png) `#888888` | ![](https://placehold.co/16x16/839496/839496.png) `#839496` | ![](https://placehold.co/16x16/6B5B6B/6B5B6B.png) `#6B5B6B` |
-| TRACE fg | ![](https://placehold.co/16x16/5C5C5C/5C5C5C.png) `#5C5C5C` | ![](https://placehold.co/16x16/444444/444444.png) `#444444` | ![](https://placehold.co/16x16/AAAAAA/AAAAAA.png) `#AAAAAA` | ![](https://placehold.co/16x16/657B83/657B83.png) `#657B83` | ![](https://placehold.co/16x16/4A3A4A/4A3A4A.png) `#4A3A4A` |
+| Area | default | dark | light | solarized | landmine | mizuiro | amai | maid | gyaru |
+|------|------|------|------|------|------|------|------|------|------|
+| FATAL fg | ![](https://placehold.co/16x16/FF0000/FF0000.png) `red` bold | ![](https://placehold.co/16x16/CC0000/CC0000.png) `#CC0000` bold | ![](https://placehold.co/16x16/CC0000/CC0000.png) `#CC0000` bold | ![](https://placehold.co/16x16/DC322F/DC322F.png) `#DC322F` bold | ![](https://placehold.co/16x16/FF3366/FF3366.png) `#FF3366` bold| ![](https://placehold.co/16x16/E87461/E87461.png) `#E87461` bold | ![](https://placehold.co/16x16/FF6B8A/FF6B8A.png) `#FF6B8A` bold | ![](https://placehold.co/16x16/C43060/C43060.png) `#C43060` bold | ![](https://placehold.co/16x16/FF2499/FF2499.png) `#FF2499` bold |
+| ERROR fg | ![](https://placehold.co/16x16/FF6B6B/FF6B6B.png) `#FF6B6B` | ![](https://placehold.co/16x16/CC6666/CC6666.png) `#CC6666` | ![](https://placehold.co/16x16/CC0000/CC0000.png) `#CC0000` | ![](https://placehold.co/16x16/DC322F/DC322F.png) `#DC322F` | ![](https://placehold.co/16x16/E8577E/E8577E.png) `#E8577E` | ![](https://placehold.co/16x16/CF6B5E/CF6B5E.png) `#CF6B5E` | ![](https://placehold.co/16x16/E85A7A/E85A7A.png) `#E85A7A` | ![](https://placehold.co/16x16/8B2252/8B2252.png) `#8B2252` | ![](https://placehold.co/16x16/FF69B4/FF69B4.png) `#FF69B4` |
+| WARN fg | ![](https://placehold.co/16x16/FFD93D/FFD93D.png) `#FFD93D` | ![](https://placehold.co/16x16/CCAA33/CCAA33.png) `#CCAA33` | ![](https://placehold.co/16x16/B58900/B58900.png) `#B58900` | ![](https://placehold.co/16x16/B58900/B58900.png) `#B58900` | ![](https://placehold.co/16x16/F5A0C0/F5A0C0.png) `#F5A0C0` | ![](https://placehold.co/16x16/E8A74E/E8A74E.png) `#E8A74E` | ![](https://placehold.co/16x16/FFE8A0/FFE8A0.png) `#FFE8A0` | ![](https://placehold.co/16x16/D4A050/D4A050.png) `#D4A050` | ![](https://placehold.co/16x16/FFE040/FFE040.png) `#FFE040` |
+| NOTICE fg | ![](https://placehold.co/16x16/6BCB77/6BCB77.png) `#6BCB77` | ![](https://placehold.co/16x16/5A9A65/5A9A65.png) `#5A9A65` | ![](https://placehold.co/16x16/2AA198/2AA198.png) `#2AA198` | ![](https://placehold.co/16x16/2AA198/2AA198.png) `#2AA198` | ![](https://placehold.co/16x16/D4A0B9/D4A0B9.png) `#D4A0B9` | ![](https://placehold.co/16x16/7BC8F6/7BC8F6.png) `#7BC8F6` | ![](https://placehold.co/16x16/C8A2C8/C8A2C8.png) `#C8A2C8` | ![](https://placehold.co/16x16/B0A8B9/B0A8B9.png) `#B0A8B9` | ![](https://placehold.co/16x16/FFD700/FFD700.png) `#FFD700` |
+| INFO fg | ![](https://placehold.co/16x16/4FC3F7/4FC3F7.png) `#4FC3F7` | ![](https://placehold.co/16x16/6699CC/6699CC.png) `#6699CC` | ![](https://placehold.co/16x16/268BD2/268BD2.png) `#268BD2` | ![](https://placehold.co/16x16/268BD2/268BD2.png) `#268BD2` | ![](https://placehold.co/16x16/C8C8C8/C8C8C8.png) `#C8C8C8` | ![](https://placehold.co/16x16/C8D6E5/C8D6E5.png) `#C8D6E5` | ![](https://placehold.co/16x16/E8D0DA/E8D0DA.png) `#E8D0DA` | ![](https://placehold.co/16x16/F0EDE8/F0EDE8.png) `#F0EDE8` | ![](https://placehold.co/16x16/FFF0D4/FFF0D4.png) `#FFF0D4` |
+| DEBUG fg | ![](https://placehold.co/16x16/8B8B8B/8B8B8B.png) `#8B8B8B` | ![](https://placehold.co/16x16/666666/666666.png) `#666666` | ![](https://placehold.co/16x16/888888/888888.png) `#888888` | ![](https://placehold.co/16x16/839496/839496.png) `#839496` | ![](https://placehold.co/16x16/6B5B6B/6B5B6B.png) `#6B5B6B` | ![](https://placehold.co/16x16/4A7B9D/4A7B9D.png) `#4A7B9D` | ![](https://placehold.co/16x16/8A6A7E/8A6A7E.png) `#8A6A7E` | ![](https://placehold.co/16x16/6B6B80/6B6B80.png) `#6B6B80` | ![](https://placehold.co/16x16/A67C52/A67C52.png) `#A67C52` |
+| TRACE fg | ![](https://placehold.co/16x16/5C5C5C/5C5C5C.png) `#5C5C5C` | ![](https://placehold.co/16x16/444444/444444.png) `#444444` | ![](https://placehold.co/16x16/AAAAAA/AAAAAA.png) `#AAAAAA` | ![](https://placehold.co/16x16/657B83/657B83.png) `#657B83` | ![](https://placehold.co/16x16/4A3A4A/4A3A4A.png) `#4A3A4A` | ![](https://placehold.co/16x16/3B5A7A/3B5A7A.png) `#3B5A7A` | ![](https://placehold.co/16x16/5A3A4E/5A3A4E.png) `#5A3A4E` | ![](https://placehold.co/16x16/3A3A4E/3A3A4E.png) `#3A3A4E` | ![](https://placehold.co/16x16/5A4830/5A4830.png) `#5A4830` |
 
 #### Table
 
-| Area | default | dark | light | solarized | landmine |
-|------|---------|------|-------|-----------|----------|
-| Header fg | ![](https://placehold.co/16x16/1B2838/1B2838.png) `#1B2838` bold | ![](https://placehold.co/16x16/0D0D0D/0D0D0D.png) `#0D0D0D` bold | ![](https://placehold.co/16x16/FFFFFF/FFFFFF.png) `white` bold | ![](https://placehold.co/16x16/FDF6E3/FDF6E3.png) `#FDF6E3` bold | ![](https://placehold.co/16x16/0D060B/0D060B.png) `#0D060B` bold |
-| Header bg | ![](https://placehold.co/16x16/4FC3F7/4FC3F7.png) `#4FC3F7` | ![](https://placehold.co/16x16/6699CC/6699CC.png) `#6699CC` | ![](https://placehold.co/16x16/268BD2/268BD2.png) `#268BD2` | ![](https://placehold.co/16x16/268BD2/268BD2.png) `#268BD2` | ![](https://placehold.co/16x16/E8577E/E8577E.png) `#E8577E` |
-| Header unfocused fg/bg | ![](https://placehold.co/16x16/6B7B8D/6B7B8D.png) `#6B7B8D` / ![](https://placehold.co/16x16/1B2838/1B2838.png) `#1B2838` | ![](https://placehold.co/16x16/555555/555555.png) `#555555` / ![](https://placehold.co/16x16/1A1A1A/1A1A1A.png) `#1A1A1A` | ![](https://placehold.co/16x16/999999/999999.png) `#999999` / ![](https://placehold.co/16x16/E8E8E8/E8E8E8.png) `#E8E8E8` | ![](https://placehold.co/16x16/657B83/657B83.png) `#657B83` / ![](https://placehold.co/16x16/073642/073642.png) `#073642` | ![](https://placehold.co/16x16/6B4A5E/6B4A5E.png) `#6B4A5E` / ![](https://placehold.co/16x16/1A0A14/1A0A14.png) `#1A0A14` |
-| Selected bg | ![](https://placehold.co/16x16/2A3F55/2A3F55.png) `#2A3F55` | ![](https://placehold.co/16x16/2A2A2A/2A2A2A.png) `#2A2A2A` | ![](https://placehold.co/16x16/D0E4F7/D0E4F7.png) `#D0E4F7` | ![](https://placehold.co/16x16/073642/073642.png) `#073642` | ![](https://placehold.co/16x16/2D1028/2D1028.png) `#2D1028` |
-| Alternating bg | ![](https://placehold.co/16x16/0D1117/0D1117.png) `#0D1117` | ![](https://placehold.co/16x16/111111/111111.png) `#111111` | ![](https://placehold.co/16x16/F8F8F8/F8F8F8.png) `#F8F8F8` | ![](https://placehold.co/16x16/002B36/002B36.png) `#002B36` | ![](https://placehold.co/16x16/0D060B/0D060B.png) `#0D060B` |
-| Separator fg | ![](https://placehold.co/16x16/3B4252/3B4252.png) `#3B4252` | ![](https://placehold.co/16x16/333333/333333.png) `#333333` | ![](https://placehold.co/16x16/CCCCCC/CCCCCC.png) `#CCCCCC` | ![](https://placehold.co/16x16/586E75/586E75.png) `#586E75` | ![](https://placehold.co/16x16/4A2040/4A2040.png) `#4A2040` |
-| Separator char | `│` | `│` | `│` | `│` | `♡` |
+| Area | default | dark | light | solarized | landmine | mizuiro | amai | maid | gyaru |
+|------|------|------|------|------|------|------|------|------|------|
+| Header fg | ![](https://placehold.co/16x16/1B2838/1B2838.png) `#1B2838` bold | ![](https://placehold.co/16x16/0D0D0D/0D0D0D.png) `#0D0D0D` bold | ![](https://placehold.co/16x16/FFFFFF/FFFFFF.png) `white` bold | ![](https://placehold.co/16x16/FDF6E3/FDF6E3.png) `#FDF6E3` bold | ![](https://placehold.co/16x16/0D060B/0D060B.png) `#0D060B` bold| ![](https://placehold.co/16x16/0A1628/0A1628.png) `#0A1628` bold | ![](https://placehold.co/16x16/1E0A14/1E0A14.png) `#1E0A14` bold | ![](https://placehold.co/16x16/0D0D1A/0D0D1A.png) `#0D0D1A` bold | ![](https://placehold.co/16x16/1A1208/1A1208.png) `#1A1208` bold |
+| Header bg | ![](https://placehold.co/16x16/4FC3F7/4FC3F7.png) `#4FC3F7` | ![](https://placehold.co/16x16/6699CC/6699CC.png) `#6699CC` | ![](https://placehold.co/16x16/268BD2/268BD2.png) `#268BD2` | ![](https://placehold.co/16x16/268BD2/268BD2.png) `#268BD2` | ![](https://placehold.co/16x16/E8577E/E8577E.png) `#E8577E` | ![](https://placehold.co/16x16/5BA4CF/5BA4CF.png) `#5BA4CF` | ![](https://placehold.co/16x16/FFB7C5/FFB7C5.png) `#FFB7C5` | ![](https://placehold.co/16x16/F0EDE8/F0EDE8.png) `#F0EDE8` | ![](https://placehold.co/16x16/FFD700/FFD700.png) `#FFD700` |
+| Header unfocused fg/bg | ![](https://placehold.co/16x16/6B7B8D/6B7B8D.png) `#6B7B8D` / ![](https://placehold.co/16x16/1B2838/1B2838.png) `#1B2838` | ![](https://placehold.co/16x16/555555/555555.png) `#555555` / ![](https://placehold.co/16x16/1A1A1A/1A1A1A.png) `#1A1A1A` | ![](https://placehold.co/16x16/999999/999999.png) `#999999` / ![](https://placehold.co/16x16/E8E8E8/E8E8E8.png) `#E8E8E8` | ![](https://placehold.co/16x16/657B83/657B83.png) `#657B83` / ![](https://placehold.co/16x16/073642/073642.png) `#073642` | ![](https://placehold.co/16x16/6B4A5E/6B4A5E.png) `#6B4A5E` / ![](https://placehold.co/16x16/1A0A14/1A0A14.png) `#1A0A14` | ![](https://placehold.co/16x16/4A7B9D/4A7B9D.png) `#4A7B9D` / ![](https://placehold.co/16x16/0F2038/0F2038.png) `#0F2038` | ![](https://placehold.co/16x16/8A6A7E/8A6A7E.png) `#8A6A7E` / ![](https://placehold.co/16x16/2D1B2E/2D1B2E.png) `#2D1B2E` | ![](https://placehold.co/16x16/6B6B80/6B6B80.png) `#6B6B80` / ![](https://placehold.co/16x16/1A1A2E/1A1A2E.png) `#1A1A2E` | ![](https://placehold.co/16x16/A67C52/A67C52.png) `#A67C52` / ![](https://placehold.co/16x16/2A1F14/2A1F14.png) `#2A1F14` |
+| Selected bg | ![](https://placehold.co/16x16/2A3F55/2A3F55.png) `#2A3F55` | ![](https://placehold.co/16x16/2A2A2A/2A2A2A.png) `#2A2A2A` | ![](https://placehold.co/16x16/D0E4F7/D0E4F7.png) `#D0E4F7` | ![](https://placehold.co/16x16/073642/073642.png) `#073642` | ![](https://placehold.co/16x16/2D1028/2D1028.png) `#2D1028` | ![](https://placehold.co/16x16/162E48/162E48.png) `#162E48` | ![](https://placehold.co/16x16/3A1830/3A1830.png) `#3A1830` | ![](https://placehold.co/16x16/1E1E38/1E1E38.png) `#1E1E38` | ![](https://placehold.co/16x16/3A2818/3A2818.png) `#3A2818` |
+| Alternating bg | ![](https://placehold.co/16x16/0D1117/0D1117.png) `#0D1117` | ![](https://placehold.co/16x16/111111/111111.png) `#111111` | ![](https://placehold.co/16x16/F8F8F8/F8F8F8.png) `#F8F8F8` | ![](https://placehold.co/16x16/002B36/002B36.png) `#002B36` | ![](https://placehold.co/16x16/0D060B/0D060B.png) `#0D060B` | ![](https://placehold.co/16x16/0A1628/0A1628.png) `#0A1628` | ![](https://placehold.co/16x16/1E0A14/1E0A14.png) `#1E0A14` | ![](https://placehold.co/16x16/0D0D1A/0D0D1A.png) `#0D0D1A` | ![](https://placehold.co/16x16/1A1208/1A1208.png) `#1A1208` |
+| Separator fg | ![](https://placehold.co/16x16/3B4252/3B4252.png) `#3B4252` | ![](https://placehold.co/16x16/333333/333333.png) `#333333` | ![](https://placehold.co/16x16/CCCCCC/CCCCCC.png) `#CCCCCC` | ![](https://placehold.co/16x16/586E75/586E75.png) `#586E75` | ![](https://placehold.co/16x16/4A2040/4A2040.png) `#4A2040` | ![](https://placehold.co/16x16/1E3A50/1E3A50.png) `#1E3A50` | ![](https://placehold.co/16x16/4A2E40/4A2E40.png) `#4A2E40` | ![](https://placehold.co/16x16/2A2A3E/2A2A3E.png) `#2A2A3E` | ![](https://placehold.co/16x16/3A2A18/3A2A18.png) `#3A2A18` |
+| Separator char | `│` | `│` | `│` | `│` | `♡` | `│` | `♡` | `│` | `│` |
 
 #### Status Bar
 
-| Area | default | dark | light | solarized | landmine |
-|------|---------|------|-------|-----------|----------|
-| Line 1 fg | ![](https://placehold.co/16x16/D4D4D4/D4D4D4.png) `#D4D4D4` | ![](https://placehold.co/16x16/AAAAAA/AAAAAA.png) `#AAAAAA` | ![](https://placehold.co/16x16/333333/333333.png) `#333333` | ![](https://placehold.co/16x16/839496/839496.png) `#839496` | ![](https://placehold.co/16x16/D4A0B9/D4A0B9.png) `#D4A0B9` |
-| Line 1 bg | ![](https://placehold.co/16x16/1B2838/1B2838.png) `#1B2838` | ![](https://placehold.co/16x16/1A1A1A/1A1A1A.png) `#1A1A1A` | ![](https://placehold.co/16x16/E0E0E0/E0E0E0.png) `#E0E0E0` | ![](https://placehold.co/16x16/073642/073642.png) `#073642` | ![](https://placehold.co/16x16/1A0A14/1A0A14.png) `#1A0A14` |
-| Line 2 fg | ![](https://placehold.co/16x16/A0A0A0/A0A0A0.png) `#A0A0A0` | ![](https://placehold.co/16x16/777777/777777.png) `#777777` | ![](https://placehold.co/16x16/555555/555555.png) `#555555` | ![](https://placehold.co/16x16/657B83/657B83.png) `#657B83` | ![](https://placehold.co/16x16/8A6A7E/8A6A7E.png) `#8A6A7E` |
-| Line 2 bg | ![](https://placehold.co/16x16/0D1117/0D1117.png) `#0D1117` | ![](https://placehold.co/16x16/0D0D0D/0D0D0D.png) `#0D0D0D` | ![](https://placehold.co/16x16/F0F0F0/F0F0F0.png) `#F0F0F0` | ![](https://placehold.co/16x16/002B36/002B36.png) `#002B36` | ![](https://placehold.co/16x16/0D060B/0D060B.png) `#0D060B` |
-| Mode label fg/bg | ![](https://placehold.co/16x16/1B2838/1B2838.png) `#1B2838` / ![](https://placehold.co/16x16/4FC3F7/4FC3F7.png) `#4FC3F7` bold | ![](https://placehold.co/16x16/0D0D0D/0D0D0D.png) `#0D0D0D` / ![](https://placehold.co/16x16/6699CC/6699CC.png) `#6699CC` bold | ![](https://placehold.co/16x16/FFFFFF/FFFFFF.png) `white` / ![](https://placehold.co/16x16/268BD2/268BD2.png) `#268BD2` bold | ![](https://placehold.co/16x16/FDF6E3/FDF6E3.png) `#FDF6E3` / ![](https://placehold.co/16x16/268BD2/268BD2.png) `#268BD2` bold | ![](https://placehold.co/16x16/0D060B/0D060B.png) `#0D060B` / ![](https://placehold.co/16x16/E8577E/E8577E.png) `#E8577E` bold |
-| Density chart fg | ![](https://placehold.co/16x16/4FC3F7/4FC3F7.png) `#4FC3F7` | ![](https://placehold.co/16x16/6699CC/6699CC.png) `#6699CC` | ![](https://placehold.co/16x16/268BD2/268BD2.png) `#268BD2` | ![](https://placehold.co/16x16/268BD2/268BD2.png) `#268BD2` | ![](https://placehold.co/16x16/E8577E/E8577E.png) `#E8577E` |
-| Density label fg | ![](https://placehold.co/16x16/6B7B8D/6B7B8D.png) `#6B7B8D` | ![](https://placehold.co/16x16/555555/555555.png) `#555555` | ![](https://placehold.co/16x16/888888/888888.png) `#888888` | ![](https://placehold.co/16x16/657B83/657B83.png) `#657B83` | ![](https://placehold.co/16x16/6B4A5E/6B4A5E.png) `#6B4A5E` |
-| Density tick fg | ![](https://placehold.co/16x16/3B4252/3B4252.png) `#3B4252` | ![](https://placehold.co/16x16/333333/333333.png) `#333333` | ![](https://placehold.co/16x16/CCCCCC/CCCCCC.png) `#CCCCCC` | ![](https://placehold.co/16x16/073642/073642.png) `#073642` | ![](https://placehold.co/16x16/4A2040/4A2040.png) `#4A2040` |
-| Position fg | ![](https://placehold.co/16x16/E8E8E8/E8E8E8.png) `#E8E8E8` | ![](https://placehold.co/16x16/CCCCCC/CCCCCC.png) `#CCCCCC` | ![](https://placehold.co/16x16/222222/222222.png) `#222222` | ![](https://placehold.co/16x16/93A1A1/93A1A1.png) `#93A1A1` | ![](https://placehold.co/16x16/F5D0E0/F5D0E0.png) `#F5D0E0` |
-| Cursor marker fg | ![](https://placehold.co/16x16/FFD93D/FFD93D.png) `#FFD93D` | ![](https://placehold.co/16x16/CCAA33/CCAA33.png) `#CCAA33` | ![](https://placehold.co/16x16/B58900/B58900.png) `#B58900` | ![](https://placehold.co/16x16/B58900/B58900.png) `#B58900` | ![](https://placehold.co/16x16/FF3366/FF3366.png) `#FF3366` |
+| Area | default | dark | light | solarized | landmine | mizuiro | amai | maid | gyaru |
+|------|------|------|------|------|------|------|------|------|------|
+| Line 1 fg | ![](https://placehold.co/16x16/D4D4D4/D4D4D4.png) `#D4D4D4` | ![](https://placehold.co/16x16/AAAAAA/AAAAAA.png) `#AAAAAA` | ![](https://placehold.co/16x16/333333/333333.png) `#333333` | ![](https://placehold.co/16x16/839496/839496.png) `#839496` | ![](https://placehold.co/16x16/D4A0B9/D4A0B9.png) `#D4A0B9` | ![](https://placehold.co/16x16/8BA4B8/8BA4B8.png) `#8BA4B8` | ![](https://placehold.co/16x16/D4A0B0/D4A0B0.png) `#D4A0B0` | ![](https://placehold.co/16x16/B0A8B9/B0A8B9.png) `#B0A8B9` | ![](https://placehold.co/16x16/C68642/C68642.png) `#C68642` |
+| Line 1 bg | ![](https://placehold.co/16x16/1B2838/1B2838.png) `#1B2838` | ![](https://placehold.co/16x16/1A1A1A/1A1A1A.png) `#1A1A1A` | ![](https://placehold.co/16x16/E0E0E0/E0E0E0.png) `#E0E0E0` | ![](https://placehold.co/16x16/073642/073642.png) `#073642` | ![](https://placehold.co/16x16/1A0A14/1A0A14.png) `#1A0A14` | ![](https://placehold.co/16x16/0F2038/0F2038.png) `#0F2038` | ![](https://placehold.co/16x16/2D1B2E/2D1B2E.png) `#2D1B2E` | ![](https://placehold.co/16x16/1A1A2E/1A1A2E.png) `#1A1A2E` | ![](https://placehold.co/16x16/2A1F14/2A1F14.png) `#2A1F14` |
+| Line 2 fg | ![](https://placehold.co/16x16/A0A0A0/A0A0A0.png) `#A0A0A0` | ![](https://placehold.co/16x16/777777/777777.png) `#777777` | ![](https://placehold.co/16x16/555555/555555.png) `#555555` | ![](https://placehold.co/16x16/657B83/657B83.png) `#657B83` | ![](https://placehold.co/16x16/8A6A7E/8A6A7E.png) `#8A6A7E` | ![](https://placehold.co/16x16/4A7B9D/4A7B9D.png) `#4A7B9D` | ![](https://placehold.co/16x16/8A6A7E/8A6A7E.png) `#8A6A7E` | ![](https://placehold.co/16x16/6B6B80/6B6B80.png) `#6B6B80` | ![](https://placehold.co/16x16/A67C52/A67C52.png) `#A67C52` |
+| Line 2 bg | ![](https://placehold.co/16x16/0D1117/0D1117.png) `#0D1117` | ![](https://placehold.co/16x16/0D0D0D/0D0D0D.png) `#0D0D0D` | ![](https://placehold.co/16x16/F0F0F0/F0F0F0.png) `#F0F0F0` | ![](https://placehold.co/16x16/002B36/002B36.png) `#002B36` | ![](https://placehold.co/16x16/0D060B/0D060B.png) `#0D060B` | ![](https://placehold.co/16x16/0A1628/0A1628.png) `#0A1628` | ![](https://placehold.co/16x16/1E0A14/1E0A14.png) `#1E0A14` | ![](https://placehold.co/16x16/0D0D1A/0D0D1A.png) `#0D0D1A` | ![](https://placehold.co/16x16/1A1208/1A1208.png) `#1A1208` |
+| Mode label fg/bg | ![](https://placehold.co/16x16/1B2838/1B2838.png) `#1B2838` / ![](https://placehold.co/16x16/4FC3F7/4FC3F7.png) `#4FC3F7` bold | ![](https://placehold.co/16x16/0D0D0D/0D0D0D.png) `#0D0D0D` / ![](https://placehold.co/16x16/6699CC/6699CC.png) `#6699CC` bold | ![](https://placehold.co/16x16/FFFFFF/FFFFFF.png) `white` / ![](https://placehold.co/16x16/268BD2/268BD2.png) `#268BD2` bold | ![](https://placehold.co/16x16/FDF6E3/FDF6E3.png) `#FDF6E3` / ![](https://placehold.co/16x16/268BD2/268BD2.png) `#268BD2` bold | ![](https://placehold.co/16x16/0D060B/0D060B.png) `#0D060B` / ![](https://placehold.co/16x16/E8577E/E8577E.png) `#E8577E` bold| ![](https://placehold.co/16x16/0A1628/0A1628.png) `#0A1628` / ![](https://placehold.co/16x16/5BA4CF/5BA4CF.png) `#5BA4CF` bold | ![](https://placehold.co/16x16/1E0A14/1E0A14.png) `#1E0A14` / ![](https://placehold.co/16x16/FFB7C5/FFB7C5.png) `#FFB7C5` bold | ![](https://placehold.co/16x16/0D0D1A/0D0D1A.png) `#0D0D1A` / ![](https://placehold.co/16x16/F0EDE8/F0EDE8.png) `#F0EDE8` bold | ![](https://placehold.co/16x16/1A1208/1A1208.png) `#1A1208` / ![](https://placehold.co/16x16/FFD700/FFD700.png) `#FFD700` bold |
+| Density chart fg | ![](https://placehold.co/16x16/4FC3F7/4FC3F7.png) `#4FC3F7` | ![](https://placehold.co/16x16/6699CC/6699CC.png) `#6699CC` | ![](https://placehold.co/16x16/268BD2/268BD2.png) `#268BD2` | ![](https://placehold.co/16x16/268BD2/268BD2.png) `#268BD2` | ![](https://placehold.co/16x16/E8577E/E8577E.png) `#E8577E` | ![](https://placehold.co/16x16/5BA4CF/5BA4CF.png) `#5BA4CF` | ![](https://placehold.co/16x16/FFB7C5/FFB7C5.png) `#FFB7C5` | ![](https://placehold.co/16x16/B0A8B9/B0A8B9.png) `#B0A8B9` | ![](https://placehold.co/16x16/C68642/C68642.png) `#C68642` |
+| Density label fg | ![](https://placehold.co/16x16/6B7B8D/6B7B8D.png) `#6B7B8D` | ![](https://placehold.co/16x16/555555/555555.png) `#555555` | ![](https://placehold.co/16x16/888888/888888.png) `#888888` | ![](https://placehold.co/16x16/657B83/657B83.png) `#657B83` | ![](https://placehold.co/16x16/6B4A5E/6B4A5E.png) `#6B4A5E` | ![](https://placehold.co/16x16/3B5A7A/3B5A7A.png) `#3B5A7A` | ![](https://placehold.co/16x16/5A3A4E/5A3A4E.png) `#5A3A4E` | ![](https://placehold.co/16x16/3A3A4E/3A3A4E.png) `#3A3A4E` | ![](https://placehold.co/16x16/6B5A28/6B5A28.png) `#6B5A28` |
+| Density tick fg | ![](https://placehold.co/16x16/3B4252/3B4252.png) `#3B4252` | ![](https://placehold.co/16x16/333333/333333.png) `#333333` | ![](https://placehold.co/16x16/CCCCCC/CCCCCC.png) `#CCCCCC` | ![](https://placehold.co/16x16/073642/073642.png) `#073642` | ![](https://placehold.co/16x16/4A2040/4A2040.png) `#4A2040` | ![](https://placehold.co/16x16/1E3A50/1E3A50.png) `#1E3A50` | ![](https://placehold.co/16x16/4A2E40/4A2E40.png) `#4A2E40` | ![](https://placehold.co/16x16/2A2A3E/2A2A3E.png) `#2A2A3E` | ![](https://placehold.co/16x16/3A2A18/3A2A18.png) `#3A2A18` |
+| Position fg | ![](https://placehold.co/16x16/E8E8E8/E8E8E8.png) `#E8E8E8` | ![](https://placehold.co/16x16/CCCCCC/CCCCCC.png) `#CCCCCC` | ![](https://placehold.co/16x16/222222/222222.png) `#222222` | ![](https://placehold.co/16x16/93A1A1/93A1A1.png) `#93A1A1` | ![](https://placehold.co/16x16/F5D0E0/F5D0E0.png) `#F5D0E0` | ![](https://placehold.co/16x16/A8D8EA/A8D8EA.png) `#A8D8EA` | ![](https://placehold.co/16x16/C8A2C8/C8A2C8.png) `#C8A2C8` | ![](https://placehold.co/16x16/F0EDE8/F0EDE8.png) `#F0EDE8` | ![](https://placehold.co/16x16/FFD700/FFD700.png) `#FFD700` |
+| Cursor marker fg | ![](https://placehold.co/16x16/FFD93D/FFD93D.png) `#FFD93D` | ![](https://placehold.co/16x16/CCAA33/CCAA33.png) `#CCAA33` | ![](https://placehold.co/16x16/B58900/B58900.png) `#B58900` | ![](https://placehold.co/16x16/B58900/B58900.png) `#B58900` | ![](https://placehold.co/16x16/FF3366/FF3366.png) `#FF3366` | ![](https://placehold.co/16x16/7BC8F6/7BC8F6.png) `#7BC8F6` | ![](https://placehold.co/16x16/FF6B8A/FF6B8A.png) `#FF6B8A` | ![](https://placehold.co/16x16/C43060/C43060.png) `#C43060` | ![](https://placehold.co/16x16/FF2499/FF2499.png) `#FF2499` |
 
 #### Search & Dialogs
 
-| Area | default | dark | light | solarized | landmine |
-|------|---------|------|-------|-----------|----------|
-| Match fg/bg | `black` / ![](https://placehold.co/16x16/FFD93D/FFD93D.png) `#FFD93D` | `black` / ![](https://placehold.co/16x16/CCAA33/CCAA33.png) `#CCAA33` | `black` / ![](https://placehold.co/16x16/FFD93D/FFD93D.png) `#FFD93D` | `black` / ![](https://placehold.co/16x16/B58900/B58900.png) `#B58900` | `black` / ![](https://placehold.co/16x16/F5A0C0/F5A0C0.png) `#F5A0C0` |
-| Current match fg/bg | `black` / ![](https://placehold.co/16x16/FF8C42/FF8C42.png) `#FF8C42` | `black` / ![](https://placehold.co/16x16/CC7733/CC7733.png) `#CC7733` | `black` / ![](https://placehold.co/16x16/FF8C42/FF8C42.png) `#FF8C42` | `black` / ![](https://placehold.co/16x16/CB4B16/CB4B16.png) `#CB4B16` | `black` / ![](https://placehold.co/16x16/FF3366/FF3366.png) `#FF3366` |
-| Dialog border fg | ![](https://placehold.co/16x16/4FC3F7/4FC3F7.png) `#4FC3F7` | ![](https://placehold.co/16x16/6699CC/6699CC.png) `#6699CC` | ![](https://placehold.co/16x16/268BD2/268BD2.png) `#268BD2` | ![](https://placehold.co/16x16/268BD2/268BD2.png) `#268BD2` | ![](https://placehold.co/16x16/E8577E/E8577E.png) `#E8577E` |
-| Input prompt fg | ![](https://placehold.co/16x16/FFD93D/FFD93D.png) `#FFD93D` | ![](https://placehold.co/16x16/CCAA33/CCAA33.png) `#CCAA33` | ![](https://placehold.co/16x16/B58900/B58900.png) `#B58900` | ![](https://placehold.co/16x16/B58900/B58900.png) `#B58900` | ![](https://placehold.co/16x16/F5A0C0/F5A0C0.png) `#F5A0C0` |
+| Area | default | dark | light | solarized | landmine | mizuiro | amai | maid | gyaru |
+|------|------|------|------|------|------|------|------|------|------|
+| Match fg/bg | `black` / ![](https://placehold.co/16x16/FFD93D/FFD93D.png) `#FFD93D` | `black` / ![](https://placehold.co/16x16/CCAA33/CCAA33.png) `#CCAA33` | `black` / ![](https://placehold.co/16x16/FFD93D/FFD93D.png) `#FFD93D` | `black` / ![](https://placehold.co/16x16/B58900/B58900.png) `#B58900` | `black` / ![](https://placehold.co/16x16/F5A0C0/F5A0C0.png) `#F5A0C0` | ![](https://placehold.co/16x16/0A1628/0A1628.png) `#0A1628` / ![](https://placehold.co/16x16/A8D8EA/A8D8EA.png) `#A8D8EA` | ![](https://placehold.co/16x16/1E0A14/1E0A14.png) `#1E0A14` / ![](https://placehold.co/16x16/C8A2C8/C8A2C8.png) `#C8A2C8` | ![](https://placehold.co/16x16/0D0D1A/0D0D1A.png) `#0D0D1A` / ![](https://placehold.co/16x16/B0A8B9/B0A8B9.png) `#B0A8B9` | ![](https://placehold.co/16x16/1A1208/1A1208.png) `#1A1208` / ![](https://placehold.co/16x16/C68642/C68642.png) `#C68642` |
+| Current match fg/bg | `black` / ![](https://placehold.co/16x16/FF8C42/FF8C42.png) `#FF8C42` | `black` / ![](https://placehold.co/16x16/CC7733/CC7733.png) `#CC7733` | `black` / ![](https://placehold.co/16x16/FF8C42/FF8C42.png) `#FF8C42` | `black` / ![](https://placehold.co/16x16/CB4B16/CB4B16.png) `#CB4B16` | `black` / ![](https://placehold.co/16x16/FF3366/FF3366.png) `#FF3366` | ![](https://placehold.co/16x16/0A1628/0A1628.png) `#0A1628` / ![](https://placehold.co/16x16/7BC8F6/7BC8F6.png) `#7BC8F6` | ![](https://placehold.co/16x16/1E0A14/1E0A14.png) `#1E0A14` / ![](https://placehold.co/16x16/FFB7C5/FFB7C5.png) `#FFB7C5` | ![](https://placehold.co/16x16/0D0D1A/0D0D1A.png) `#0D0D1A` / ![](https://placehold.co/16x16/F0EDE8/F0EDE8.png) `#F0EDE8` | ![](https://placehold.co/16x16/1A1208/1A1208.png) `#1A1208` / ![](https://placehold.co/16x16/FFD700/FFD700.png) `#FFD700` |
+| Dialog border fg | ![](https://placehold.co/16x16/4FC3F7/4FC3F7.png) `#4FC3F7` | ![](https://placehold.co/16x16/6699CC/6699CC.png) `#6699CC` | ![](https://placehold.co/16x16/268BD2/268BD2.png) `#268BD2` | ![](https://placehold.co/16x16/268BD2/268BD2.png) `#268BD2` | ![](https://placehold.co/16x16/E8577E/E8577E.png) `#E8577E` | ![](https://placehold.co/16x16/5BA4CF/5BA4CF.png) `#5BA4CF` | ![](https://placehold.co/16x16/FFB7C5/FFB7C5.png) `#FFB7C5` | ![](https://placehold.co/16x16/6B6B80/6B6B80.png) `#6B6B80` | ![](https://placehold.co/16x16/C68642/C68642.png) `#C68642` |
+| Input prompt fg | ![](https://placehold.co/16x16/FFD93D/FFD93D.png) `#FFD93D` | ![](https://placehold.co/16x16/CCAA33/CCAA33.png) `#CCAA33` | ![](https://placehold.co/16x16/B58900/B58900.png) `#B58900` | ![](https://placehold.co/16x16/B58900/B58900.png) `#B58900` | ![](https://placehold.co/16x16/F5A0C0/F5A0C0.png) `#F5A0C0` | ![](https://placehold.co/16x16/7BC8F6/7BC8F6.png) `#7BC8F6` | ![](https://placehold.co/16x16/C8A2C8/C8A2C8.png) `#C8A2C8` | ![](https://placehold.co/16x16/F0EDE8/F0EDE8.png) `#F0EDE8` | ![](https://placehold.co/16x16/FFD700/FFD700.png) `#FFD700` |
 
 #### Panel Tab
 
-| Area | default | dark | light | solarized | landmine |
-|------|---------|------|-------|-----------|----------|
-| Focused fg/bg | ![](https://placehold.co/16x16/1B2838/1B2838.png) `#1B2838` / ![](https://placehold.co/16x16/4FC3F7/4FC3F7.png) `#4FC3F7` bold | ![](https://placehold.co/16x16/0D0D0D/0D0D0D.png) `#0D0D0D` / ![](https://placehold.co/16x16/6699CC/6699CC.png) `#6699CC` bold | ![](https://placehold.co/16x16/FFFFFF/FFFFFF.png) `white` / ![](https://placehold.co/16x16/268BD2/268BD2.png) `#268BD2` bold | ![](https://placehold.co/16x16/FDF6E3/FDF6E3.png) `#FDF6E3` / ![](https://placehold.co/16x16/268BD2/268BD2.png) `#268BD2` bold | ![](https://placehold.co/16x16/0D060B/0D060B.png) `#0D060B` / ![](https://placehold.co/16x16/E8577E/E8577E.png) `#E8577E` bold |
-| Unfocused fg/bg | ![](https://placehold.co/16x16/6B7B8D/6B7B8D.png) `#6B7B8D` / ![](https://placehold.co/16x16/1B2838/1B2838.png) `#1B2838` | ![](https://placehold.co/16x16/555555/555555.png) `#555555` / ![](https://placehold.co/16x16/1A1A1A/1A1A1A.png) `#1A1A1A` | ![](https://placehold.co/16x16/999999/999999.png) `#999999` / ![](https://placehold.co/16x16/E8E8E8/E8E8E8.png) `#E8E8E8` | ![](https://placehold.co/16x16/657B83/657B83.png) `#657B83` / ![](https://placehold.co/16x16/073642/073642.png) `#073642` | ![](https://placehold.co/16x16/6B4A5E/6B4A5E.png) `#6B4A5E` / ![](https://placehold.co/16x16/1A0A14/1A0A14.png) `#1A0A14` |
-| Bar bg | ![](https://placehold.co/16x16/0D1117/0D1117.png) `#0D1117` | ![](https://placehold.co/16x16/0D0D0D/0D0D0D.png) `#0D0D0D` | ![](https://placehold.co/16x16/F0F0F0/F0F0F0.png) `#F0F0F0` | ![](https://placehold.co/16x16/002B36/002B36.png) `#002B36` | ![](https://placehold.co/16x16/0D060B/0D060B.png) `#0D060B` |
+| Area | default | dark | light | solarized | landmine | mizuiro | amai | maid | gyaru |
+|------|------|------|------|------|------|------|------|------|------|
+| Focused fg/bg | ![](https://placehold.co/16x16/1B2838/1B2838.png) `#1B2838` / ![](https://placehold.co/16x16/4FC3F7/4FC3F7.png) `#4FC3F7` bold | ![](https://placehold.co/16x16/0D0D0D/0D0D0D.png) `#0D0D0D` / ![](https://placehold.co/16x16/6699CC/6699CC.png) `#6699CC` bold | ![](https://placehold.co/16x16/FFFFFF/FFFFFF.png) `white` / ![](https://placehold.co/16x16/268BD2/268BD2.png) `#268BD2` bold | ![](https://placehold.co/16x16/FDF6E3/FDF6E3.png) `#FDF6E3` / ![](https://placehold.co/16x16/268BD2/268BD2.png) `#268BD2` bold | ![](https://placehold.co/16x16/0D060B/0D060B.png) `#0D060B` / ![](https://placehold.co/16x16/E8577E/E8577E.png) `#E8577E` bold| ![](https://placehold.co/16x16/0A1628/0A1628.png) `#0A1628` / ![](https://placehold.co/16x16/5BA4CF/5BA4CF.png) `#5BA4CF` bold | ![](https://placehold.co/16x16/1E0A14/1E0A14.png) `#1E0A14` / ![](https://placehold.co/16x16/FFB7C5/FFB7C5.png) `#FFB7C5` bold | ![](https://placehold.co/16x16/0D0D1A/0D0D1A.png) `#0D0D1A` / ![](https://placehold.co/16x16/F0EDE8/F0EDE8.png) `#F0EDE8` bold | ![](https://placehold.co/16x16/1A1208/1A1208.png) `#1A1208` / ![](https://placehold.co/16x16/FFD700/FFD700.png) `#FFD700` bold |
+| Unfocused fg/bg | ![](https://placehold.co/16x16/6B7B8D/6B7B8D.png) `#6B7B8D` / ![](https://placehold.co/16x16/1B2838/1B2838.png) `#1B2838` | ![](https://placehold.co/16x16/555555/555555.png) `#555555` / ![](https://placehold.co/16x16/1A1A1A/1A1A1A.png) `#1A1A1A` | ![](https://placehold.co/16x16/999999/999999.png) `#999999` / ![](https://placehold.co/16x16/E8E8E8/E8E8E8.png) `#E8E8E8` | ![](https://placehold.co/16x16/657B83/657B83.png) `#657B83` / ![](https://placehold.co/16x16/073642/073642.png) `#073642` | ![](https://placehold.co/16x16/6B4A5E/6B4A5E.png) `#6B4A5E` / ![](https://placehold.co/16x16/1A0A14/1A0A14.png) `#1A0A14` | ![](https://placehold.co/16x16/4A7B9D/4A7B9D.png) `#4A7B9D` / ![](https://placehold.co/16x16/0F2038/0F2038.png) `#0F2038` | ![](https://placehold.co/16x16/8A6A7E/8A6A7E.png) `#8A6A7E` / ![](https://placehold.co/16x16/2D1B2E/2D1B2E.png) `#2D1B2E` | ![](https://placehold.co/16x16/6B6B80/6B6B80.png) `#6B6B80` / ![](https://placehold.co/16x16/1A1A2E/1A1A2E.png) `#1A1A2E` | ![](https://placehold.co/16x16/A67C52/A67C52.png) `#A67C52` / ![](https://placehold.co/16x16/2A1F14/2A1F14.png) `#2A1F14` |
+| Bar bg | ![](https://placehold.co/16x16/0D1117/0D1117.png) `#0D1117` | ![](https://placehold.co/16x16/0D0D0D/0D0D0D.png) `#0D0D0D` | ![](https://placehold.co/16x16/F0F0F0/F0F0F0.png) `#F0F0F0` | ![](https://placehold.co/16x16/002B36/002B36.png) `#002B36` | ![](https://placehold.co/16x16/0D060B/0D060B.png) `#0D060B` | ![](https://placehold.co/16x16/0A1628/0A1628.png) `#0A1628` | ![](https://placehold.co/16x16/1E0A14/1E0A14.png) `#1E0A14` | ![](https://placehold.co/16x16/0D0D1A/0D0D1A.png) `#0D0D1A` | ![](https://placehold.co/16x16/1A1208/1A1208.png) `#1A1208` |
 
 #### General & Accents
 
-| Area | default | dark | light | solarized | landmine |
-|------|---------|------|-------|-----------|----------|
-| Accent fg | ![](https://placehold.co/16x16/4FC3F7/4FC3F7.png) `#4FC3F7` | ![](https://placehold.co/16x16/6699CC/6699CC.png) `#6699CC` | ![](https://placehold.co/16x16/268BD2/268BD2.png) `#268BD2` | ![](https://placehold.co/16x16/268BD2/268BD2.png) `#268BD2` | ![](https://placehold.co/16x16/E8577E/E8577E.png) `#E8577E` |
-| Border fg | ![](https://placehold.co/16x16/3B4252/3B4252.png) `#3B4252` | ![](https://placehold.co/16x16/333333/333333.png) `#333333` | ![](https://placehold.co/16x16/CCCCCC/CCCCCC.png) `#CCCCCC` | ![](https://placehold.co/16x16/586E75/586E75.png) `#586E75` | ![](https://placehold.co/16x16/3D1A30/3D1A30.png) `#3D1A30` |
-| Muted fg | ![](https://placehold.co/16x16/6B7B8D/6B7B8D.png) `#6B7B8D` | ![](https://placehold.co/16x16/555555/555555.png) `#555555` | ![](https://placehold.co/16x16/999999/999999.png) `#999999` | ![](https://placehold.co/16x16/657B83/657B83.png) `#657B83` | ![](https://placehold.co/16x16/6B4A5E/6B4A5E.png) `#6B4A5E` |
+| Area | default | dark | light | solarized | landmine | mizuiro | amai | maid | gyaru |
+|------|------|------|------|------|------|------|------|------|------|
+| Accent fg | ![](https://placehold.co/16x16/4FC3F7/4FC3F7.png) `#4FC3F7` | ![](https://placehold.co/16x16/6699CC/6699CC.png) `#6699CC` | ![](https://placehold.co/16x16/268BD2/268BD2.png) `#268BD2` | ![](https://placehold.co/16x16/268BD2/268BD2.png) `#268BD2` | ![](https://placehold.co/16x16/E8577E/E8577E.png) `#E8577E` | ![](https://placehold.co/16x16/5BA4CF/5BA4CF.png) `#5BA4CF` | ![](https://placehold.co/16x16/FFB7C5/FFB7C5.png) `#FFB7C5` | ![](https://placehold.co/16x16/8B2252/8B2252.png) `#8B2252` | ![](https://placehold.co/16x16/FFD700/FFD700.png) `#FFD700` |
+| Border fg | ![](https://placehold.co/16x16/3B4252/3B4252.png) `#3B4252` | ![](https://placehold.co/16x16/333333/333333.png) `#333333` | ![](https://placehold.co/16x16/CCCCCC/CCCCCC.png) `#CCCCCC` | ![](https://placehold.co/16x16/586E75/586E75.png) `#586E75` | ![](https://placehold.co/16x16/3D1A30/3D1A30.png) `#3D1A30` | ![](https://placehold.co/16x16/1E3A50/1E3A50.png) `#1E3A50` | ![](https://placehold.co/16x16/4A2E40/4A2E40.png) `#4A2E40` | ![](https://placehold.co/16x16/2A2A3E/2A2A3E.png) `#2A2A3E` | ![](https://placehold.co/16x16/3A2A18/3A2A18.png) `#3A2A18` |
+| Muted fg | ![](https://placehold.co/16x16/6B7B8D/6B7B8D.png) `#6B7B8D` | ![](https://placehold.co/16x16/555555/555555.png) `#555555` | ![](https://placehold.co/16x16/999999/999999.png) `#999999` | ![](https://placehold.co/16x16/657B83/657B83.png) `#657B83` | ![](https://placehold.co/16x16/6B4A5E/6B4A5E.png) `#6B4A5E` | ![](https://placehold.co/16x16/3B5A7A/3B5A7A.png) `#3B5A7A` | ![](https://placehold.co/16x16/5A3A4E/5A3A4E.png) `#5A3A4E` | ![](https://placehold.co/16x16/3A3A4E/3A3A4E.png) `#3A3A4E` | ![](https://placehold.co/16x16/5A4830/5A4830.png) `#5A4830` |
 
 #### Highlight Palette (color rotation order)
 
-| # | default | dark | light | solarized | landmine |
-|---|---------|------|-------|-----------|----------|
-| 1 | ![](https://placehold.co/16x16/FF6B6B/FF6B6B.png) `#FF6B6B` | ![](https://placehold.co/16x16/CC6666/CC6666.png) `#CC6666` | ![](https://placehold.co/16x16/DC322F/DC322F.png) `#DC322F` | ![](https://placehold.co/16x16/DC322F/DC322F.png) `#DC322F` | ![](https://placehold.co/16x16/FF3366/FF3366.png) `#FF3366` |
-| 2 | ![](https://placehold.co/16x16/6BCB77/6BCB77.png) `#6BCB77` | ![](https://placehold.co/16x16/5A9A65/5A9A65.png) `#5A9A65` | ![](https://placehold.co/16x16/2AA198/2AA198.png) `#2AA198` | ![](https://placehold.co/16x16/2AA198/2AA198.png) `#2AA198` | ![](https://placehold.co/16x16/F5A0C0/F5A0C0.png) `#F5A0C0` |
-| 3 | ![](https://placehold.co/16x16/4FC3F7/4FC3F7.png) `#4FC3F7` | ![](https://placehold.co/16x16/6699CC/6699CC.png) `#6699CC` | ![](https://placehold.co/16x16/268BD2/268BD2.png) `#268BD2` | ![](https://placehold.co/16x16/268BD2/268BD2.png) `#268BD2` | ![](https://placehold.co/16x16/D4A0B9/D4A0B9.png) `#D4A0B9` |
-| 4 | ![](https://placehold.co/16x16/FFD93D/FFD93D.png) `#FFD93D` | ![](https://placehold.co/16x16/CCAA33/CCAA33.png) `#CCAA33` | ![](https://placehold.co/16x16/B58900/B58900.png) `#B58900` | ![](https://placehold.co/16x16/B58900/B58900.png) `#B58900` | ![](https://placehold.co/16x16/E8577E/E8577E.png) `#E8577E` |
-| 5 | ![](https://placehold.co/16x16/CE93D8/CE93D8.png) `#CE93D8` | ![](https://placehold.co/16x16/9977AA/9977AA.png) `#9977AA` | ![](https://placehold.co/16x16/6C71C4/6C71C4.png) `#6C71C4` | ![](https://placehold.co/16x16/6C71C4/6C71C4.png) `#6C71C4` | ![](https://placehold.co/16x16/F5D0E0/F5D0E0.png) `#F5D0E0` |
-| 6 | ![](https://placehold.co/16x16/4DD0E1/4DD0E1.png) `#4DD0E1` | ![](https://placehold.co/16x16/5599AA/5599AA.png) `#5599AA` | ![](https://placehold.co/16x16/2AA198/2AA198.png) `#2AA198` | ![](https://placehold.co/16x16/2AA198/2AA198.png) `#2AA198` | ![](https://placehold.co/16x16/8A6A7E/8A6A7E.png) `#8A6A7E` |
+| # | default | dark | light | solarized | landmine | mizuiro | amai | maid | gyaru |
+|------|------|------|------|------|------|------|------|------|------|
+| 1 | ![](https://placehold.co/16x16/FF6B6B/FF6B6B.png) `#FF6B6B` | ![](https://placehold.co/16x16/CC6666/CC6666.png) `#CC6666` | ![](https://placehold.co/16x16/DC322F/DC322F.png) `#DC322F` | ![](https://placehold.co/16x16/DC322F/DC322F.png) `#DC322F` | ![](https://placehold.co/16x16/FF3366/FF3366.png) `#FF3366` | ![](https://placehold.co/16x16/7BC8F6/7BC8F6.png) `#7BC8F6` | ![](https://placehold.co/16x16/FF6B8A/FF6B8A.png) `#FF6B8A` | ![](https://placehold.co/16x16/F0EDE8/F0EDE8.png) `#F0EDE8` | ![](https://placehold.co/16x16/FF2499/FF2499.png) `#FF2499` |
+| 2 | ![](https://placehold.co/16x16/6BCB77/6BCB77.png) `#6BCB77` | ![](https://placehold.co/16x16/5A9A65/5A9A65.png) `#5A9A65` | ![](https://placehold.co/16x16/2AA198/2AA198.png) `#2AA198` | ![](https://placehold.co/16x16/2AA198/2AA198.png) `#2AA198` | ![](https://placehold.co/16x16/F5A0C0/F5A0C0.png) `#F5A0C0` | ![](https://placehold.co/16x16/5BA4CF/5BA4CF.png) `#5BA4CF` | ![](https://placehold.co/16x16/FFB7C5/FFB7C5.png) `#FFB7C5` | ![](https://placehold.co/16x16/B0A8B9/B0A8B9.png) `#B0A8B9` | ![](https://placehold.co/16x16/FFD700/FFD700.png) `#FFD700` |
+| 3 | ![](https://placehold.co/16x16/4FC3F7/4FC3F7.png) `#4FC3F7` | ![](https://placehold.co/16x16/6699CC/6699CC.png) `#6699CC` | ![](https://placehold.co/16x16/268BD2/268BD2.png) `#268BD2` | ![](https://placehold.co/16x16/268BD2/268BD2.png) `#268BD2` | ![](https://placehold.co/16x16/D4A0B9/D4A0B9.png) `#D4A0B9` | ![](https://placehold.co/16x16/A8D8EA/A8D8EA.png) `#A8D8EA` | ![](https://placehold.co/16x16/C8A2C8/C8A2C8.png) `#C8A2C8` | ![](https://placehold.co/16x16/C43060/C43060.png) `#C43060` | ![](https://placehold.co/16x16/C68642/C68642.png) `#C68642` |
+| 4 | ![](https://placehold.co/16x16/FFD93D/FFD93D.png) `#FFD93D` | ![](https://placehold.co/16x16/CCAA33/CCAA33.png) `#CCAA33` | ![](https://placehold.co/16x16/B58900/B58900.png) `#B58900` | ![](https://placehold.co/16x16/B58900/B58900.png) `#B58900` | ![](https://placehold.co/16x16/E8577E/E8577E.png) `#E8577E` | ![](https://placehold.co/16x16/2E6B9E/2E6B9E.png) `#2E6B9E` | ![](https://placehold.co/16x16/98D8C8/98D8C8.png) `#98D8C8` | ![](https://placehold.co/16x16/8B2252/8B2252.png) `#8B2252` | ![](https://placehold.co/16x16/FF69B4/FF69B4.png) `#FF69B4` |
+| 5 | ![](https://placehold.co/16x16/CE93D8/CE93D8.png) `#CE93D8` | ![](https://placehold.co/16x16/9977AA/9977AA.png) `#9977AA` | ![](https://placehold.co/16x16/6C71C4/6C71C4.png) `#6C71C4` | ![](https://placehold.co/16x16/6C71C4/6C71C4.png) `#6C71C4` | ![](https://placehold.co/16x16/F5D0E0/F5D0E0.png) `#F5D0E0` | ![](https://placehold.co/16x16/D4EEF6/D4EEF6.png) `#D4EEF6` | ![](https://placehold.co/16x16/6B8EC2/6B8EC2.png) `#6B8EC2` | ![](https://placehold.co/16x16/6880A0/6880A0.png) `#6880A0` | ![](https://placehold.co/16x16/FFE040/FFE040.png) `#FFE040` |
+| 6 | ![](https://placehold.co/16x16/4DD0E1/4DD0E1.png) `#4DD0E1` | ![](https://placehold.co/16x16/5599AA/5599AA.png) `#5599AA` | ![](https://placehold.co/16x16/2AA198/2AA198.png) `#2AA198` | ![](https://placehold.co/16x16/2AA198/2AA198.png) `#2AA198` | ![](https://placehold.co/16x16/8A6A7E/8A6A7E.png) `#8A6A7E` | ![](https://placehold.co/16x16/4A7B9D/4A7B9D.png) `#4A7B9D` | ![](https://placehold.co/16x16/FFE8A0/FFE8A0.png) `#FFE8A0` | ![](https://placehold.co/16x16/6B6B80/6B6B80.png) `#6B6B80` | ![](https://placehold.co/16x16/8B6914/8B6914.png) `#8B6914` |
 
 ### Integration
 
@@ -189,170 +189,10 @@ general:
 - Theme selected via `config.yaml` or `--theme` CLI flag (see config spec)
 
 
-### New Built-in Presets: Fashion Themes
-
-Four new themes inspired by Japanese fashion styles. Each theme provides complete field coverage.
-
-#### mizuiro (水色)
-
-**Style**: Clear, transparent, aqua — like light through water
-**Base**: Deep navy `#0A1628` | Main: Water blue `#5BA4CF` | Accent: Sky blue `#7BC8F6`
-
-| Area | Color |
-|------|-------|
-| FATAL fg | ![](https://placehold.co/16x16/E87461/E87461.png) `#E87461` bold |
-| ERROR fg | ![](https://placehold.co/16x16/CF6B5E/CF6B5E.png) `#CF6B5E` |
-| WARN fg | ![](https://placehold.co/16x16/E8A74E/E8A74E.png) `#E8A74E` |
-| NOTICE fg | ![](https://placehold.co/16x16/7BC8F6/7BC8F6.png) `#7BC8F6` |
-| INFO fg | ![](https://placehold.co/16x16/C8D6E5/C8D6E5.png) `#C8D6E5` |
-| DEBUG fg | ![](https://placehold.co/16x16/4A7B9D/4A7B9D.png) `#4A7B9D` |
-| TRACE fg | ![](https://placehold.co/16x16/3B5A7A/3B5A7A.png) `#3B5A7A` |
-| Header fg/bg | ![](https://placehold.co/16x16/0A1628/0A1628.png) `#0A1628` / ![](https://placehold.co/16x16/5BA4CF/5BA4CF.png) `#5BA4CF` bold |
-| Header unfocused fg/bg | ![](https://placehold.co/16x16/4A7B9D/4A7B9D.png) `#4A7B9D` / ![](https://placehold.co/16x16/0F2038/0F2038.png) `#0F2038` |
-| Selected bg | ![](https://placehold.co/16x16/162E48/162E48.png) `#162E48` |
-| Separator fg | ![](https://placehold.co/16x16/1E3A50/1E3A50.png) `#1E3A50` char=`│` |
-| Line 1 fg/bg | ![](https://placehold.co/16x16/8BA4B8/8BA4B8.png) `#8BA4B8` / ![](https://placehold.co/16x16/0F2038/0F2038.png) `#0F2038` |
-| Line 2 fg/bg | ![](https://placehold.co/16x16/4A7B9D/4A7B9D.png) `#4A7B9D` / ![](https://placehold.co/16x16/0A1628/0A1628.png) `#0A1628` |
-| Mode label fg/bg | ![](https://placehold.co/16x16/0A1628/0A1628.png) `#0A1628` / ![](https://placehold.co/16x16/5BA4CF/5BA4CF.png) `#5BA4CF` bold |
-| Density chart fg | ![](https://placehold.co/16x16/5BA4CF/5BA4CF.png) `#5BA4CF` |
-| Density hot fg | ![](https://placehold.co/16x16/7BC8F6/7BC8F6.png) `#7BC8F6` |
-| Density label fg | ![](https://placehold.co/16x16/3B5A7A/3B5A7A.png) `#3B5A7A` |
-| Density tick fg | ![](https://placehold.co/16x16/1E3A50/1E3A50.png) `#1E3A50` |
-| Position fg | ![](https://placehold.co/16x16/A8D8EA/A8D8EA.png) `#A8D8EA` |
-| Cursor marker fg | ![](https://placehold.co/16x16/7BC8F6/7BC8F6.png) `#7BC8F6` |
-| Match fg/bg | `#0A1628` / ![](https://placehold.co/16x16/A8D8EA/A8D8EA.png) `#A8D8EA` |
-| Current match fg/bg | `#0A1628` / ![](https://placehold.co/16x16/7BC8F6/7BC8F6.png) `#7BC8F6` |
-| Dialog border fg | ![](https://placehold.co/16x16/5BA4CF/5BA4CF.png) `#5BA4CF` |
-| Input prompt fg | ![](https://placehold.co/16x16/7BC8F6/7BC8F6.png) `#7BC8F6` |
-| Focused tab fg/bg | ![](https://placehold.co/16x16/0A1628/0A1628.png) `#0A1628` / ![](https://placehold.co/16x16/5BA4CF/5BA4CF.png) `#5BA4CF` bold |
-| Unfocused tab fg/bg | ![](https://placehold.co/16x16/4A7B9D/4A7B9D.png) `#4A7B9D` / ![](https://placehold.co/16x16/0F2038/0F2038.png) `#0F2038` |
-| Bar bg | ![](https://placehold.co/16x16/0A1628/0A1628.png) `#0A1628` |
-| Accent fg | ![](https://placehold.co/16x16/5BA4CF/5BA4CF.png) `#5BA4CF` |
-| Border fg | ![](https://placehold.co/16x16/1E3A50/1E3A50.png) `#1E3A50` |
-| Muted fg | ![](https://placehold.co/16x16/3B5A7A/3B5A7A.png) `#3B5A7A` |
-| Highlight 1-6 | `#7BC8F6` `#5BA4CF` `#A8D8EA` `#2E6B9E` `#D4EEF6` `#4A7B9D` |
-
-#### amai (甜系)
-
-**Style**: Sweet Lolita — dreamy, pastel pink, fairy tale
-**Base**: Deep rose `#1E0A14` | Main: Baby pink `#FFB7C5` | Accent: Hot pink `#FF6B8A`
-
-| Area | Color |
-|------|-------|
-| FATAL fg | ![](https://placehold.co/16x16/FF6B8A/FF6B8A.png) `#FF6B8A` bold |
-| ERROR fg | ![](https://placehold.co/16x16/E85A7A/E85A7A.png) `#E85A7A` |
-| WARN fg | ![](https://placehold.co/16x16/FFE8A0/FFE8A0.png) `#FFE8A0` |
-| NOTICE fg | ![](https://placehold.co/16x16/C8A2C8/C8A2C8.png) `#C8A2C8` |
-| INFO fg | ![](https://placehold.co/16x16/E8D0DA/E8D0DA.png) `#E8D0DA` |
-| DEBUG fg | ![](https://placehold.co/16x16/8A6A7E/8A6A7E.png) `#8A6A7E` |
-| TRACE fg | ![](https://placehold.co/16x16/5A3A4E/5A3A4E.png) `#5A3A4E` |
-| Header fg/bg | ![](https://placehold.co/16x16/1E0A14/1E0A14.png) `#1E0A14` / ![](https://placehold.co/16x16/FFB7C5/FFB7C5.png) `#FFB7C5` bold |
-| Header unfocused fg/bg | ![](https://placehold.co/16x16/8A6A7E/8A6A7E.png) `#8A6A7E` / ![](https://placehold.co/16x16/2D1B2E/2D1B2E.png) `#2D1B2E` |
-| Selected bg | ![](https://placehold.co/16x16/3A1830/3A1830.png) `#3A1830` |
-| Separator fg | ![](https://placehold.co/16x16/4A2E40/4A2E40.png) `#4A2E40` char=`♡` |
-| Line 1 fg/bg | ![](https://placehold.co/16x16/D4A0B0/D4A0B0.png) `#D4A0B0` / ![](https://placehold.co/16x16/2D1B2E/2D1B2E.png) `#2D1B2E` |
-| Line 2 fg/bg | ![](https://placehold.co/16x16/8A6A7E/8A6A7E.png) `#8A6A7E` / ![](https://placehold.co/16x16/1E0A14/1E0A14.png) `#1E0A14` |
-| Mode label fg/bg | ![](https://placehold.co/16x16/1E0A14/1E0A14.png) `#1E0A14` / ![](https://placehold.co/16x16/FFB7C5/FFB7C5.png) `#FFB7C5` bold |
-| Density chart fg | ![](https://placehold.co/16x16/FFB7C5/FFB7C5.png) `#FFB7C5` |
-| Density hot fg | ![](https://placehold.co/16x16/FF6B8A/FF6B8A.png) `#FF6B8A` |
-| Density label fg | ![](https://placehold.co/16x16/5A3A4E/5A3A4E.png) `#5A3A4E` |
-| Density tick fg | ![](https://placehold.co/16x16/4A2E40/4A2E40.png) `#4A2E40` |
-| Position fg | ![](https://placehold.co/16x16/C8A2C8/C8A2C8.png) `#C8A2C8` |
-| Cursor marker fg | ![](https://placehold.co/16x16/FF6B8A/FF6B8A.png) `#FF6B8A` |
-| Match fg/bg | `#1E0A14` / ![](https://placehold.co/16x16/C8A2C8/C8A2C8.png) `#C8A2C8` |
-| Current match fg/bg | `#1E0A14` / ![](https://placehold.co/16x16/FFB7C5/FFB7C5.png) `#FFB7C5` |
-| Dialog border fg | ![](https://placehold.co/16x16/FFB7C5/FFB7C5.png) `#FFB7C5` |
-| Input prompt fg | ![](https://placehold.co/16x16/C8A2C8/C8A2C8.png) `#C8A2C8` |
-| Focused tab fg/bg | ![](https://placehold.co/16x16/1E0A14/1E0A14.png) `#1E0A14` / ![](https://placehold.co/16x16/FFB7C5/FFB7C5.png) `#FFB7C5` bold |
-| Unfocused tab fg/bg | ![](https://placehold.co/16x16/8A6A7E/8A6A7E.png) `#8A6A7E` / ![](https://placehold.co/16x16/2D1B2E/2D1B2E.png) `#2D1B2E` |
-| Bar bg | ![](https://placehold.co/16x16/1E0A14/1E0A14.png) `#1E0A14` |
-| Accent fg | ![](https://placehold.co/16x16/FFB7C5/FFB7C5.png) `#FFB7C5` |
-| Border fg | ![](https://placehold.co/16x16/4A2E40/4A2E40.png) `#4A2E40` |
-| Muted fg | ![](https://placehold.co/16x16/5A3A4E/5A3A4E.png) `#5A3A4E` |
-| Highlight 1-6 | `#FF6B8A` `#FFB7C5` `#C8A2C8` `#98D8C8` `#6B8EC2` `#FFE8A0` |
-
-#### maid (女仆)
-
-**Style**: Classic maid — black & white high contrast, lace, elegant
-**Base**: Black dress `#0D0D1A` | Main: Lace white `#F0EDE8` | Accent: Wine red `#C43060`
-
-| Area | Color |
-|------|-------|
-| FATAL fg | ![](https://placehold.co/16x16/C43060/C43060.png) `#C43060` bold |
-| ERROR fg | ![](https://placehold.co/16x16/8B2252/8B2252.png) `#8B2252` |
-| WARN fg | ![](https://placehold.co/16x16/D4A050/D4A050.png) `#D4A050` |
-| NOTICE fg | ![](https://placehold.co/16x16/B0A8B9/B0A8B9.png) `#B0A8B9` |
-| INFO fg | ![](https://placehold.co/16x16/F0EDE8/F0EDE8.png) `#F0EDE8` |
-| DEBUG fg | ![](https://placehold.co/16x16/6B6B80/6B6B80.png) `#6B6B80` |
-| TRACE fg | ![](https://placehold.co/16x16/3A3A4E/3A3A4E.png) `#3A3A4E` |
-| Header fg/bg | ![](https://placehold.co/16x16/0D0D1A/0D0D1A.png) `#0D0D1A` / ![](https://placehold.co/16x16/F0EDE8/F0EDE8.png) `#F0EDE8` bold |
-| Header unfocused fg/bg | ![](https://placehold.co/16x16/6B6B80/6B6B80.png) `#6B6B80` / ![](https://placehold.co/16x16/1A1A2E/1A1A2E.png) `#1A1A2E` |
-| Selected bg | ![](https://placehold.co/16x16/1E1E38/1E1E38.png) `#1E1E38` |
-| Separator fg | ![](https://placehold.co/16x16/2A2A3E/2A2A3E.png) `#2A2A3E` char=`│` |
-| Line 1 fg/bg | ![](https://placehold.co/16x16/B0A8B9/B0A8B9.png) `#B0A8B9` / ![](https://placehold.co/16x16/1A1A2E/1A1A2E.png) `#1A1A2E` |
-| Line 2 fg/bg | ![](https://placehold.co/16x16/6B6B80/6B6B80.png) `#6B6B80` / ![](https://placehold.co/16x16/0D0D1A/0D0D1A.png) `#0D0D1A` |
-| Mode label fg/bg | ![](https://placehold.co/16x16/0D0D1A/0D0D1A.png) `#0D0D1A` / ![](https://placehold.co/16x16/F0EDE8/F0EDE8.png) `#F0EDE8` bold |
-| Density chart fg | ![](https://placehold.co/16x16/B0A8B9/B0A8B9.png) `#B0A8B9` |
-| Density hot fg | ![](https://placehold.co/16x16/F0EDE8/F0EDE8.png) `#F0EDE8` |
-| Density label fg | ![](https://placehold.co/16x16/3A3A4E/3A3A4E.png) `#3A3A4E` |
-| Density tick fg | ![](https://placehold.co/16x16/2A2A3E/2A2A3E.png) `#2A2A3E` |
-| Position fg | ![](https://placehold.co/16x16/F0EDE8/F0EDE8.png) `#F0EDE8` |
-| Cursor marker fg | ![](https://placehold.co/16x16/C43060/C43060.png) `#C43060` |
-| Match fg/bg | `#0D0D1A` / ![](https://placehold.co/16x16/B0A8B9/B0A8B9.png) `#B0A8B9` |
-| Current match fg/bg | `#0D0D1A` / ![](https://placehold.co/16x16/F0EDE8/F0EDE8.png) `#F0EDE8` |
-| Dialog border fg | ![](https://placehold.co/16x16/6B6B80/6B6B80.png) `#6B6B80` |
-| Input prompt fg | ![](https://placehold.co/16x16/F0EDE8/F0EDE8.png) `#F0EDE8` |
-| Focused tab fg/bg | ![](https://placehold.co/16x16/0D0D1A/0D0D1A.png) `#0D0D1A` / ![](https://placehold.co/16x16/F0EDE8/F0EDE8.png) `#F0EDE8` bold |
-| Unfocused tab fg/bg | ![](https://placehold.co/16x16/6B6B80/6B6B80.png) `#6B6B80` / ![](https://placehold.co/16x16/1A1A2E/1A1A2E.png) `#1A1A2E` |
-| Bar bg | ![](https://placehold.co/16x16/0D0D1A/0D0D1A.png) `#0D0D1A` |
-| Accent fg | ![](https://placehold.co/16x16/8B2252/8B2252.png) `#8B2252` |
-| Border fg | ![](https://placehold.co/16x16/2A2A3E/2A2A3E.png) `#2A2A3E` |
-| Muted fg | ![](https://placehold.co/16x16/3A3A4E/3A3A4E.png) `#3A3A4E` |
-| Highlight 1-6 | `#F0EDE8` `#B0A8B9` `#C43060` `#8B2252` `#6880A0` `#6B6B80` |
-
-#### gyaru (ギャル)
-
-**Style**: Shibuya bold — gold, hot pink, leopard, glamorous
-**Base**: Dark bronze `#1A1208` | Main: Gold `#FFD700` | Accent: Hot pink `#FF2499`
-
-| Area | Color |
-|------|-------|
-| FATAL fg | ![](https://placehold.co/16x16/FF2499/FF2499.png) `#FF2499` bold |
-| ERROR fg | ![](https://placehold.co/16x16/FF69B4/FF69B4.png) `#FF69B4` |
-| WARN fg | ![](https://placehold.co/16x16/FFE040/FFE040.png) `#FFE040` |
-| NOTICE fg | ![](https://placehold.co/16x16/FFD700/FFD700.png) `#FFD700` |
-| INFO fg | ![](https://placehold.co/16x16/FFF0D4/FFF0D4.png) `#FFF0D4` |
-| DEBUG fg | ![](https://placehold.co/16x16/A67C52/A67C52.png) `#A67C52` |
-| TRACE fg | ![](https://placehold.co/16x16/5A4830/5A4830.png) `#5A4830` |
-| Header fg/bg | ![](https://placehold.co/16x16/1A1208/1A1208.png) `#1A1208` / ![](https://placehold.co/16x16/FFD700/FFD700.png) `#FFD700` bold |
-| Header unfocused fg/bg | ![](https://placehold.co/16x16/A67C52/A67C52.png) `#A67C52` / ![](https://placehold.co/16x16/2A1F14/2A1F14.png) `#2A1F14` |
-| Selected bg | ![](https://placehold.co/16x16/3A2818/3A2818.png) `#3A2818` |
-| Separator fg | ![](https://placehold.co/16x16/3A2A18/3A2A18.png) `#3A2A18` char=`│` |
-| Line 1 fg/bg | ![](https://placehold.co/16x16/C68642/C68642.png) `#C68642` / ![](https://placehold.co/16x16/2A1F14/2A1F14.png) `#2A1F14` |
-| Line 2 fg/bg | ![](https://placehold.co/16x16/A67C52/A67C52.png) `#A67C52` / ![](https://placehold.co/16x16/1A1208/1A1208.png) `#1A1208` |
-| Mode label fg/bg | ![](https://placehold.co/16x16/1A1208/1A1208.png) `#1A1208` / ![](https://placehold.co/16x16/FFD700/FFD700.png) `#FFD700` bold |
-| Density chart fg | ![](https://placehold.co/16x16/C68642/C68642.png) `#C68642` |
-| Density hot fg | ![](https://placehold.co/16x16/FFD700/FFD700.png) `#FFD700` |
-| Density label fg | ![](https://placehold.co/16x16/6B5A28/6B5A28.png) `#6B5A28` |
-| Density tick fg | ![](https://placehold.co/16x16/3A2A18/3A2A18.png) `#3A2A18` |
-| Position fg | ![](https://placehold.co/16x16/FFD700/FFD700.png) `#FFD700` |
-| Cursor marker fg | ![](https://placehold.co/16x16/FF2499/FF2499.png) `#FF2499` |
-| Match fg/bg | `#1A1208` / ![](https://placehold.co/16x16/C68642/C68642.png) `#C68642` |
-| Current match fg/bg | `#1A1208` / ![](https://placehold.co/16x16/FFD700/FFD700.png) `#FFD700` |
-| Dialog border fg | ![](https://placehold.co/16x16/C68642/C68642.png) `#C68642` |
-| Input prompt fg | ![](https://placehold.co/16x16/FFD700/FFD700.png) `#FFD700` |
-| Focused tab fg/bg | ![](https://placehold.co/16x16/1A1208/1A1208.png) `#1A1208` / ![](https://placehold.co/16x16/FFD700/FFD700.png) `#FFD700` bold |
-| Unfocused tab fg/bg | ![](https://placehold.co/16x16/A67C52/A67C52.png) `#A67C52` / ![](https://placehold.co/16x16/2A1F14/2A1F14.png) `#2A1F14` |
-| Bar bg | ![](https://placehold.co/16x16/1A1208/1A1208.png) `#1A1208` |
-| Accent fg | ![](https://placehold.co/16x16/FFD700/FFD700.png) `#FFD700` |
-| Border fg | ![](https://placehold.co/16x16/3A2A18/3A2A18.png) `#3A2A18` |
-| Muted fg | ![](https://placehold.co/16x16/5A4830/5A4830.png) `#5A4830` |
-| Highlight 1-6 | `#FF2499` `#FFD700` `#C68642` `#FF69B4` `#FFE040` `#8B6914` |
-
 ## Change Log
 
 | Date | Change |
-|------|--------|
+|------|------|
 | 2026-02-22 | Initial theme system design |
 | 2026-02-22 | Moved theme file format and color details from config spec |
 | 2026-02-23 | Redesign default theme: distinct status bar lines, softer colors, clear visual hierarchy |
@@ -363,4 +203,4 @@ Four new themes inspired by Japanese fashion styles. Each theme provides complet
 | 2026-02-28 | Table header focused color now matches `panel_tab.focused` (accent bg) for consistent focus visual language |
 | 2026-03-02 | Replace all ANSI 16 colors in default theme with RGB equivalents for terminal theme independence |
 | 2026-03-02 | Added `density_tick` field to StatusBarTheme for density chart tick marks |
-| 2026-03-02 | Added 4 new fashion-inspired themes: mizuiro (水色), amai (甜系), maid (女仆), gyaru (ギャル) |
+| 2026-03-02 | Added 4 new fashion-inspired themes: mizuiro, amai, maid, gyaru |
