@@ -264,7 +264,7 @@ pub fn generate_default_config() -> String {
 # Place at ~/.scouty/config.yaml (user) or ./scouty.yaml (project)
 # See: https://github.com/r12f/scouty
 
-# Theme selection (built-in: default, landmine, amai, maid, gyaru)
+# Theme selection (built-in: default, landmine, amai, maid, gyaru, dopamine)
 theme: default
 
 # Default log paths when no files specified (glob patterns supported)

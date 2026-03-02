@@ -523,13 +523,14 @@ impl Theme {
             "amai" => Some(Self::amai()),
             "maid" => Some(Self::maid()),
             "gyaru" => Some(Self::gyaru()),
+            "dopamine" => Some(Self::dopamine()),
             _ => None,
         }
     }
 
     /// All built-in theme names in display order.
     const BUILTIN_NAMES: &'static [&'static str] =
-        &["default", "landmine", "amai", "maid", "gyaru"];
+        &["default", "landmine", "amai", "maid", "gyaru", "dopamine"];
 
     /// List all built-in theme names.
     pub fn builtin_names() -> Vec<&'static str> {
@@ -1013,6 +1014,126 @@ impl Theme {
                     bold: None,
                 },
                 bar_bg: StyleEntry::bg(dark_bronze),
+            },
+        }
+    }
+
+    /// Dopamine theme — rainbow maximalist with neon pink, sunflower yellow, electric blue.
+    pub fn dopamine() -> Self {
+        use Color::*;
+        let deep_warm = Rgb(26, 20, 24); // #1A1418
+        let dark_plum = Rgb(36, 24, 32); // #241820
+        let neon_pink = Rgb(255, 107, 157); // #FF6B9D
+        let sunflower = Rgb(255, 215, 0); // #FFD700
+        let electric_blue = Rgb(77, 166, 255); // #4DA6FF
+        let emerald = Rgb(80, 232, 128); // #50E880
+        let tangerine = Rgb(255, 140, 66); // #FF8C42
+        let lavender = Rgb(179, 136, 255); // #B388FF
+        let cream_white = Rgb(255, 245, 230); // #FFF5E6
+        let warm_gray = Rgb(168, 144, 152); // #A89098
+        let muted_rose = Rgb(107, 72, 88); // #6B4858
+        let dark_rose = Rgb(74, 40, 56); // #4A2838
+        let deep_magenta = Rgb(58, 24, 40); // #3A1828
+        let selected_bg = Rgb(46, 24, 40); // #2E1828
+
+        Self {
+            description: Some(
+                "Rainbow maximalist \u{2014} warm black base with neon pink, sunflower yellow, electric blue"
+                    .to_string(),
+            ),
+            log_levels: LogLevelTheme {
+                fatal: StyleEntry::fg_bold(neon_pink),
+                error: StyleEntry::fg(tangerine),
+                warn: StyleEntry::fg(sunflower),
+                notice: StyleEntry::fg(electric_blue),
+                info: StyleEntry::fg(cream_white),
+                debug: StyleEntry::fg(muted_rose),
+                trace: StyleEntry::fg(dark_rose),
+            },
+            table: TableTheme {
+                header: StyleEntry {
+                    fg: Some(ThemeColor(deep_warm)),
+                    bg: Some(ThemeColor(sunflower)),
+                    bold: Some(true),
+                },
+                header_unfocused: StyleEntry::fg_bg(warm_gray, dark_plum),
+                selected: StyleEntry::bg(selected_bg),
+                separator: SeparatorStyle {
+                    fg: Some(ThemeColor(deep_magenta)),
+                    bg: None,
+                    char: "\u{2502}".to_string(),
+                },
+                selected_search: StyleEntry::bg(Rgb(60, 30, 50)), // #3C1E32 warm magenta search selection
+                selected_highlight: StyleEntry::bg(Rgb(50, 25, 42)), // #32192A dark plum highlight
+                search_match: StyleEntry::bg(Rgb(70, 35, 55)), // #462337 rose search match
+                bookmark: StyleEntry::bg(Rgb(55, 28, 45)), // #371C2D deep plum bookmark
+            },
+            status_bar: StatusBarTheme {
+                line1_bg: StyleEntry::fg_bg(warm_gray, dark_plum),
+                line2_bg: StyleEntry::fg_bg(muted_rose, deep_warm),
+                mode_label: StyleEntry {
+                    fg: Some(ThemeColor(deep_warm)),
+                    bg: Some(ThemeColor(sunflower)),
+                    bold: Some(true),
+                },
+                mode_view: StyleEntry::fg_bg(deep_warm, warm_gray),
+                mode_follow: StyleEntry::fg_bg(deep_warm, emerald),
+                density_normal: StyleEntry::fg(neon_pink),
+                density_hot: StyleEntry::fg(Rgb(255, 235, 59)), // #FFEB3B bright yellow
+                density_label: StyleEntry::fg(muted_rose),
+                density_tick: StyleEntry::fg(deep_magenta),
+                position: StyleEntry::fg(lavender),
+                cursor_marker: StyleEntry::fg(neon_pink),
+                ..StatusBarTheme::default()
+            },
+            search: SearchTheme {
+                match_highlight: StyleEntry::fg_bg(deep_warm, lavender),
+                current_match: StyleEntry::fg_bg(deep_warm, sunflower),
+            },
+            dialog: DialogTheme {
+                border: StyleEntry::fg(neon_pink),
+                title: StyleEntry::fg_bold(sunflower),
+                selected: StyleEntry::fg_bg(cream_white, selected_bg),
+                text: StyleEntry::fg(warm_gray),
+                muted: StyleEntry::fg(muted_rose),
+                ..DialogTheme::default()
+            },
+            detail_panel: DetailPanelTheme {
+                border: StyleEntry::fg(deep_magenta),
+                field_name: StyleEntry::fg(electric_blue),
+                field_value: StyleEntry::fg(warm_gray),
+                section_header: StyleEntry::fg_bold(lavender),
+            },
+            input: InputTheme {
+                prompt: StyleEntry::fg(emerald),
+                error: StyleEntry::fg(neon_pink),
+                ..InputTheme::default()
+            },
+            highlight_palette: vec![
+                ThemeColor(neon_pink),      // #FF6B9D
+                ThemeColor(sunflower),      // #FFD700
+                ThemeColor(electric_blue),  // #4DA6FF
+                ThemeColor(emerald),        // #50E880
+                ThemeColor(tangerine),      // #FF8C42
+                ThemeColor(lavender),       // #B388FF
+            ],
+            general: GeneralTheme {
+                accent: StyleEntry::fg(sunflower),
+                muted: StyleEntry::fg(muted_rose),
+                border: StyleEntry::fg(deep_magenta),
+            },
+            panel_tab: PanelTabTheme {
+                focused: StyleEntry {
+                    fg: Some(ThemeColor(deep_warm)),
+                    bg: Some(ThemeColor(sunflower)),
+                    bold: Some(true),
+                },
+                unfocused: StyleEntry {
+                    fg: Some(ThemeColor(warm_gray)),
+                    bg: Some(ThemeColor(dark_plum)),
+                    bold: None,
+                },
+                bar_bg: StyleEntry::bg(deep_warm),
             },
         }
     }
