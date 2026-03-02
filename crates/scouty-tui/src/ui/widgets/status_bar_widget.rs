@@ -157,13 +157,17 @@ impl StatusBarWidget {
         };
 
         let bookmark_text = if !app.bookmarks.is_empty() {
-            format!(" Bookmarks: {} ", app.bookmarks.len())
+            format!("★{}", app.bookmarks.len())
         } else {
             String::new()
         };
 
         let position_text = format!(" {} ", position);
-        let right_text = format!("{}{}", bookmark_text, position_text);
+        let right_text = if bookmark_text.is_empty() {
+            position_text.clone()
+        } else {
+            format!(" {} | {} ", bookmark_text, position.trim())
+        };
         let right_width = UnicodeWidthStr::width(right_text.as_str()) as u16;
 
         // Account for follow indicator width in chart space
