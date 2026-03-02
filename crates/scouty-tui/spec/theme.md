@@ -12,7 +12,7 @@ A `Theme` struct in `theme.rs` holds all color definitions, grouped by UI area:
 
 ```
 Theme
-├── description       # one-line theme description (shown in --theme-list and --generate-theme)
+├── description       # one-line theme description (shown in --theme-list and --theme-dump)
 ├── log_levels        # Fatal, Error, Warn, Notice, Info, Debug, Trace
 ├── table             # header bg/fg/bold, selected row, alternating row bg, separator (color + char)
 ├── status_bar        # line1 bg/fg, line2 bg/fg, mode label, density chart, density label, density_tick, position, cursor marker
@@ -138,7 +138,7 @@ Implementation notes:
 - `description` is a field on `Theme` struct (serialized/deserialized via serde)
 - Built-in themes set description in their constructors
 - Custom themes can set `description:` in their YAML file
-- `--generate-theme <name>` output includes the description field
+- `--theme-dump <name>` output includes the description field
 - `--theme-list` reads description from Theme for both built-in and custom themes
 - Print to stdout, then `std::process::exit(0)`
 
@@ -252,4 +252,5 @@ Implementation notes:
 | 2026-03-02 | Added 4 new fashion-inspired themes: mizuiro, amai, maid, gyaru |
 | 2026-03-02 | Tuned amai theme: darker log bg (#140A10), brighter highlights (header #FFC8D6, status bar #3D2540) |
 | 2026-03-02 | Added `--theme-list` CLI command and per-theme `description` field |
-| 2026-03-02 | `description` is now a Theme struct field, visible in `--generate-theme` YAML output |
+| 2026-03-02 | `description` is now a Theme struct field, visible in `--theme-dump` YAML output |
+| 2026-03-02 | Renamed `--generate-theme` to `--theme-dump` |
