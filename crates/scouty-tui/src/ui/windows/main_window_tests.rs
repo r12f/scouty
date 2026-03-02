@@ -389,4 +389,30 @@ mod tab_navigation_tests {
         mw.handle_normal_key(key(KeyCode::Tab));
         assert_eq!(mw.app.panel_state.active, PanelId::Region);
     }
+
+    /// Some terminals send BackTab without SHIFT modifier.
+    /// Verify it still navigates backward.
+    #[test]
+    fn test_backtab_without_shift_modifier() {
+        let mut mw = make_main_window();
+
+        let backtab_no_shift = KeyEvent::new(KeyCode::BackTab, KeyModifiers::NONE);
+
+        // BackTab (no SHIFT): LogTable → Category
+        mw.handle_normal_key(backtab_no_shift);
+        assert_eq!(mw.app.panel_state.active, PanelId::Category);
+        assert_eq!(mw.app.panel_state.focus, PanelFocus::PanelContent);
+
+        mw.handle_normal_key(backtab_no_shift);
+        assert_eq!(mw.app.panel_state.active, PanelId::Stats);
+
+        mw.handle_normal_key(backtab_no_shift);
+        assert_eq!(mw.app.panel_state.active, PanelId::Region);
+
+        mw.handle_normal_key(backtab_no_shift);
+        assert_eq!(mw.app.panel_state.active, PanelId::Detail);
+
+        mw.handle_normal_key(backtab_no_shift);
+        assert_eq!(mw.app.panel_state.focus, PanelFocus::LogTable);
+    }
 }

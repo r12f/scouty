@@ -7,6 +7,7 @@ mod column_selector_window_tests;
 use crate::app::{App, Column};
 use crate::config::Theme;
 use crate::ui::{ComponentResult, UiComponent};
+use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::layout::Rect;
 use ratatui::style::Style;
 use ratatui::text::Line;
@@ -18,15 +19,34 @@ use ratatui::Frame;
 pub struct ColumnSelectorWindow {
     pub cursor: usize,
     pub columns: Vec<(Column, bool)>,
+    pub width_overrides: std::collections::HashMap<Column, u16>,
+    /// Auto-computed widths from App.
+    pub auto_widths: std::collections::HashMap<Column, u16>,
     pub theme: Theme,
 }
 
 #[allow(dead_code)]
 impl ColumnSelectorWindow {
     pub fn from_app(app: &App) -> Self {
+        let cw = &app.col_widths;
+        let mut auto_widths = std::collections::HashMap::new();
+        auto_widths.insert(Column::Time, cw[0]);
+        auto_widths.insert(Column::Level, cw[1]);
+        auto_widths.insert(Column::ProcessName, cw[2]);
+        auto_widths.insert(Column::Pid, cw[3]);
+        auto_widths.insert(Column::Tid, cw[4]);
+        auto_widths.insert(Column::Component, cw[5]);
+        auto_widths.insert(Column::Context, cw[6]);
+        auto_widths.insert(Column::Function, cw[7]);
+        auto_widths.insert(Column::Hostname, 20);
+        auto_widths.insert(Column::Container, 15);
+        auto_widths.insert(Column::Source, 15);
+
         Self {
             cursor: app.column_config.cursor,
             columns: app.column_config.columns.clone(),
+            width_overrides: app.column_config.width_overrides.clone(),
+            auto_widths,
             theme: app.theme.clone(),
         }
     }
@@ -34,6 +54,7 @@ impl ColumnSelectorWindow {
     pub fn sync_to_app(&self, app: &mut App) {
         app.column_config.cursor = self.cursor;
         app.column_config.columns = self.columns.clone();
+        app.column_config.width_overrides = self.width_overrides.clone();
     }
 
     fn toggle_current(&mut self) {
@@ -42,14 +63,51 @@ impl ColumnSelectorWindow {
             self.columns[cur].1 = !self.columns[cur].1;
         }
     }
+
+    /// Get the current effective width for a column.
+    fn current_width(&self, col: Column) -> u16 {
+        if let Some(&w) = self.width_overrides.get(&col) {
+            w
+        } else {
+            *self.auto_widths.get(&col).unwrap_or(&0)
+        }
+    }
+
+    /// Adjust width of the currently selected column by delta.
+    fn adjust_width(&mut self, delta: i16) {
+        let cur = self.cursor;
+        if cur >= self.columns.len() {
+            return;
+        }
+        let (col, visible) = self.columns[cur];
+        if col == Column::Log || !visible {
+            return;
+        }
+        let current = self.current_width(col);
+        let new_width = (current as i16 + delta).max(col.min_width() as i16) as u16;
+        self.width_overrides.insert(col, new_width);
+    }
+
+    /// Reset the currently selected column's width to auto-computed.
+    fn reset_current_width(&mut self) {
+        let cur = self.cursor;
+        if cur >= self.columns.len() {
+            return;
+        }
+        let (col, _) = self.columns[cur];
+        if col == Column::Log {
+            return;
+        }
+        self.width_overrides.remove(&col);
+    }
 }
 
 #[allow(dead_code)]
 impl UiComponent for ColumnSelectorWindow {
     fn render(&self, frame: &mut Frame, area: Rect) {
         let t = &self.theme;
-        let width = 35u16.min(area.width.saturating_sub(4));
-        let height = (self.columns.len() as u16 + 5).min(area.height.saturating_sub(4));
+        let width = 42u16.min(area.width.saturating_sub(4));
+        let height = (self.columns.len() as u16 + 6).min(area.height.saturating_sub(4));
         let x = (area.width.saturating_sub(width)) / 2;
         let y = (area.height.saturating_sub(height)) / 2;
         let overlay = Rect::new(x, y, width, height);
@@ -57,17 +115,22 @@ impl UiComponent for ColumnSelectorWindow {
         frame.render_widget(Clear, overlay);
 
         let mut lines = vec![
-            Line::styled(" Toggle columns (Space/Enter)", t.dialog.muted.to_style()),
+            Line::styled(
+                " Toggle (Space) / Width (h/l)",
+                t.dialog.muted.to_style(),
+            ),
             Line::from(""),
         ];
 
         for (i, (col, visible)) in self.columns.iter().enumerate() {
             let checkbox = if *visible { "[x]" } else { "[ ]" };
             let is_cursor = i == self.cursor;
-            let suffix = if *col == Column::Log {
-                " (always on)"
+            let width_str = if *col == Column::Log {
+                "fill".to_string()
+            } else if !*visible {
+                "-".to_string()
             } else {
-                ""
+                format!("{}", self.current_width(*col))
             };
             let style = if is_cursor {
                 t.dialog.selected.to_style()
@@ -75,13 +138,16 @@ impl UiComponent for ColumnSelectorWindow {
                 Style::default()
             };
             lines.push(Line::styled(
-                format!(" {} {:<12}{}", checkbox, col.label(), suffix),
+                format!(" {} {:<12} {:>4}", checkbox, col.label(), width_str),
                 style,
             ));
         }
 
         lines.push(Line::from(""));
-        lines.push(Line::styled(" Esc: Close", t.dialog.muted.to_style()));
+        lines.push(Line::styled(
+            " r: Reset width  Esc: Close",
+            t.dialog.muted.to_style(),
+        ));
 
         let dialog = Paragraph::new(lines)
             .block(
@@ -122,5 +188,37 @@ impl UiComponent for ColumnSelectorWindow {
 
     fn on_cancel(&mut self) -> ComponentResult {
         ComponentResult::Close
+    }
+
+    fn on_char(&mut self, c: char) -> ComponentResult {
+        match c {
+            'h' => {
+                self.adjust_width(-1);
+                ComponentResult::Consumed
+            }
+            'l' => {
+                self.adjust_width(1);
+                ComponentResult::Consumed
+            }
+            'r' => {
+                self.reset_current_width();
+                ComponentResult::Consumed
+            }
+            _ => ComponentResult::Ignored,
+        }
+    }
+
+    fn on_key(&mut self, key: KeyEvent) -> ComponentResult {
+        match key.code {
+            KeyCode::Left => {
+                self.adjust_width(-1);
+                ComponentResult::Consumed
+            }
+            KeyCode::Right => {
+                self.adjust_width(1);
+                ComponentResult::Consumed
+            }
+            _ => ComponentResult::Ignored,
+        }
     }
 }
