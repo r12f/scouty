@@ -75,10 +75,10 @@ mod tests {
         let theme = Theme::default();
         let mut w = HelpWindow::new(&theme);
         w.visible_height = 10;
-        w.scroll = 15;
+        assert_eq!(w.scroll, 0);
         let result = dispatch_key(&mut w, key(KeyCode::PageDown));
         assert_eq!(result, ComponentResult::Consumed);
-        assert_eq!(w.scroll, 5);
+        assert_eq!(w.scroll, 10);
     }
 
     #[test]
@@ -86,30 +86,30 @@ mod tests {
         let theme = Theme::default();
         let mut w = HelpWindow::new(&theme);
         w.visible_height = 10;
-        assert_eq!(w.scroll, 0);
+        w.scroll = 15;
         let result = dispatch_key(&mut w, key(KeyCode::PageUp));
         assert_eq!(result, ComponentResult::Consumed);
-        assert_eq!(w.scroll, 10);
+        assert_eq!(w.scroll, 5);
     }
 
     #[test]
-    fn test_page_up_clamps_to_max() {
+    fn test_page_up_clamps_to_zero() {
+        let theme = Theme::default();
+        let mut w = HelpWindow::new(&theme);
+        w.visible_height = 10;
+        w.scroll = 3;
+        dispatch_key(&mut w, key(KeyCode::PageUp));
+        assert_eq!(w.scroll, 0);
+    }
+
+    #[test]
+    fn test_page_down_clamps_to_max() {
         let theme = Theme::default();
         let mut w = HelpWindow::new(&theme);
         w.visible_height = 10;
         let max_scroll = w.total_lines().saturating_sub(w.visible_height);
         w.scroll = max_scroll.saturating_sub(3);
-        dispatch_key(&mut w, key(KeyCode::PageUp));
-        assert_eq!(w.scroll, max_scroll);
-    }
-
-    #[test]
-    fn test_page_down_clamps_to_zero() {
-        let theme = Theme::default();
-        let mut w = HelpWindow::new(&theme);
-        w.visible_height = 10;
-        w.scroll = 3;
         dispatch_key(&mut w, key(KeyCode::PageDown));
-        assert_eq!(w.scroll, 0);
+        assert_eq!(w.scroll, max_scroll);
     }
 }

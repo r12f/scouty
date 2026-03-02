@@ -163,14 +163,14 @@ impl UiComponent for HelpWindow<'_> {
 
     fn on_page_up(&mut self) -> ComponentResult {
         let page = self.visible_height.max(1);
-        let max_scroll = self.total_lines().saturating_sub(self.visible_height);
-        self.scroll = (self.scroll + page).min(max_scroll);
+        self.scroll = self.scroll.saturating_sub(page);
         ComponentResult::Consumed
     }
 
     fn on_page_down(&mut self) -> ComponentResult {
         let page = self.visible_height.max(1);
-        self.scroll = self.scroll.saturating_sub(page);
+        let max_scroll = self.total_lines().saturating_sub(self.visible_height);
+        self.scroll = (self.scroll + page).min(max_scroll);
         ComponentResult::Consumed
     }
 
