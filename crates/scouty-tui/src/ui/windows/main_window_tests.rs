@@ -37,6 +37,18 @@ mod tests {
         let result = mw.handle_key(key(KeyCode::Char('q')));
         assert_eq!(result, WindowAction::Close);
     }
+    #[test]
+    fn test_quit_works_with_panel_focused() {
+        let mut mw = make_main_window();
+        // Focus the detail panel
+        mw.app.panel_state.expanded = true;
+        mw.app.panel_state.active = crate::panel::PanelId::Detail;
+        mw.app.panel_state.focus = crate::panel::PanelFocus::PanelContent;
+        // q should still quit even when panel has focus
+        let result = mw.handle_key(key(KeyCode::Char('q')));
+        assert_eq!(result, WindowAction::Close);
+    }
+
 
     #[test]
     fn test_normal_mode_move_down() {
