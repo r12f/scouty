@@ -433,23 +433,8 @@ impl Theme {
         }
     }
 
-    /// List all built-in theme names.
-    pub fn builtin_names() -> &'static [&'static str] {
-        &[
-            "default",
-            "dark",
-            "light",
-            "solarized",
-            "landmine",
-            "mizuiro",
-            "amai",
-            "maid",
-            "gyaru",
-        ]
-    }
-
-    /// Return (name, description) pairs for all built-in themes.
-    pub fn builtin_descriptions() -> &'static [(&'static str, &'static str)] {
+    /// Single source of truth for all built-in theme names and descriptions.
+    pub fn builtin_catalog() -> &'static [(&'static str, &'static str)] {
         &[
             ("default", "Balanced dark theme with soft, modern colors"),
             ("dark", "Muted dark theme — lower contrast, softer colors"),
@@ -459,7 +444,7 @@ impl Theme {
             ),
             (
                 "solarized",
-                "Ethan Schoonover's solarized palette, warm and precise",
+                "Ethan Schoonover’s solarized palette, warm and precise",
             ),
             (
                 "landmine",
@@ -480,20 +465,23 @@ impl Theme {
             ("gyaru", "Shibuya bold — gold and hot pink glamour"),
         ]
     }
+
+    /// List all built-in theme names.
+    pub fn builtin_names() -> Vec<&'static str> {
+        Self::builtin_catalog().iter().map(|(n, _)| *n).collect()
+    }
+
+    /// Return (name, description) pairs for all built-in themes.
+    pub fn builtin_descriptions() -> &'static [(&'static str, &'static str)] {
+        Self::builtin_catalog()
+    }
+
     /// Get the description for a built-in theme.
     pub fn builtin_description(name: &str) -> Option<&'static str> {
-        match name {
-            "default" => Some("Dark theme with blue accents and warm highlights"),
-            "dark" => Some("Low-contrast dark theme with muted, softer colors"),
-            "light" => Some("Light background with dark text for bright environments"),
-            "solarized" => Some("Ethan Schoonover's Solarized Dark palette"),
-            "landmine" => Some("Jirai Kei: black base with pink and red accents"),
-            "mizuiro" => Some("Clear aqua: deep navy base with water blue and sky blue"),
-            "amai" => Some("Sweet Lolita: dark rose base with candy pink and lavender"),
-            "maid" => Some("Classic maid: black and white high contrast with wine red"),
-            "gyaru" => Some("Shibuya bold: dark bronze base with gold and hot pink"),
-            _ => None,
-        }
+        Self::builtin_catalog()
+            .iter()
+            .find(|(n, _)| *n == name)
+            .map(|(_, d)| *d)
     }
 
     /// Muted dark theme — lower contrast, softer colors.

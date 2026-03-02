@@ -146,11 +146,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 let mut entries: Vec<(&str, String)> =
                     builtins.iter().map(|(n, d)| (*n, d.to_string())).collect();
 
-                // Scan ~/.scouty/themes/ for user custom themes
+                // Scan custom theme directories: system (/etc/scouty/themes/) and
+                // user (~/.scouty/themes/), matching the search order used by
+                // config::resolve_theme().
+                let mut custom_dirs: Vec<std::path::PathBuf> = Vec::new();
+                custom_dirs.push(config::system_config_dir().join("themes"));
                 if let Some(home) = dirs::home_dir() {
-                    let themes_dir = home.join(".scouty").join("themes");
+                    custom_dirs.push(home.join(".scouty").join("themes"));
+                }
+                let mut seen_custom: std::collections::HashSet<String> =
+                    std::collections::HashSet::new();
+                for themes_dir in &custom_dirs {
                     if themes_dir.is_dir() {
-                        if let Ok(read_dir) = std::fs::read_dir(&themes_dir) {
+                        if let Ok(read_dir) = std::fs::read_dir(themes_dir) {
                             let mut user_files: Vec<_> = read_dir
                                 .filter_map(|e| e.ok())
                                 .filter(|e| {
@@ -169,8 +177,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                     .unwrap_or_default()
                                     .to_string_lossy()
                                     .to_string();
-                                // Leak the string so we get a &'static-like lifetime
-                                // (process exits immediately after printing)
+                                if seen_custom.contains(&stem) {
+                                    continue;
+                                }
+                                seen_custom.insert(stem.clone());
                                 let leaked: &str = Box::leak(stem.into_boxed_str());
                                 entries.push((leaked, "(custom)".to_string()));
                             }

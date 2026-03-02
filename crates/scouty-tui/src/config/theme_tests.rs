@@ -79,6 +79,17 @@ mod tests {
             );
         }
     }
+
+    #[test]
+    fn all_builtins_have_non_empty_description() {
+        for (name, desc) in Theme::builtin_catalog() {
+            assert!(
+                !desc.is_empty(),
+                "builtin theme '{}' has empty description",
+                name
+            );
+        }
+    }
 }
 
 mod no_ansi16_tests {
