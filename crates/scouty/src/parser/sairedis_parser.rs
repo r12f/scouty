@@ -27,6 +27,7 @@ pub struct SairedisParser {
     last_get_context: RefCell<Option<String>>,
     /// Last component from a `g` (Get) operation.
     last_get_component: RefCell<Option<String>>,
+    /// Last context from a NotifySyncd (`a`) request, used to associate state with NotifySyncdResponse (`A`) operations.
     last_notify_context: RefCell<Option<String>>,
     /// Last context from a `q` (Query) operation.
     last_query_context: RefCell<Option<String>>,

@@ -564,7 +564,6 @@ mod tests {
     }
 
     #[test]
-    #[test]
     fn test_notify_syncd_response_inherits_context() {
         let p = SairedisParser::new();
         // First parse a NotifySyncd request to set context
@@ -591,6 +590,7 @@ mod tests {
         assert_eq!(r2.context.as_deref(), Some("INIT_VIEW"));
         assert_eq!(r2.message, "SAI_STATUS_SUCCESS");
     }
+    #[test]
 
     fn test_notify_syncd_response_status_extraction() {
         let p = SairedisParser::new();
