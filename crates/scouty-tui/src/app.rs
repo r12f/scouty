@@ -95,6 +95,7 @@ impl Column {
     }
 
     /// Minimum width for this column (cannot shrink below this).
+    #[allow(dead_code)]
     pub fn min_width(&self) -> u16 {
         match self {
             Column::Time => 19,
