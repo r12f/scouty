@@ -78,7 +78,7 @@ By defining **pre-built region definitions** for common SONiC port operations, s
 
 These region definitions are delivered as an **external YAML configuration file** stored in the scouty source tree under `src/scouty-config/sonic/`. They are **not compiled into the binary** and do not modify any Rust code.
 
-- Source location: `src/scouty-config/sonic/port-operations.yaml`
+- Source location: `src/scouty-config/sonic/regions/port-operations.yaml`
 - All 6 region definitions are in a single YAML file
 - Users deploy the file by copying it to one of scouty's standard region config directories (`/etc/scouty/regions/`, `~/.scouty/regions/`, or `./scouty-regions/`)
 - No code changes to `region/config.rs` or any other Rust source are required
