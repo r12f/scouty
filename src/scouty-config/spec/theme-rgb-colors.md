@@ -57,3 +57,15 @@ Users with custom terminal themes (Solarized, Dracula, Gruvbox, etc.) see incorr
 ## Open Questions
 
 None
+
+---
+
+## Addendum: New Theme Field — density_tick (2026-03-02)
+
+Added `density_tick` to the StatusBar theme section for density chart tick marks.
+
+| Field | Default | Purpose |
+|-------|---------|---------|
+| `density_tick` | `#3B4252` | Subtle tick marks every 10 columns on the density chart X-axis |
+
+All built-in themes (default, ocean, forest, sakura) must include this field.
