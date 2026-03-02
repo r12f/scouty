@@ -754,6 +754,19 @@ mod tests {
     }
 
     #[test]
+    fn test_query_response_component_cleared_without_prior_query() {
+        let p = SairedisParser::new();
+
+        // No prior 'q' — component should be None
+        let qr = parse(
+            &p,
+            "2025-05-18.06:38:35.611000|Q|SAI_STATUS_SUCCESS|attr=val",
+        )
+        .unwrap();
+        assert!(qr.component_name.is_none());
+    }
+
+    #[test]
     fn test_query_response_component_propagation() {
         let p = SairedisParser::new();
 
