@@ -27,6 +27,7 @@ pub struct SairedisParser {
     last_get_context: RefCell<Option<String>>,
     /// Last component from a `g` (Get) operation.
     last_get_component: RefCell<Option<String>>,
+    last_notify_context: RefCell<Option<String>>,
     /// Last context from a `q` (Query) operation.
     last_query_context: RefCell<Option<String>>,
     /// Last component from a `q` (Query) operation.
@@ -44,6 +45,7 @@ impl SairedisParser {
         Self {
             last_get_context: RefCell::new(None),
             last_get_component: RefCell::new(None),
+            last_notify_context: RefCell::new(None),
             last_query_context: RefCell::new(None),
             last_query_component: RefCell::new(None),
         }
@@ -197,12 +199,14 @@ impl SairedisParser {
             // NotifySyncd request: a (key = INIT_VIEW, APPLY_VIEW, etc.)
             b'a' => {
                 let key = str_from_bytes(detail);
+                *self.last_notify_context.borrow_mut() = Some(key.clone());
                 ("NotifySyncd".to_string(), None, Some(key.clone()), key)
             }
             // NotifySyncd response: A (SAI status code)
             b'A' => {
                 let status = str_from_bytes(detail);
-                ("NotifySyncdResponse".to_string(), None, None, status)
+                let ctx = self.last_notify_context.borrow().clone();
+                ("NotifySyncdResponse".to_string(), None, ctx, status)
             }
             // Unknown op code: graceful fallback
             _ => {

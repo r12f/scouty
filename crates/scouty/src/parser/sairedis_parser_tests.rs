@@ -564,6 +564,34 @@ mod tests {
     }
 
     #[test]
+    #[test]
+    fn test_notify_syncd_response_inherits_context() {
+        let p = SairedisParser::new();
+        // First parse a NotifySyncd request to set context
+        let r1 = p
+            .parse(
+                "2025-01-15.10:30:45.123456|a|INIT_VIEW",
+                "test",
+                "loader",
+                1,
+            )
+            .unwrap();
+        assert_eq!(r1.context.as_deref(), Some("INIT_VIEW"));
+
+        // Then parse a NotifySyncdResponse - should inherit context
+        let r2 = p
+            .parse(
+                "2025-01-15.10:30:45.123457|A|SAI_STATUS_SUCCESS",
+                "test",
+                "loader",
+                2,
+            )
+            .unwrap();
+        assert_eq!(r2.function.as_deref(), Some("NotifySyncdResponse"));
+        assert_eq!(r2.context.as_deref(), Some("INIT_VIEW"));
+        assert_eq!(r2.message, "SAI_STATUS_SUCCESS");
+    }
+
     fn test_notify_syncd_response_status_extraction() {
         let p = SairedisParser::new();
         let r = p
