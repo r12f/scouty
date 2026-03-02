@@ -182,7 +182,10 @@ impl StatusBarWidget {
 
         let raw_chart_width = area.width.saturating_sub(right_width + follow_width + 2) as usize;
         // Reserve space for dim tick marks inserted every 10 braille chars.
-        let chart_width = crate::density::chart_width_for_available(raw_chart_width, 10);
+        let chart_width = crate::density::chart_width_for_available(
+            raw_chart_width,
+            crate::density::TICK_INTERVAL,
+        );
 
         let mut spans: Vec<Span> = Vec::new();
 
@@ -227,11 +230,11 @@ impl StatusBarWidget {
                 let cursor_char_idx = app.cursor_char_in_density();
 
                 // Dim tick mark every 10 braille chars for visual counting
-                const TICK_INTERVAL: usize = 10;
+                let tick_interval = crate::density::TICK_INTERVAL;
                 let tick_style = theme.status_bar.density_tick.to_style();
 
                 for (i, ch) in cache.braille_text.chars().enumerate() {
-                    if i > 0 && i % TICK_INTERVAL == 0 {
+                    if i > 0 && i % tick_interval == 0 {
                         spans.push(Span::styled("\u{250a}", tick_style));
                     }
 

@@ -181,6 +181,8 @@ pub fn render_braille(
 
     (result, cursor_char_idx)
 }
+/// Default tick-mark interval for density charts (one tick every N braille chars).
+pub const TICK_INTERVAL: usize = 10;
 
 /// Compute the effective chart width (braille chars) that fits within
 /// `available` display columns, accounting for tick marks every `interval`.
@@ -188,9 +190,17 @@ pub fn chart_width_for_available(available: usize, interval: usize) -> usize {
     if interval == 0 || available <= interval {
         return available;
     }
-    // Solve: n + (n-1)/interval <= available
-    // Approximate: n <= (available * interval + 1) / (interval + 1)
-    (available * interval + 1) / (interval + 1)
+    // Exact: find largest n where n + floor((n-1)/interval) <= available.
+    let mut n = (available * interval + 1) / (interval + 1);
+    // Try to increase n while the total (braille + ticks) still fits.
+    while n + (n.saturating_sub(1)) / interval < available {
+        n += 1;
+    }
+    // Back off if we overshot.
+    while n > 0 && n + (n.saturating_sub(1)) / interval > available {
+        n -= 1;
+    }
+    n
 }
 
 #[cfg(test)]

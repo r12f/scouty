@@ -656,7 +656,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             };
             let right_width = position.len() as u16 + 2;
             let label_reserve: u16 = 15;
-            let chart_width = term_width.saturating_sub(right_width + label_reserve + 2) as usize;
+            let raw_chart_width =
+                term_width.saturating_sub(right_width + label_reserve + 2) as usize;
+            let chart_width = crate::density::chart_width_for_available(
+                raw_chart_width,
+                crate::density::TICK_INTERVAL,
+            );
             if chart_width >= 4 && main_window.app.total() > 0 {
                 main_window.app.get_density_cache(chart_width);
             }
