@@ -247,3 +247,75 @@ mod tests {
         assert_eq!(hints[0], ("Tab/S-Tab", "Switch"));
     }
 }
+
+#[cfg(test)]
+mod bookmark_display_tests {
+    use crate::ui::widgets::status_bar_widget::StatusBarWidget;
+    use unicode_width::UnicodeWidthStr;
+
+    #[test]
+    fn test_build_right_text_no_bookmarks() {
+        let result = StatusBarWidget::build_right_text("1/100", 0);
+        assert_eq!(result, " 1/100 ");
+    }
+
+    #[test]
+    fn test_build_right_text_with_bookmarks() {
+        let result = StatusBarWidget::build_right_text("1/100", 3);
+        assert_eq!(result, " ★3 | 1/100 ");
+    }
+
+    #[test]
+    fn test_build_right_text_with_bookmarks_single() {
+        let result = StatusBarWidget::build_right_text("42/500", 1);
+        assert_eq!(result, " ★1 | 42/500 ");
+    }
+
+    #[test]
+    fn test_build_right_text_trims_position() {
+        // position passed with surrounding spaces should be trimmed in bookmark branch
+        let result = StatusBarWidget::build_right_text(" 1/100 ", 2);
+        assert_eq!(result, " ★2 | 1/100 ");
+    }
+
+    #[test]
+    fn test_build_right_text_unicode_width_correct() {
+        // ★ is a fullwidth-ish character; verify display width is computed correctly
+        let result = StatusBarWidget::build_right_text("1/10", 5);
+        let display_width = UnicodeWidthStr::width(result.as_str());
+        // " ★5 | 1/10 " — each char's display width should sum correctly
+        // ' '=1, '★'=1, '5'=1, ' '=1, '|'=1, ' '=1, '1'=1, '/'=1, '1'=1, '0'=1, ' '=1 = 12
+        // but ★ may be width 1 or 2 depending on unicode-width version
+        assert!(display_width > 0);
+        // Crucially, display_width should differ from byte length since ★ is multi-byte
+        assert_ne!(
+            display_width,
+            result.len(),
+            "display width should differ from byte length due to ★"
+        );
+    }
+
+    #[test]
+    fn test_build_right_text_pipe_separator_present() {
+        let result = StatusBarWidget::build_right_text("1/100", 2);
+        assert!(
+            result.contains(" | "),
+            "should contain pipe separator when bookmarks present"
+        );
+    }
+
+    #[test]
+    fn test_build_right_text_pipe_separator_absent() {
+        let result = StatusBarWidget::build_right_text("1/100", 0);
+        assert!(
+            !result.contains("|"),
+            "should not contain pipe when no bookmarks"
+        );
+    }
+
+    #[test]
+    fn test_build_right_text_star_format() {
+        let result = StatusBarWidget::build_right_text("1/100", 42);
+        assert!(result.contains("★42"), "should contain ★N format");
+    }
+}

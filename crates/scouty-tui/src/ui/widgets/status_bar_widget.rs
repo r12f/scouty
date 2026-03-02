@@ -28,6 +28,16 @@ fn spans_display_width(spans: &[Span]) -> usize {
 }
 
 impl StatusBarWidget {
+    /// Build the right-side text for line 1 (position + optional bookmark indicator).
+    pub fn build_right_text(position: &str, bookmark_count: usize) -> String {
+        if bookmark_count > 0 {
+            let bookmark_text = format!("★{}", bookmark_count);
+            format!(" {} | {} ", bookmark_text, position.trim())
+        } else {
+            format!(" {} ", position)
+        }
+    }
+
     /// Return the shortcut hints for the current mode/panel state.
     pub fn shortcut_hints(
         panel_focused: bool,
@@ -156,18 +166,7 @@ impl StatusBarWidget {
             }
         };
 
-        let bookmark_text = if !app.bookmarks.is_empty() {
-            format!("★{}", app.bookmarks.len())
-        } else {
-            String::new()
-        };
-
-        let position_text = format!(" {} ", position);
-        let right_text = if bookmark_text.is_empty() {
-            position_text.clone()
-        } else {
-            format!(" {} | {} ", bookmark_text, position.trim())
-        };
+        let right_text = Self::build_right_text(&position, app.bookmarks.len());
         let right_width = UnicodeWidthStr::width(right_text.as_str()) as u16;
 
         // Account for follow indicator width in chart space
@@ -238,7 +237,7 @@ impl StatusBarWidget {
 
         let used_width = spans_display_width(&spans);
         let total_width = area.width as usize;
-        let right_len = right_text.len();
+        let right_len = UnicodeWidthStr::width(right_text.as_str());
         if used_width + right_len < total_width {
             let pad = total_width - used_width - right_len;
             spans.push(Span::styled(
