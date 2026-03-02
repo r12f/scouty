@@ -82,7 +82,7 @@ mod tests {
 
     #[test]
     fn all_builtins_have_non_empty_description() {
-        for (name, desc) in Theme::builtin_catalog() {
+        for (name, desc) in Theme::builtin_descriptions() {
             assert!(
                 !desc.is_empty(),
                 "builtin theme '{}' has empty description",

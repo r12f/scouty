@@ -301,7 +301,7 @@ ssh:
     .to_string()
 }
 
-/// Generate a built-in theme as commented YAML for `--generate-theme`.
+/// Generate a built-in theme as commented YAML for `--theme-dump`.
 /// Returns `None` if the theme name is unknown.
 pub fn generate_theme(name: &str) -> Option<String> {
     let theme = Theme::builtin(name)?;

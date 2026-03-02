@@ -124,9 +124,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 eprintln!("  --follow, -f      Follow file for new data (like tail -f)");
                 eprintln!("  --log [level]     Enable logging to ~/.scouty/log/ (default: info)");
                 eprintln!("  --generate-config          Generate default config to stdout");
-                eprintln!(
-                    "  --generate-theme <name>    Generate built-in theme to stdout (or 'list')"
-                );
+                eprintln!("  --theme-dump <name>        Dump built-in theme as YAML to stdout");
                 eprintln!("  --theme-list               List all available themes and exit");
                 eprintln!();
                 eprintln!("Pipe mode (auto when stdout is not a TTY):");
@@ -143,8 +141,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
             "--theme-list" => {
                 let builtins = config::Theme::builtin_descriptions();
-                let mut entries: Vec<(&str, String)> =
-                    builtins.iter().map(|(n, d)| (*n, d.to_string())).collect();
+                let mut entries: Vec<(String, String)> = builtins;
 
                 // Scan custom theme directories: system (/etc/scouty/themes/) and
                 // user (~/.scouty/themes/), matching the search order used by
@@ -181,8 +178,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                     continue;
                                 }
                                 seen_custom.insert(stem.clone());
-                                let leaked: &str = Box::leak(stem.into_boxed_str());
-                                entries.push((leaked, "(custom)".to_string()));
+
+                                // Try to read description from the theme YAML file
+                                let desc = std::fs::read_to_string(entry.path())
+                                    .ok()
+                                    .and_then(|content| config::Theme::from_yaml(&content).ok())
+                                    .and_then(|t| t.description)
+                                    .unwrap_or_else(|| "(custom)".to_string());
+                                entries.push((stem, desc));
                             }
                         }
                     }
@@ -200,7 +203,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 print!("{}", config::generate_default_config());
                 std::process::exit(0);
             }
-            "--generate-theme" => {
+            "--theme-dump" => {
                 if i + 1 < args.len() {
                     let name = &args[i + 1];
                     if name == "list" {
@@ -223,12 +226,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         }
                     }
                 } else {
-                    eprintln!("Error: --generate-theme requires a theme name (or 'list')");
+                    eprintln!("Error: --theme-dump requires a theme name (or 'list')");
                     std::process::exit(1);
                 }
             }
-            arg if arg.starts_with("--generate-theme=") => {
-                let name = arg.trim_start_matches("--generate-theme=");
+            arg if arg.starts_with("--theme-dump=") => {
+                let name = arg.trim_start_matches("--theme-dump=");
                 if name == "list" {
                     for t in config::Theme::builtin_names() {
                         println!("{}", t);

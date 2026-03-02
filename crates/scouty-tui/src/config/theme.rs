@@ -375,6 +375,9 @@ impl Default for PanelTabTheme {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Theme {
+    /// Optional human-readable description for theme listing.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
     pub log_levels: LogLevelTheme,
     pub table: TableTheme,
     pub status_bar: StatusBarTheme,
@@ -390,6 +393,7 @@ pub struct Theme {
 impl Default for Theme {
     fn default() -> Self {
         Self {
+            description: Some("Balanced dark theme with soft, modern colors".to_string()),
             log_levels: LogLevelTheme::default(),
             table: TableTheme::default(),
             status_bar: StatusBarTheme::default(),
@@ -433,61 +437,42 @@ impl Theme {
         }
     }
 
-    /// Single source of truth for all built-in theme names and descriptions.
-    pub fn builtin_catalog() -> &'static [(&'static str, &'static str)] {
-        &[
-            ("default", "Balanced dark theme with soft, modern colors"),
-            ("dark", "Muted dark theme — lower contrast, softer colors"),
-            (
-                "light",
-                "Light background with dark text for bright environments",
-            ),
-            (
-                "solarized",
-                "Ethan Schoonover’s solarized palette, warm and precise",
-            ),
-            (
-                "landmine",
-                "Jirai Kei aesthetic — black and pink with bold accents",
-            ),
-            (
-                "mizuiro",
-                "Clear, transparent aqua theme with cool blue tones",
-            ),
-            (
-                "amai",
-                "Sweet Lolita — dreamy pastel pink and soft lavender",
-            ),
-            (
-                "maid",
-                "Classic maid — black & white high contrast with wine red",
-            ),
-            ("gyaru", "Shibuya bold — gold and hot pink glamour"),
-        ]
-    }
+    /// All built-in theme names in display order.
+    const BUILTIN_NAMES: &'static [&'static str] = &[
+        "default",
+        "dark",
+        "light",
+        "solarized",
+        "landmine",
+        "mizuiro",
+        "amai",
+        "maid",
+        "gyaru",
+    ];
 
     /// List all built-in theme names.
     pub fn builtin_names() -> Vec<&'static str> {
-        Self::builtin_catalog().iter().map(|(n, _)| *n).collect()
+        Self::BUILTIN_NAMES.to_vec()
     }
 
     /// Return (name, description) pairs for all built-in themes.
-    pub fn builtin_descriptions() -> &'static [(&'static str, &'static str)] {
-        Self::builtin_catalog()
-    }
-
-    /// Get the description for a built-in theme.
-    pub fn builtin_description(name: &str) -> Option<&'static str> {
-        Self::builtin_catalog()
+    /// Descriptions come from the `description` field on each Theme struct.
+    pub fn builtin_descriptions() -> Vec<(String, String)> {
+        Self::BUILTIN_NAMES
             .iter()
-            .find(|(n, _)| *n == name)
-            .map(|(_, d)| *d)
+            .filter_map(|name| {
+                let theme = Self::builtin(name)?;
+                let desc = theme.description.unwrap_or_default();
+                Some((name.to_string(), desc))
+            })
+            .collect()
     }
 
     /// Muted dark theme — lower contrast, softer colors.
     pub fn dark() -> Self {
         use Color::*;
         Self {
+            description: Some("Muted dark theme — lower contrast, softer colors".to_string()),
             log_levels: LogLevelTheme {
                 fatal: StyleEntry::fg_bold(Red),
                 error: StyleEntry::fg(Rgb(205, 92, 92)),
@@ -571,6 +556,9 @@ impl Theme {
     pub fn light() -> Self {
         use Color::*;
         Self {
+            description: Some(
+                "Light background with dark text for bright environments".to_string(),
+            ),
             log_levels: LogLevelTheme {
                 fatal: StyleEntry::fg_bold(Rgb(180, 0, 0)),
                 error: StyleEntry::fg(Rgb(180, 0, 0)),
@@ -666,6 +654,7 @@ impl Theme {
         let green = Rgb(133, 153, 0);
 
         Self {
+            description: Some("Ethan Schoonover's solarized palette, warm and precise".to_string()),
             log_levels: LogLevelTheme {
                 fatal: StyleEntry::fg_bold(red),
                 error: StyleEntry::fg(red),
@@ -765,6 +754,7 @@ impl Theme {
         let light_text = Rgb(200, 200, 200); // #C8C8C8
 
         Self {
+            description: Some("Jirai Kei aesthetic — black and pink with bold accents".to_string()),
             log_levels: LogLevelTheme {
                 fatal: StyleEntry::fg_bold(bright_pink),
                 error: StyleEntry::fg(rose_pink),
@@ -882,6 +872,7 @@ impl Theme {
         let amber_warn = Rgb(232, 167, 78); // #E8A74E
 
         Self {
+            description: Some("Clear, transparent aqua theme with cool blue tones".to_string()),
             log_levels: LogLevelTheme {
                 fatal: StyleEntry::fg_bold(coral_accent),
                 error: StyleEntry::fg(Rgb(207, 107, 94)), // #CF6B5E
@@ -1000,6 +991,7 @@ impl Theme {
         let position_fg = Rgb(212, 178, 212); // #D4B2D4
 
         Self {
+            description: Some("Sweet Lolita — dreamy pastel pink and soft lavender".to_string()),
             log_levels: LogLevelTheme {
                 fatal: StyleEntry::fg_bold(hot_pink),
                 error: StyleEntry::fg(Rgb(232, 90, 122)), // #E85A7A
@@ -1113,6 +1105,9 @@ impl Theme {
         let amber_warn = Rgb(212, 160, 80); // #D4A050
 
         Self {
+            description: Some(
+                "Classic maid — black & white high contrast with wine red".to_string(),
+            ),
             log_levels: LogLevelTheme {
                 fatal: StyleEntry::fg_bold(bright_red),
                 error: StyleEntry::fg(wine_red),
@@ -1227,6 +1222,7 @@ impl Theme {
         let selected_bg = Rgb(58, 40, 24); // #3A2818
 
         Self {
+            description: Some("Shibuya bold — gold and hot pink glamour".to_string()),
             log_levels: LogLevelTheme {
                 fatal: StyleEntry::fg_bold(hot_pink),
                 error: StyleEntry::fg(Rgb(255, 105, 180)), // #FF69B4
