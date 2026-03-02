@@ -434,6 +434,7 @@ mod ui_legacy_tests {
             detail_panel_ratio: 0.3,
             detail_tree_cursor: 0,
             detail_tree_collapsed: std::collections::HashSet::new(),
+            detail_horizontal_offset: 0,
             panel_state: crate::panel::PanelState::default(),
             input_mode: InputMode::Normal,
             filter_input: TextInput::new(),

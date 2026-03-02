@@ -13,6 +13,20 @@ use scouty::record::{ExpandedField, ExpandedValue};
 use crate::ui::widgets::log_table_widget::level_style;
 use ratatui::style::Modifier;
 use ratatui::text::{Line, Span};
+
+/// Return the substring starting at char index `start`, taking up to `max_chars` characters.
+fn safe_char_slice(s: &str, start: usize, max_chars: Option<usize>) -> String {
+    let iter = s.chars().skip(start);
+    match max_chars {
+        Some(n) => iter.take(n).collect(),
+        None => iter.collect(),
+    }
+}
+
+/// Return the number of characters (not bytes) in the string.
+fn char_len(s: &str) -> usize {
+    s.chars().count()
+}
 use ratatui::widgets::{Block, Borders, Cell, Paragraph, Row, Table, Wrap};
 use ratatui::Frame;
 use std::collections::HashSet;
@@ -230,8 +244,6 @@ pub struct DetailPanelWidget;
 
 /// Minimum total width to show split layout.
 const MIN_SPLIT_WIDTH: u16 = 40;
-/// Max value display length before truncation.
-const MAX_VALUE_LEN: usize = 60;
 
 impl DetailPanelWidget {
     pub fn render_with_app(&self, frame: &mut Frame, area: Rect, app: &App) {
@@ -301,6 +313,7 @@ impl DetailPanelWidget {
                 app.detail_tree_cursor,
                 detail_has_focus,
                 theme,
+                app.detail_horizontal_offset,
             );
         } else {
             // Show message field (not raw line — raw duplicates fields already in right pane).
@@ -319,13 +332,22 @@ impl DetailPanelWidget {
         // Right pane: fields table
         let pairs = build_field_pairs(record);
         let label_style = theme.detail_panel.field_name.to_style();
+        let h_offset = app.detail_horizontal_offset;
         let rows: Vec<Row> = pairs
             .into_iter()
             .map(|(key, val)| {
-                let val_cell = if key == "Level" {
-                    Cell::from(Span::styled(val, level_style(record.level, theme)))
+                let val_char_len = char_len(&val);
+                let display_val = if h_offset > 0 && h_offset < val_char_len {
+                    safe_char_slice(&val, h_offset, None)
+                } else if h_offset >= val_char_len && !val.is_empty() && h_offset > 0 {
+                    String::new()
                 } else {
-                    Cell::from(val)
+                    val.clone()
+                };
+                let val_cell = if key == "Level" {
+                    Cell::from(Span::styled(display_val, level_style(record.level, theme)))
+                } else {
+                    Cell::from(display_val)
                 };
                 Row::new(vec![Cell::from(Span::styled(key, label_style)), val_cell])
             })
@@ -348,6 +370,7 @@ impl DetailPanelWidget {
         cursor: usize,
         focused: bool,
         theme: &Theme,
+        h_offset: usize,
     ) {
         let visible_rows = area.height as usize;
         if nodes.is_empty() || visible_rows == 0 {
@@ -384,21 +407,26 @@ impl DetailPanelWidget {
             };
 
             let line_text = if let Some(ref val) = node.value {
-                let truncated = if val.len() > MAX_VALUE_LEN {
-                    format!("{}…", &val[..MAX_VALUE_LEN])
-                } else {
-                    val.clone()
-                };
-                format!("{}{}{}: {}", indent, indicator, node.label, truncated)
+                format!("{}{}{}: {}", indent, indicator, node.label, val)
             } else {
                 format!("{}{}{}", indent, indicator, node.label)
             };
 
-            // Pad/truncate to width
-            let display = if line_text.len() > width {
-                format!("{}…", &line_text[..width.saturating_sub(1)])
+            // Apply horizontal scroll offset
+            let line_char_len = char_len(&line_text);
+            let display = if h_offset >= line_char_len {
+                String::new()
             } else {
-                line_text
+                let sliced = safe_char_slice(&line_text, h_offset, None);
+                let sliced_char_len = char_len(&sliced);
+                if sliced_char_len > width {
+                    format!(
+                        "{}…",
+                        safe_char_slice(&sliced, 0, Some(width.saturating_sub(1)))
+                    )
+                } else {
+                    sliced
+                }
             };
 
             let style = if is_selected {

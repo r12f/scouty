@@ -247,6 +247,8 @@ pub struct App {
     pub detail_tree_cursor: usize,
     /// Detail panel: set of collapsed node indices (path-based keys).
     pub detail_tree_collapsed: std::collections::HashSet<String>,
+    /// Detail panel: horizontal scroll offset (columns).
+    pub detail_horizontal_offset: usize,
     /// Panel system state.
     pub panel_state: crate::panel::PanelState,
     /// Current input mode.
@@ -568,6 +570,7 @@ impl App {
             detail_panel_ratio: 0.3,
             detail_tree_cursor: 0,
             detail_tree_collapsed: std::collections::HashSet::new(),
+            detail_horizontal_offset: 0,
             panel_state: crate::panel::PanelState::default(),
             input_mode: InputMode::Normal,
             filter_input: TextInput::new(),
@@ -1742,6 +1745,16 @@ impl App {
         self.detail_tree_collapsed.clear();
     }
 
+    /// Scroll detail panel right by a few columns.
+    pub fn detail_scroll_right(&mut self) {
+        self.detail_horizontal_offset = self.detail_horizontal_offset.saturating_add(4);
+    }
+
+    /// Scroll detail panel left by a few columns.
+    pub fn detail_scroll_left(&mut self) {
+        self.detail_horizontal_offset = self.detail_horizontal_offset.saturating_sub(4);
+    }
+
     /// Create a quick filter from the current tree leaf node.
     pub fn detail_tree_quick_filter(&mut self) {
         let nodes = self.detail_flat_nodes();
@@ -2110,6 +2123,7 @@ mod tests {
             detail_panel_ratio: 0.3,
             detail_tree_cursor: 0,
             detail_tree_collapsed: std::collections::HashSet::new(),
+            detail_horizontal_offset: 0,
             panel_state: crate::panel::PanelState::default(),
             input_mode: InputMode::Normal,
             filter_input: TextInput::new(),
@@ -2184,6 +2198,7 @@ mod tests {
             detail_panel_ratio: 0.3,
             detail_tree_cursor: 0,
             detail_tree_collapsed: std::collections::HashSet::new(),
+            detail_horizontal_offset: 0,
             panel_state: crate::panel::PanelState::default(),
             input_mode: InputMode::Normal,
             filter_input: TextInput::new(),
@@ -2255,6 +2270,7 @@ mod tests {
             detail_panel_ratio: 0.3,
             detail_tree_cursor: 0,
             detail_tree_collapsed: std::collections::HashSet::new(),
+            detail_horizontal_offset: 0,
             panel_state: crate::panel::PanelState::default(),
             input_mode: InputMode::Normal,
             filter_input: TextInput::new(),
@@ -2737,6 +2753,42 @@ mod tests {
             max_char
         );
     }
+
+    #[test]
+    fn test_detail_scroll_right_increases_offset() {
+        let mut app = make_app(5);
+        assert_eq!(app.detail_horizontal_offset, 0);
+        app.detail_scroll_right();
+        assert_eq!(app.detail_horizontal_offset, 4);
+        app.detail_scroll_right();
+        assert_eq!(app.detail_horizontal_offset, 8);
+    }
+
+    #[test]
+    fn test_detail_scroll_left_decreases_offset() {
+        let mut app = make_app(5);
+        app.detail_horizontal_offset = 8;
+        app.detail_scroll_left();
+        assert_eq!(app.detail_horizontal_offset, 4);
+        app.detail_scroll_left();
+        assert_eq!(app.detail_horizontal_offset, 0);
+    }
+
+    #[test]
+    fn test_detail_scroll_left_does_not_underflow() {
+        let mut app = make_app(5);
+        assert_eq!(app.detail_horizontal_offset, 0);
+        app.detail_scroll_left();
+        assert_eq!(app.detail_horizontal_offset, 0);
+    }
+
+    #[test]
+    fn test_detail_scroll_left_partial_saturate() {
+        let mut app = make_app(5);
+        app.detail_horizontal_offset = 2;
+        app.detail_scroll_left();
+        assert_eq!(app.detail_horizontal_offset, 0);
+    }
 }
 
 #[cfg(test)]
@@ -2781,6 +2833,7 @@ mod field_filter_v2_tests {
             detail_panel_ratio: 0.3,
             detail_tree_cursor: 0,
             detail_tree_collapsed: std::collections::HashSet::new(),
+            detail_horizontal_offset: 0,
             panel_state: crate::panel::PanelState::default(),
             input_mode: InputMode::Normal,
             filter_input: TextInput::new(),
@@ -2978,6 +3031,7 @@ mod column_follow_tests {
             detail_panel_ratio: 0.3,
             detail_tree_cursor: 0,
             detail_tree_collapsed: std::collections::HashSet::new(),
+            detail_horizontal_offset: 0,
             panel_state: crate::panel::PanelState::default(),
             input_mode: InputMode::Normal,
             filter_input: TextInput::new(),
@@ -3332,6 +3386,7 @@ mod copy_tests {
             detail_panel_ratio: 0.3,
             detail_tree_cursor: 0,
             detail_tree_collapsed: std::collections::HashSet::new(),
+            detail_horizontal_offset: 0,
             panel_state: crate::panel::PanelState::default(),
             input_mode: InputMode::Normal,
             filter_input: TextInput::new(),
@@ -3514,6 +3569,7 @@ mod time_jump_tests {
             detail_panel_ratio: 0.3,
             detail_tree_cursor: 0,
             detail_tree_collapsed: std::collections::HashSet::new(),
+            detail_horizontal_offset: 0,
             panel_state: crate::panel::PanelState::default(),
             input_mode: InputMode::Normal,
             filter_input: TextInput::new(),
@@ -3659,6 +3715,7 @@ mod command_tests {
             detail_panel_ratio: 0.3,
             detail_tree_cursor: 0,
             detail_tree_collapsed: std::collections::HashSet::new(),
+            detail_horizontal_offset: 0,
             panel_state: crate::panel::PanelState::default(),
             input_mode: InputMode::Normal,
             filter_input: TextInput::new(),
