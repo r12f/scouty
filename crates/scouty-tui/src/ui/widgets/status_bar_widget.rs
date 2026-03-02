@@ -52,20 +52,36 @@ impl StatusBarWidget {
         }
     }
 
-    /// Snap a raw ms-per-bucket value up to the nearest standard interval.
-    /// Standard intervals: 5s, 15s, 30s, 5m, 15m, 30m, 1h, 2h, 6h, 12h, 24h.
-    /// Values below 5s are returned as-is (milliseconds).
+    /// Snap a raw ms-per-bucket value up to the nearest human-friendly interval.
+    ///
+    /// Covers the full range from sub-millisecond to 24h+:
+    /// - Sub-second: 1ms, 2ms, 5ms, 10ms, 20ms, 50ms, 100ms, 200ms, 500ms
+    /// - Seconds: 1s, 2s, 5s, 10s, 15s, 30s
+    /// - Minutes: 1m, 2m, 5m, 10m, 15m, 30m
+    /// - Hours: 1h, 2h, 6h, 12h, 24h
+    ///
+    /// Values beyond 24h are returned as-is.
     fn snap_to_standard(ms: f64) -> f64 {
-        // Only snap values >= 5s; below that show raw milliseconds
-        if ms < 5_000.0 {
-            return ms;
-        }
         const INTERVALS_MS: &[f64] = &[
+            1.0,          // 1ms
+            2.0,          // 2ms
+            5.0,          // 5ms
+            10.0,         // 10ms
+            20.0,         // 20ms
+            50.0,         // 50ms
+            100.0,        // 100ms
+            200.0,        // 200ms
+            500.0,        // 500ms
+            1_000.0,      // 1s
+            2_000.0,      // 2s
             5_000.0,      // 5s
+            10_000.0,     // 10s
             15_000.0,     // 15s
             30_000.0,     // 30s
             60_000.0,     // 1m
+            120_000.0,    // 2m
             300_000.0,    // 5m
+            600_000.0,    // 10m
             900_000.0,    // 15m
             1_800_000.0,  // 30m
             3_600_000.0,  // 1h
