@@ -2,8 +2,8 @@
 //!
 //! Supports layered config loading:
 //! 1. Built-in defaults (compiled in)
-//! 2. `/etc/scouty/config.yaml` (system-wide, if exists)
-//! 3. `~/.scouty/config.yaml` (per-user, if exists)
+//! 2. System config (Linux/macOS: `/etc/scouty/`, Windows: `%PROGRAMDATA%\scouty\`)
+//! 3. User config (Linux/macOS: `~/.scouty/`, Windows: `%APPDATA%\scouty\`)
 //! 4. `./scouty.yaml` (local/project-level, if exists)
 //! 5. CLI flags (`--theme`, `--config`, file arguments)
 
@@ -115,14 +115,29 @@ pub fn expand_default_paths(patterns: &[String]) -> Vec<String> {
     results
 }
 
-/// Return the system-wide config directory: `/etc/scouty/`.
+/// Return the system-wide config directory.
+///
+/// - Linux/macOS: `/etc/scouty/`
+/// - Windows: `%PROGRAMDATA%\scouty\`
 pub fn system_config_dir() -> PathBuf {
+    if cfg!(target_os = "windows") {
+        if let Ok(program_data) = std::env::var("PROGRAMDATA") {
+            return PathBuf::from(program_data).join("scouty");
+        }
+    }
     PathBuf::from("/etc/scouty")
 }
 
-/// Return the scouty config directory: `~/.scouty/`.
+/// Return the per-user scouty config directory.
+///
+/// - Linux/macOS: `~/.scouty/`
+/// - Windows: `%APPDATA%\scouty\`
 pub fn config_dir() -> Option<PathBuf> {
-    dirs::home_dir().map(|h| h.join(".scouty"))
+    if cfg!(target_os = "windows") {
+        dirs::config_dir().map(|d| d.join("scouty"))
+    } else {
+        dirs::home_dir().map(|h| h.join(".scouty"))
+    }
 }
 
 /// Deep-merge two serde_yaml Values.
