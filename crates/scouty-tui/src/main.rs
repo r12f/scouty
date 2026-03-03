@@ -680,11 +680,21 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             None
         };
 
-    // Set up stdin streaming parser (for incremental stdin follow)
+    // Set up stdin streaming parser (for incremental stdin follow).
+    // Re-use sample_lines from the initial batch so the parser factory
+    // can content-sniff the format (e.g. syslog) instead of falling
+    // through to the plain-text fallback.
     let stdin_parser = if stdin_rx.is_some() {
         use scouty::traits::LogLoader;
         let loader = scouty::loader::stdin::StdinLoader::new();
-        let info = loader.info().clone();
+        let mut info = loader.info().clone();
+        info.sample_lines = main_window
+            .app
+            .records
+            .iter()
+            .take(10)
+            .map(|r| r.raw.clone())
+            .collect();
         Some((
             ParserFactory::create_parser_group(&info),
             info,
