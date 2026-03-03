@@ -105,10 +105,24 @@ keybindings:
 Configuration is loaded in layers. Each layer merges on top of the previous one (field-level override, not full replacement). Later layers take priority:
 
 1. **Built-in defaults** (compiled into binary, lowest priority)
-2. **System config** — `/etc/scouty/config.yaml` (if exists)
-3. **User config** — `~/.scouty/config.yaml` (if exists)
+2. **System config** (if exists)
+3. **User config** (if exists)
 4. **Local config** — `./scouty.yaml` in current working directory (if exists) — project-level overrides
 5. **CLI flags** (highest priority)
+
+#### Platform-Specific Paths
+
+| Layer | Linux / macOS | Windows |
+|-------|--------------|---------|
+| System config | `/etc/scouty/config.yaml` | `%PROGRAMDATA%\scouty\config.yaml` |
+| User config | `~/.scouty/config.yaml` | `%APPDATA%\scouty\config.yaml` |
+| System themes | `/etc/scouty/themes/` | `%PROGRAMDATA%\scouty\themes\` |
+| User themes | `~/.scouty/themes/` | `%APPDATA%\scouty\themes\` |
+| System regions | `/etc/scouty/regions/` | `%PROGRAMDATA%\scouty\regions\` |
+| User regions | `~/.scouty/regions/` | `%APPDATA%\scouty\regions\` |
+| Local config | `./scouty.yaml` | `./scouty.yaml` |
+
+Implementation: use `dirs::config_dir()` for user paths and `dirs::config_local_dir()` / env `PROGRAMDATA` for system paths. Priority order is identical across platforms.
    - `--theme <name>` overrides `theme`
    - `--config <path>` loads an additional config file after local config (overrides all file-based configs)
    - File arguments override `default_paths`
@@ -158,7 +172,7 @@ This overrides user and system configs for anyone running scouty in this directo
    - Glob patterns that match no files are silently skipped
    - If all paths resolve to no files → friendly error + usage hint
 6. Resolve theme (see theme spec for theme file format and built-in presets):
-   - Theme search order: `~/.scouty/themes/` → `/etc/scouty/themes/` → built-in presets
+   - Theme search order: user themes dir → system themes dir → built-in presets (see platform paths table)
    - Built-in name → use built-in theme
    - Custom theme file found → load and merge over default theme
    - Otherwise → warn and fall back to default
@@ -189,7 +203,9 @@ This overrides user and system configs for anyone running scouty in this directo
 - [ ] Local config priority: above user config, below CLI flags
 - [ ] All keybindings configurable via config file
 - [ ] Theme selected by name from config or `--theme` CLI flag
-- [ ] Theme search: `~/.scouty/themes/` → `/etc/scouty/themes/` → built-in
+- [ ] Theme search: user themes dir → system themes dir → built-in (platform-aware paths)
+- [ ] Windows paths use `%APPDATA%\scouty\` (user) and `%PROGRAMDATA%\scouty\` (system)
+- [ ] Region config paths are platform-aware (same priority order as config)
 - [ ] Partial config files work (missing fields use defaults)
 - [ ] Invalid config: warn to stderr and continue with defaults
 - [ ] All existing tests pass
@@ -207,3 +223,4 @@ This overrides user and system configs for anyone running scouty in this directo
 | 2026-02-23 | Added default_paths with glob support |
 | 2026-02-23 | Multi-profile config: built-in → /etc/scouty → ~/.scouty → CLI layered override |
 | 2026-02-24 | Added ./scouty.yaml local/project config (priority below CLI, above user config) |
+| 2026-03-03 | Added Windows config paths (%APPDATA%\\scouty\\, %PROGRAMDATA%\\scouty\\) |
