@@ -30,9 +30,8 @@ pub struct FilterPresetEntry {
 
 /// Directory for filter presets.
 fn presets_dir() -> PathBuf {
-    dirs::home_dir()
-        .unwrap_or_else(|| PathBuf::from("."))
-        .join(".scouty")
+    super::config_dir()
+        .unwrap_or_else(|| PathBuf::from(".").join(".scouty"))
         .join("filters")
 }
 

@@ -148,8 +148,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 // config::resolve_theme().
                 let mut custom_dirs: Vec<std::path::PathBuf> = Vec::new();
                 custom_dirs.push(config::system_config_dir().join("themes"));
-                if let Some(home) = dirs::home_dir() {
-                    custom_dirs.push(home.join(".scouty").join("themes"));
+                if let Some(dir) = config::config_dir() {
+                    custom_dirs.push(dir.join("themes"));
                 }
                 let mut seen_custom: std::collections::HashSet<String> =
                     std::collections::HashSet::new();
@@ -362,9 +362,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // ── Initialize tracing (only when --log is passed) ──
     let _tracing_guard = if let Some(ref level) = log_level {
-        let log_dir = dirs::home_dir()
-            .unwrap_or_else(|| std::path::PathBuf::from("."))
-            .join(".scouty")
+        let log_dir = config::config_dir()
+            .unwrap_or_else(|| std::path::PathBuf::from(".").join(".scouty"))
             .join("log");
         let _ = std::fs::create_dir_all(&log_dir);
 
