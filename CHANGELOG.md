@@ -1,5 +1,31 @@
 # Changelog
 
+## [0.3.3] - 2026-03-03
+
+### New Features
+
+- **6 built-in themes**: mizuiro (default), landmine, amai, maid, gyaru, dopamine — removed old default/dark/light/solarized
+- **`--theme-list`** CLI command: lists all available themes with descriptions
+- **`--theme-dump`** (renamed from `--generate-theme`): exports theme YAML with description field
+- **Theme description**: now a serde field in Theme struct, included in YAML export
+- **Windows config paths**: System (%PROGRAMDATA%\scouty\), User (%APPDATA%\scouty\)
+- **Density chart X-axis tick marks** with per-theme `density_tick` color
+- **Time jump millisecond support** (e.g. `500ms`)
+- **Status bar bookmark format**: simplified to ★N
+
+### Bug Fixes
+
+- Fix highlight colors becoming identical after deletion (#568)
+- Fix density chart time bucket alignment to human-friendly intervals (#533)
+- Fix help dialog PageUp/PageDown swap (#528)
+- Fix density tick review comments (chart_width formula, boundary tests) (#546)
+- Replace remaining ANSI 16 colors with RGB in default theme (#531)
+
+### Theme Changes
+
+- amai: darker background, brighter highlights
+- dopamine: lavender header, pure red CRIT, neon pink ERROR
+
 ## [0.3.0] - 2026-03-01
 
 ### New Features
