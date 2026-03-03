@@ -7,6 +7,7 @@
 //! | `A-Z` (month name) | BSD | `Nov 24 17:56:03 hostname process[pid]: msg` |
 //! | `0-9{4} ` (year+space) | Extended | `2025 Nov 24 17:56:03.073872 hostname LEVEL container#process[pid]: msg` |
 //! | `0-9{4}-` + `T` at pos 10 | ISO 8601 | `2025-11-24T17:56:03.073872-08:00 hostname process[pid]: msg` |
+//! | `0-9{4}-` + ` ` at pos 10 + `T` at pos 30 | Dual-timestamp | `2026-03-03 06:54:06 2026-03-01T00:00:39.241739-08:00 hostname process[pid]: msg` |
 //!
 //! All parsing is hand-written byte-level — zero regex dependency.
 
@@ -71,6 +72,16 @@ impl UnifiedSyslogParser {
             } else if b[4] == b'-' && b[10] == b'T' {
                 // ISO 8601: "YYYY-MM-DDT..."
                 self.parse_iso(b, raw, source, loader_id, id)
+            } else if b[4] == b'-' && b.len() > 30 && b[10] == b' ' && b[19] == b' ' {
+                // Dual-timestamp: "YYYY-MM-DD HH:MM:SS YYYY-MM-DDT..."
+                // Skip the prepended timestamp and parse the ISO portion
+                let rest = &b[20..];
+                if rest.len() >= 11 && rest[4] == b'-' && rest[10] == b'T' {
+                    let rest_str = &raw[20..];
+                    self.parse_iso(rest, rest_str, source, loader_id, id)
+                } else {
+                    None
+                }
             } else {
                 None
             }

@@ -356,4 +356,27 @@ mod tests {
             record.message
         );
     }
+
+    #[test]
+    fn test_dual_timestamp_syslog_detection() {
+        let info = text_loader_info(vec![
+            "2026-03-03 06:54:06 2026-03-01T00:00:39.241739-08:00 r12f-ms01 node[4152382]: Node.js v22.22.0".to_string(),
+            "2026-03-03 06:54:06 2026-02-15T00:00:08.954827-08:00 r12f-ms01 systemd[1]: rsyslog.service: Sent signal SIGHUP".to_string(),
+        ]);
+        let group = ParserFactory::create_parser_group(&info);
+
+        let record = group
+            .parse(
+                "2026-03-03 06:54:06 2026-03-01T00:00:39.241739-08:00 r12f-ms01 node[4152382]: Node.js v22.22.0",
+                "test",
+                "loader",
+                0,
+            )
+            .unwrap();
+
+        assert_eq!(record.hostname.as_deref(), Some("r12f-ms01"));
+        assert_eq!(record.process_name.as_deref(), Some("node"));
+        assert_eq!(record.pid, Some(4152382));
+        assert_eq!(record.message, "Node.js v22.22.0");
+    }
 }

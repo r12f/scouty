@@ -89,6 +89,12 @@ impl ParserFactory {
                         && b[8].is_ascii_digit()
                         && b[9].is_ascii_digit()
                         && !is_iso_followed_by_level(l)
+                } else if b[4] == b'-' && b.len() > 30 && b[10] == b' ' && b[19] == b' ' {
+                    // Dual-timestamp: "YYYY-MM-DD HH:MM:SS YYYY-MM-DDT..."
+                    b[0..4].iter().all(|c| c.is_ascii_digit())
+                        && b[20..24].iter().all(|c| c.is_ascii_digit())
+                        && b[24] == b'-'
+                        && b[30] == b'T'
                 } else {
                     false
                 }

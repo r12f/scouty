@@ -154,6 +154,47 @@ mod tests {
         assert!(r.pid.is_none());
     }
 
+    // ── Dual-timestamp format ────────────────────────────────────────────
+
+    #[test]
+    fn dual_timestamp_basic() {
+        let r = parse("2026-03-03 06:54:06 2026-03-01T00:00:39.241739-08:00 r12f-ms01 node[4152382]: Node.js v22.22.0").unwrap();
+        assert_eq!(r.hostname.as_deref(), Some("r12f-ms01"));
+        assert_eq!(r.process_name.as_deref(), Some("node"));
+        assert_eq!(r.pid, Some(4152382));
+        assert_eq!(r.message, "Node.js v22.22.0");
+        // Should use the ISO timestamp (not the prepended one)
+        assert_eq!(r.timestamp.hour(), 8); // 00:00:39 -08:00 = 08:00:39 UTC
+        assert_eq!(r.timestamp.minute(), 0);
+        assert_eq!(r.timestamp.second(), 39);
+    }
+
+    #[test]
+    fn dual_timestamp_systemd() {
+        let r = parse("2026-03-03 06:54:06 2026-02-15T00:00:08.954827-08:00 r12f-ms01 systemd[1]: rsyslog.service: Sent signal SIGHUP").unwrap();
+        assert_eq!(r.hostname.as_deref(), Some("r12f-ms01"));
+        assert_eq!(r.process_name.as_deref(), Some("systemd"));
+        assert_eq!(r.pid, Some(1));
+        assert!(r.message.starts_with("rsyslog.service:"));
+    }
+
+    #[test]
+    fn dual_timestamp_no_pid() {
+        let r = parse("2026-03-03 06:54:06 2026-03-01T10:30:00.000000Z myhost rsyslogd: HUPed")
+            .unwrap();
+        assert_eq!(r.process_name.as_deref(), Some("rsyslogd"));
+        assert!(r.pid.is_none());
+        assert_eq!(r.message, "HUPed");
+    }
+
+    #[test]
+    fn perf_dual_timestamp() {
+        perf_test(
+            "DualTS",
+            "2026-03-03 06:54:06 2026-03-01T00:00:39.241739-08:00 r12f-ms01 node[4152382]: Node.js v22.22.0",
+        );
+    }
+
     // ── Rejection tests ─────────────────────────────────────────────────
 
     #[test]
